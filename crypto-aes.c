@@ -2,7 +2,7 @@
 
 #define AES_ENCRYPT 1
 #define AES_DECRYPT 2
-#define AES_KEY_SIZE 64
+#define AES_KEY_SIZE 16
 
 
 static int trm_aes_operation(struct crypto_skcipher *tfm, struct skcipher_request *req, 
@@ -14,9 +14,10 @@ static int trm_aes_operation(struct crypto_skcipher *tfm, struct skcipher_reques
     u8 iv[16];  /* AES-256-XTS takes a 16-byte IV */
     int err;
 
+    printk(KERN_INFO PFX "Starting AES operation\n");
     err = crypto_skcipher_setkey(tfm, key, key_size);
     if (err) {
-        pr_err("Error setting key: %d\n", err);
+        pr_err(PFX "Error setting key: %d\n", err);
         goto out;
     }
 
@@ -65,9 +66,9 @@ int prepare_skcipher(uint8_t *key, void *data, size_t datasize, int mode) {
     * single encryption operation with it (which is not very efficient).
     */
 
-    tfm = crypto_alloc_skcipher("xts(aes)", 0, 0);
+    tfm = crypto_alloc_skcipher("gcm(aes)", 0, 0);
     if (IS_ERR(tfm)) {
-        pr_err("Error allocating xts(aes) handle: %ld\n", PTR_ERR(tfm));
+        pr_err("Error allocating gcm(aes) handle: %ld\n", PTR_ERR(tfm));
         return PTR_ERR(tfm);
     }
 
@@ -130,7 +131,7 @@ int trm_aes_self_test(void) {
         printk(KERN_INFO PFX "Plain(%d) -- %s\n", err, h4);
         kfree(h4);
     } else {
-        printk(KERN_INFO PFX "Encryption failed, skipp decryption.\n");
+        printk(KERN_INFO PFX "Encryption failed, skip decryption.\n");
     }
 
     kfree(key);

@@ -23,7 +23,6 @@ void SGX_UBRIDGE(SGX_NOCONVENTION, ocall_print, (const char* str));
 #endif
 
 sgx_status_t generate_random_number(sgx_enclave_id_t eid, int* retval);
-sgx_status_t handle_challenge_phase_1(sgx_enclave_id_t eid, sgx_status_t* retval, uint8_t* challenge_data, size_t challenge_length, uint8_t* response_data, size_t response_length);
 sgx_status_t seal(sgx_enclave_id_t eid, sgx_status_t* retval, uint8_t* plaintext, size_t plaintext_len, sgx_sealed_data_t* sealed_data, size_t sealed_size);
 sgx_status_t unseal(sgx_enclave_id_t eid, sgx_status_t* retval, sgx_sealed_data_t* sealed_data, size_t sealed_size, uint8_t* plaintext, uint32_t plaintext_len);
 

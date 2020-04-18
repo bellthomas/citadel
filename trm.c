@@ -130,7 +130,8 @@ static ssize_t response_receive(struct file *file, const char __user *buf, size_
     /* handling kaddr */
 out:
     kfree(data);
-    return error ? error : count;
+    return count;
+    // return error ? error : count;
 }
 
 static ssize_t challenge_read(struct file *file, char __user *buf, size_t count, loff_t *ppos) {
@@ -208,9 +209,9 @@ late_initcall(integrity_fs_init)
 
 
 static int __init crypto_init(void) {
-    int res;
+    int res, res2;
     res = trm_rsa_self_test();
-    res += trm_aes_self_test();
+    res2 = trm_aes_self_test();
     if(!res) {
         printk(KERN_INFO PFX "RSA support enabled.\n");
         rsa_available = 1;
