@@ -44,7 +44,9 @@ cat $LSM_DIR/rsa.enclave_key_pub >> $LSM_DIR/lsm_keys.h
 echo -e $KEY_HEADER > $LSM_DIR/daemon/enclave_core/enclave_keys.h 
 cat $LSM_DIR/rsa.enclave_key_priv >> $LSM_DIR/daemon/enclave_core/enclave_keys.h 
 cat $LSM_DIR/rsa.enclave_key_padded_pub >> $LSM_DIR/daemon/enclave_core/enclave_keys.h 
+cat $LSM_DIR/rsa.enclave_key_pub >> $LSM_DIR/daemon/enclave_core/enclave_keys.h 
 cat $LSM_DIR/rsa.lsm_key_padded_pub >> $LSM_DIR/daemon/enclave_core/enclave_keys.h 
+cat $LSM_DIR/rsa.lsm_key_pub >> $LSM_DIR/daemon/enclave_core/enclave_keys.h 
 
 rm $LSM_DIR/rsa.*
 

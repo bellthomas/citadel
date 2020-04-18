@@ -31,11 +31,13 @@ typedef struct ms_generate_random_number_t {
 	int ms_retval;
 } ms_generate_random_number_t;
 
-typedef struct ms_challenge_read_t {
+typedef struct ms_handle_challenge_phase_1_t {
 	sgx_status_t ms_retval;
 	uint8_t* ms_challenge_data;
 	size_t ms_challenge_length;
-} ms_challenge_read_t;
+	uint8_t* ms_response_data;
+	size_t ms_response_length;
+} ms_handle_challenge_phase_1_t;
 
 typedef struct ms_seal_t {
 	sgx_status_t ms_retval;
@@ -75,21 +77,26 @@ static sgx_status_t SGX_CDECL sgx_generate_random_number(void* pms)
 	return status;
 }
 
-static sgx_status_t SGX_CDECL sgx_challenge_read(void* pms)
+static sgx_status_t SGX_CDECL sgx_handle_challenge_phase_1(void* pms)
 {
-	CHECK_REF_POINTER(pms, sizeof(ms_challenge_read_t));
+	CHECK_REF_POINTER(pms, sizeof(ms_handle_challenge_phase_1_t));
 	//
 	// fence after pointer checks
 	//
 	sgx_lfence();
-	ms_challenge_read_t* ms = SGX_CAST(ms_challenge_read_t*, pms);
+	ms_handle_challenge_phase_1_t* ms = SGX_CAST(ms_handle_challenge_phase_1_t*, pms);
 	sgx_status_t status = SGX_SUCCESS;
 	uint8_t* _tmp_challenge_data = ms->ms_challenge_data;
 	size_t _tmp_challenge_length = ms->ms_challenge_length;
 	size_t _len_challenge_data = _tmp_challenge_length;
 	uint8_t* _in_challenge_data = NULL;
+	uint8_t* _tmp_response_data = ms->ms_response_data;
+	size_t _tmp_response_length = ms->ms_response_length;
+	size_t _len_response_data = _tmp_response_length;
+	uint8_t* _in_response_data = NULL;
 
 	CHECK_UNIQUE_POINTER(_tmp_challenge_data, _len_challenge_data);
+	CHECK_UNIQUE_POINTER(_tmp_response_data, _len_response_data);
 
 	//
 	// fence after pointer checks
@@ -114,11 +121,31 @@ static sgx_status_t SGX_CDECL sgx_challenge_read(void* pms)
 		}
 
 	}
+	if (_tmp_response_data != NULL && _len_response_data != 0) {
+		if ( _len_response_data % sizeof(*_tmp_response_data) != 0)
+		{
+			status = SGX_ERROR_INVALID_PARAMETER;
+			goto err;
+		}
+		if ((_in_response_data = (uint8_t*)malloc(_len_response_data)) == NULL) {
+			status = SGX_ERROR_OUT_OF_MEMORY;
+			goto err;
+		}
 
-	ms->ms_retval = challenge_read(_in_challenge_data, _tmp_challenge_length);
+		memset((void*)_in_response_data, 0, _len_response_data);
+	}
+
+	ms->ms_retval = handle_challenge_phase_1(_in_challenge_data, _tmp_challenge_length, _in_response_data, _tmp_response_length);
+	if (_in_response_data) {
+		if (memcpy_s(_tmp_response_data, _len_response_data, _in_response_data, _len_response_data)) {
+			status = SGX_ERROR_UNEXPECTED;
+			goto err;
+		}
+	}
 
 err:
 	if (_in_challenge_data) free(_in_challenge_data);
+	if (_in_response_data) free(_in_response_data);
 	return status;
 }
 
@@ -263,7 +290,7 @@ SGX_EXTERNC const struct {
 	4,
 	{
 		{(void*)(uintptr_t)sgx_generate_random_number, 0, 0},
-		{(void*)(uintptr_t)sgx_challenge_read, 0, 0},
+		{(void*)(uintptr_t)sgx_handle_challenge_phase_1, 0, 0},
 		{(void*)(uintptr_t)sgx_seal, 0, 0},
 		{(void*)(uintptr_t)sgx_unseal, 0, 0},
 	}

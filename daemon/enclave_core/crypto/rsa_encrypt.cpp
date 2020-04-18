@@ -9,7 +9,6 @@ int rsa_encrypt(unsigned char *msg, size_t len, unsigned char *out, size_t *outl
 
     err = rsa_import(key, keylen, &pkey_encrypt);
     if (err != CRYPT_OK) {
-        ocall_print("a");
         ocall_print(error_to_string(err));
         rsa_free(&pkey_encrypt);
         return err;
@@ -18,13 +17,16 @@ int rsa_encrypt(unsigned char *msg, size_t len, unsigned char *out, size_t *outl
     }
 
     // Register hash algorithm.
-	const ltc_hash_descriptor& hash_desc = sha256_desc;
+	const ltc_hash_descriptor& hash_desc = sha1_desc;
 	const int hash_idx = register_hash(&hash_desc);
 	if (hash_idx < 0) {
         err = -9;
         rsa_free(&pkey_encrypt);
         return err;
     };
+
+    const int padding = LTC_PKCS_1_V1_5; // LTC_PKCS_1_OAEP; //LTC_PKCS_1_V1_5;
+
     
 	// Register PRNG algorithm.
     const int prng_idx = register_prng(&sprng_desc);
@@ -34,9 +36,8 @@ int rsa_encrypt(unsigned char *msg, size_t len, unsigned char *out, size_t *outl
         return err;
     }
 
-    err = rsa_encrypt_key(msg, len, out, outlen, NULL, 0, NULL, prng_idx, hash_idx, &pkey_encrypt);
+    err = rsa_encrypt_key_ex(msg, len, out, outlen, NULL, 0, NULL, prng_idx, hash_idx, padding, &pkey_encrypt);
     if (err != CRYPT_OK) {
-        ocall_print("b");
         ocall_print(error_to_string(err));
     }
 

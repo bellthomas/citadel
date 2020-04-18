@@ -17,7 +17,7 @@ extern "C" {
 #endif
 
 int generate_random_number(void);
-sgx_status_t challenge_read(uint8_t* challenge_data, size_t challenge_length);
+sgx_status_t handle_challenge_phase_1(uint8_t* challenge_data, size_t challenge_length, uint8_t* response_data, size_t response_length);
 sgx_status_t seal(uint8_t* plaintext, size_t plaintext_len, sgx_sealed_data_t* sealed_data, size_t sealed_size);
 sgx_status_t unseal(sgx_sealed_data_t* sealed_data, size_t sealed_size, uint8_t* plaintext, uint32_t plaintext_len);
 

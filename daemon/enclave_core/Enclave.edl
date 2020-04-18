@@ -4,7 +4,12 @@ enclave {
     trusted {
         /* define ECALLs here. */
         public int generate_random_number(void);
-        public sgx_status_t challenge_read([in, size=challenge_length] uint8_t* challenge_data, size_t challenge_length);
+        public sgx_status_t handle_challenge_phase_1(
+            [in, size=challenge_length] uint8_t* challenge_data, 
+            size_t challenge_length,
+            [out, size=response_length] uint8_t* response_data,
+            size_t response_length
+        );
     };
 
     untrusted {

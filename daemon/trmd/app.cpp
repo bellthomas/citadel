@@ -32,16 +32,24 @@ int main(int argc, char const *argv[]) {
 
     printf("Running challenge check.\n");
 
-    unsigned char buffer[256];
-    FILE *file;
-    file = fopen("/sys/kernel/security/trm/challenge", "rb");
-    size_t ss = fread(buffer, sizeof(buffer), 1, file);
-    printf("Read %d bytes\n", ss*sizeof(buffer));
-    // for(int i = 0; i < 256; i++)
-    //     printf("%h", buffer[i]);
-    sgx_status_t challenge_ecall_ret;
-    status = challenge_read(global_eid, &challenge_ecall_ret, buffer, 256);
-    printf("* %d\n\n", status);
+    // Retrieve the LSM challenge.
+    sgx_status_t challenge_ecall_ret_phase_1, challenge_ecall_ret_phase_2;
+    unsigned char challenge_buffer[256], response_buffer[256];
+    FILE *f_challenge, *f_response;
+
+    f_challenge = fopen("/sys/kernel/security/trm/challenge", "rb");
+    size_t challenge_read = fread(challenge_buffer, sizeof(challenge_buffer), 1, f_challenge);
+    fclose(f_challenge);
+    
+    // Pass challenge to enclave.
+    
+
+    status = handle_challenge_phase_1(global_eid, &challenge_ecall_ret_phase_1, challenge_buffer, 256, response_buffer, 256);
+    printf("* %d\n\n", challenge_ecall_ret_phase_1);
+    f_response = fopen("/sys/kernel/security/trm/response", "wb");
+    size_t response_write = fwrite(response_buffer, 256, 1, f_response);
+    fclose(f_response);
+    printf("* %d\n\n", response_write);
 
     // printf("Running challenge check -- %s.\n", buffer);
 

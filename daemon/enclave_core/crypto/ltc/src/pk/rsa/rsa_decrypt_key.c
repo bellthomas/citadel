@@ -69,10 +69,9 @@ int rsa_decrypt_key_ex(const unsigned char *in,             unsigned long  inlen
   /* outlen must be at least the size of the modulus */
   modulus_bytelen = mp_unsigned_bin_size( (key->N));
   if (modulus_bytelen != inlen) {
-     ocall_print("test");
      return CRYPT_INVALID_PACKET;
   }
-  // return 621;
+
   /* allocate ram */
   tmp = XMALLOC(inlen);
   if (tmp == NULL) {

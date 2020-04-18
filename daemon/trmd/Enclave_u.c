@@ -5,11 +5,13 @@ typedef struct ms_generate_random_number_t {
 	int ms_retval;
 } ms_generate_random_number_t;
 
-typedef struct ms_challenge_read_t {
+typedef struct ms_handle_challenge_phase_1_t {
 	sgx_status_t ms_retval;
 	uint8_t* ms_challenge_data;
 	size_t ms_challenge_length;
-} ms_challenge_read_t;
+	uint8_t* ms_response_data;
+	size_t ms_response_length;
+} ms_handle_challenge_phase_1_t;
 
 typedef struct ms_seal_t {
 	sgx_status_t ms_retval;
@@ -57,12 +59,14 @@ sgx_status_t generate_random_number(sgx_enclave_id_t eid, int* retval)
 	return status;
 }
 
-sgx_status_t challenge_read(sgx_enclave_id_t eid, sgx_status_t* retval, uint8_t* challenge_data, size_t challenge_length)
+sgx_status_t handle_challenge_phase_1(sgx_enclave_id_t eid, sgx_status_t* retval, uint8_t* challenge_data, size_t challenge_length, uint8_t* response_data, size_t response_length)
 {
 	sgx_status_t status;
-	ms_challenge_read_t ms;
+	ms_handle_challenge_phase_1_t ms;
 	ms.ms_challenge_data = challenge_data;
 	ms.ms_challenge_length = challenge_length;
+	ms.ms_response_data = response_data;
+	ms.ms_response_length = response_length;
 	status = sgx_ecall(eid, 1, &ocall_table_Enclave, &ms);
 	if (status == SGX_SUCCESS && retval) *retval = ms.ms_retval;
 	return status;

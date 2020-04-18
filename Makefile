@@ -10,8 +10,9 @@ $(obj)/trm.o: $(obj)/lsm_keys.h
 
 $(obj)/lsm_keys.h:
 	$(call cmd,prepare_rsa)
-	# $(shell) $(obj)/prepare_rsa.sh $(obj)
-	$(MAKE) -C $(obj)/daemon
+	
+	
+##$(MAKE) -C $(obj)/daemon
 
 quiet_cmd_prepare_rsa = GEN     $@
 cmd_prepare_rsa = $(obj)/prepare_rsa.sh $(obj) > /dev/null

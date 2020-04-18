@@ -17,7 +17,7 @@ int rsa_decrypt(unsigned char *msg, size_t len, unsigned char *out, size_t *outl
     }
 
     // Register hash algorithm.
-	const ltc_hash_descriptor& hash_desc = sha256_desc;
+	const ltc_hash_descriptor& hash_desc = sha1_desc;
 	const int hash_idx = register_hash(&hash_desc);
 	if (hash_idx < 0) {
         err = -7;
@@ -26,7 +26,7 @@ int rsa_decrypt(unsigned char *msg, size_t len, unsigned char *out, size_t *outl
     };
 
 	// Define padding scheme.
-	const int padding = LTC_PKCS_1_OAEP; //LTC_PKCS_1_V1_5;
+	const int padding = LTC_PKCS_1_V1_5; // LTC_PKCS_1_OAEP; //LTC_PKCS_1_V1_5;
 	const unsigned long saltlen = 0;
 
     // Register PRNG algorithm.
@@ -38,7 +38,7 @@ int rsa_decrypt(unsigned char *msg, size_t len, unsigned char *out, size_t *outl
     };
 
 
-    err = rsa_decrypt_key(msg, len, out, outlen, NULL, 0, hash_idx, result, &pkey_decrypt);
+    err = rsa_decrypt_key_ex(msg, len, out, outlen, NULL, 0, hash_idx, padding, result, &pkey_decrypt);
     if (err != CRYPT_OK) {
         ocall_print(error_to_string(err));
     }

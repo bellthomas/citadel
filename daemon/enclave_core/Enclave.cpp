@@ -52,32 +52,43 @@ int generate_random_number() {
     // err = rsa_decrypt(cipher, 2048/8, decrypted, &decrypted_len, &result, enclave_key_priv, enclave_key_priv_len);
     ocall_print((const char*)decrypted);
 
-    // sgx_aes_gcm_128bit_key_t key = { 0x0, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf };
-    // unsigned char aes_msg[] = "This is my secret message 2";
-    // unsigned char aes_cipher[2048];
-    // size_t aes_cipher_len;
-    // err = aes_encrypt(aes_msg, sizeof(aes_msg), aes_cipher, &aes_cipher_len, key, sizeof(key));
-    // print_hex(aes_cipher, aes_cipher_len);
+    sgx_aes_gcm_128bit_key_t key = { 0x0, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf };
+    unsigned char aes_msg[] = "This is my secret message 2";
+    unsigned char aes_cipher[2048];
+    size_t aes_cipher_len;
+    err = aes_encrypt(aes_msg, sizeof(aes_msg), aes_cipher, &aes_cipher_len, key, sizeof(key));
+    print_hex(aes_cipher, aes_cipher_len);
 
-    // unsigned char aes_plain[2048];
-    // size_t aes_plain_len;
-    // err = aes_decrypt(aes_cipher, aes_cipher_len, aes_plain, &aes_plain_len, key, sizeof(key));
-    // print_hex(aes_plain, aes_plain_len);
-    // ocall_print((const char*)aes_plain);
+    unsigned char aes_plain[2048];
+    size_t aes_plain_len;
+    err = aes_decrypt(aes_cipher, aes_cipher_len, aes_plain, &aes_plain_len, key, sizeof(key));
+    print_hex(aes_plain, aes_plain_len);
+    ocall_print((const char*)aes_plain);
 
     return err;
 }
 
-sgx_status_t challenge_read(uint8_t* challenge_data, size_t challenge_length) {
-    sgx_status_t status = SGX_SUCCESS; // sgx_seal_data(0, NULL, plaintext_len, plaintext, sealed_size, sealed_data);
+sgx_status_t handle_challenge_phase_1(uint8_t* challenge_data, size_t challenge_length, uint8_t* response_data, size_t response_length) {
+    sgx_status_t status = SGX_SUCCESS; 
+
     ocall_print("-- Challenge read");
     print_hex(challenge_data, challenge_length);
     unsigned char decrypted[2048/8];
-    size_t decrypted_len = 0;
+    size_t decrypted_len = 256;
     int result;
     int err = rsa_decrypt(challenge_data, challenge_length, decrypted, &decrypted_len, &result, enclave_key_priv, enclave_key_priv_len);
-    if (err != 0) return SGX_ERROR_UNEXPECTED;
-        
-    // print_hex(decrypted, decrypted_len);
+    if (err != 0) return (sgx_status_t)err;
+    print_hex(decrypted, decrypted_len);
+
+    ocall_print("-- Response write");
+    unsigned char response[] = "Hello from your reference monitor!";
+    unsigned char cipher[2048];
+    size_t outlen = 256;
+    err = rsa_encrypt(response, sizeof(response), cipher, &outlen, lsm_key_padded_pub, lsm_key_padded_pub_len);
+    if (err != 0) return (sgx_status_t)err;
+    print_hex(cipher, outlen);
+
+    memcpy(response_data, cipher, response_length);
+
     return (sgx_status_t)0;
 }
