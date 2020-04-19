@@ -1,13 +1,5 @@
 #include "crypto.h"
 
-
-
-
-
-
-
-
-
 #include "sgx_trts.h"
 #include "sgx_tcrypto.h"
 #include "stdlib.h"

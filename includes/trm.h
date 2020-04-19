@@ -14,11 +14,10 @@
 #include <linux/crypto.h>
 
 #include "common.h"
+#include "io.h"
 
 #define PFX "LSM/TRM: "
 
-struct trm_request {
-    int flags;
-};
+extern int is_rsa_available(void);
 
-#endif  /* _SECURITY_TRM_H */
+#endif /* _SECURITY_TRM_H */

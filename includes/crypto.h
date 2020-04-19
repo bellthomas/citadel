@@ -10,7 +10,7 @@
 #include <linux/err.h>
 #include <linux/syscalls.h>
 #include <linux/slab.h>
-#include <crypto/skcipher.h>
+#include <crypto/aead.h>
 #include <crypto/akcipher.h>
 #include <linux/random.h>
 #include <linux/delay.h>

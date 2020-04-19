@@ -46,7 +46,7 @@ int main(int argc, char const *argv[]) {
 
     status = handle_challenge_phase_1(global_eid, &challenge_ecall_ret_phase_1, challenge_buffer, 256, response_buffer, 256);
     printf("* %d\n\n", challenge_ecall_ret_phase_1);
-    f_response = fopen("/sys/kernel/security/trm/response", "wb");
+    f_response = fopen("/sys/kernel/security/trm/challenge", "wb");
     size_t response_write = fwrite(response_buffer, 256, 1, f_response);
     fclose(f_response);
     printf("* %d\n\n", response_write);

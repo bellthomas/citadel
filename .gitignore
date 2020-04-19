@@ -35,3 +35,5 @@
 
 # Kbuild artefacts.
 *.cmd
+*.order
+*.log
