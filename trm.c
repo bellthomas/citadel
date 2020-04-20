@@ -49,7 +49,7 @@ static int rsa_available = 0;
 static int secondary = 0;
 struct dentry *integrity_dir;
 struct dentry *challenge_file;
-// struct dentry *update_file;
+struct dentry *update_file;
 
 /*
  * Perform a check of a program execution/map.
@@ -90,7 +90,7 @@ static int trm_task_prctl(int option, unsigned long arg2, unsigned long arg3, un
 // Region: securityfs operations.
 
 static const struct file_operations challenge_file_ops = { .read = challenge_read, .write = challenge_receive };
-// static const struct file_operations update_file_ops = { .read = update_read, .write = update_receive };
+static const struct file_operations update_file_ops = { .read = update_read, .write = update_receive };
 
 static int __init integrity_fs_init(void)
 {
@@ -112,13 +112,13 @@ static int __init integrity_fs_init(void)
         &challenge_file_ops
     );
 
-    // update_file = securityfs_create_file(
-    //     "update", // name
-    //     S_IWUSR | S_IWGRP,
-    //     integrity_dir,
-    //     (void*)"test",
-    //     &update_file_ops
-    // );
+    update_file = securityfs_create_file(
+        "update", // name
+        S_IRUSR | S_IRGRP | S_IWUSR | S_IWGRP,
+        integrity_dir,
+        (void*)"test",
+        &update_file_ops
+    );
 
 	return 0;
 }

@@ -61,7 +61,10 @@ else
 	Urts_Library_Name := sgx_urts
 endif
 
-App_Cpp_Files := $(App_Folder)/app.cpp $(App_Folder)/sgx_utils/sgx_utils.cpp
+App_Cpp_Files := $(App_Folder)/app.cpp \
+				 $(App_Folder)/sgx_utils/sgx_utils.cpp \
+				 $(App_Folder)/lsm_io.cpp
+
 App_Include_Paths := -I$(App_Folder) -I$(SGX_SDK)/include
 App_C_Flags := $(SGX_COMMON_CFLAGS) -fPIC -Wno-attributes $(App_Include_Paths)
 
@@ -113,6 +116,7 @@ Crypto_Library_Name := sgx_tcrypto
 Enclave_Cpp_Files := $(Enclave_Folder)/Enclave.cpp \
 					 $(Enclave_Folder)/Sealing/Sealing.cpp \
 					 $(Enclave_Folder)/asm/interface.cpp \
+					 $(Enclave_Folder)/lsm_communication.cpp \
 			         $(Enclave_Folder)/crypto/rsa_encrypt.cpp \
 			         $(Enclave_Folder)/crypto/rsa_decrypt.cpp \
 			         $(Enclave_Folder)/crypto/aes_encrypt.cpp

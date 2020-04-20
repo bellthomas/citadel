@@ -1,13 +1,5 @@
 #include "includes/crypto.h"
 
-#define AES_ENCRYPT 1
-#define AES_DECRYPT 2
-#define AES_KEY_SIZE 16
-
-// Parameters to GCM-AES-128.
-#define IV_LENGTH 12
-#define TAG_LENGTH 16
-
 
 struct tcrypt_result {
     struct completion completion;
@@ -17,7 +9,6 @@ struct tcrypt_result {
 
 void aead_work_done(struct crypto_async_request *req, int err) {
     struct tcrypt_result *res = req->data;
-    printk(KERN_INFO "LSM/TRM: aead_tcrypt_complete -> %d\n", err);
     if (err == -EINPROGRESS)
         return;
 
@@ -49,12 +40,11 @@ static int trm_aes_operation(struct crypto_aead *tfm, struct aead_request *req,
     size_t outsize;
      
     outsize = (mode == AES_ENCRYPT) ? datasize + TAG_LENGTH : datasize - TAG_LENGTH;
-    if (mode == AES_ENCRYPT) printk(PFX "Encrypting: %ld -> %ld", datasize, outsize);
-    else printk(PFX "Decrypting: %ld -> %ld", datasize, outsize);
+    // if (mode == AES_ENCRYPT) printk(PFX "AES Encrypting: %ld -> %ld", datasize, outsize);
+    // else printk(PFX "AES Decrypting: %ld -> %ld", datasize, outsize);
 
     init_completion(&result.completion);
 
-    printk(KERN_INFO PFX "Starting AES operation\n");
     err = crypto_aead_setkey(tfm, key, key_size);
     if (err) {
         pr_err(PFX "Error setting key: %d\n", err);
@@ -117,7 +107,6 @@ static int trm_aes_operation(struct crypto_aead *tfm, struct aead_request *req,
     aead_request_set_ad(req, 0);
     crypto_aead_setauthsize(tfm, 16);
 
-    printk(PFX "Pre aead_op...\n");
 
     if (mode == AES_ENCRYPT) err = aead_wait_async_op(&result, crypto_aead_encrypt(req));
     else err = aead_wait_async_op(&result, crypto_aead_decrypt(req));
@@ -213,7 +202,7 @@ int trm_aes_self_test(void) {
     if (!data) return -ENOMEM;
     random_bytes(data, datasize + TAG_LENGTH + IV_LENGTH);
     h1 = to_hexstring(data, datasize);
-    printk(KERN_INFO PFX "Raw data -- %s\n", h1);
+    // printk(KERN_INFO PFX "Raw data -- %s\n", h1);
     kfree(h1);
     
     key = kzalloc(AES_KEY_SIZE, GFP_KERNEL);
@@ -223,7 +212,7 @@ int trm_aes_self_test(void) {
     }
     random_bytes(key, AES_KEY_SIZE);
     h2 = to_hexstring(key, AES_KEY_SIZE);
-    printk(KERN_INFO PFX "Key -- %s\n", h2);
+    // printk(KERN_INFO PFX "Key -- %s\n", h2);
     kfree(h2);
 
     // Do encryption.
@@ -231,13 +220,13 @@ int trm_aes_self_test(void) {
     cipher = kzalloc(datasize + TAG_LENGTH, GFP_KERNEL);
     err = trm_aes_encrypt(key, data, datasize, cipher, &cipher_len);
     h3 = to_hexstring(cipher, cipher_len);
-    printk(KERN_INFO PFX "Cipher(%d) -- %s\n", err, h3);
+    // printk(KERN_INFO PFX "Cipher(%d) -- %s\n", err, h3);
     kfree(h3);
 
     plain = kzalloc(datasize + TAG_LENGTH, GFP_KERNEL);
     err = trm_aes_decrypt(key, cipher, cipher_len, plain, &plainlen);
     h4 = to_hexstring(plain, plainlen);
-    printk(KERN_INFO PFX "Plain(%d) -- %s\n", err, h4);
+    // printk(KERN_INFO PFX "Plain(%d) -- %s\n", err, h4);
     kfree(h4);
 
 

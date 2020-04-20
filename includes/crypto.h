@@ -19,11 +19,23 @@
 #include "trm.h"
 #include "common.h"
 
+#define RSA_PAYLOAD_SIZE 256
+
+#define AES_ENCRYPT 1
+#define AES_DECRYPT 2
+#define AES_KEY_SIZE 16
+
+// Parameters to GCM-AES-128.
+#define IV_LENGTH 12
+#define TAG_LENGTH 16
+
 extern int trm_rsa_self_test(void);
 extern char* trm_rsa_encrypt(char* data, size_t data_len, int* return_size);
 extern char* trm_rsa_decrypt(char* data, size_t data_len, int* return_size);
 
 extern int trm_aes_self_test(void);
+extern int trm_aes_decrypt(uint8_t *key, void *data, size_t datasize, void *out, size_t *outlen);
+extern int trm_aes_encrypt(uint8_t *key, void *data, size_t datasize, void *out, size_t *outlen);
 
 
 #endif  /* _SECURITY_TRM_CRYPTO_H */

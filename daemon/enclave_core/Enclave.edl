@@ -10,6 +10,13 @@ enclave {
             [out, size=response_length] uint8_t* response_data,
             size_t response_length
         );
+
+        public sgx_status_t aes_encrypt_data(
+            [in, size=in_length] uint8_t* in_data, 
+            size_t in_length,
+            [out, size=out_length] uint8_t* out_data,
+            size_t out_length
+        );
     };
 
     untrusted {

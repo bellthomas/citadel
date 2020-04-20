@@ -219,13 +219,13 @@ int trm_rsa_self_test(void) {
     const int msg_len = 8;
 
     // Encrypt with public key.
-    printk(KERN_INFO "LSM/TRM: RSA test -- stage 1.\n");
+    // printk(KERN_INFO "LSM/TRM: RSA test -- stage 1.\n");
     cipher = kzalloc(PAGE_SIZE, GFP_KERNEL);
     if (cipher) {
         res = trm_akcrypto_encrypt_pub_self((void*)msg, msg_len, cipher, &cipher_len);
         if(!res) {
             hexmsg = to_hexstring(cipher, cipher_len);
-            printk(KERN_INFO "LSM/TRM: Encrypted using public key: (%d bytes) %s\n", cipher_len, hexmsg);
+            // printk(KERN_INFO "LSM/TRM: Encrypted using public key: (%d bytes) %s\n", cipher_len, hexmsg);
             kfree(hexmsg);
         } else {
             printk(KERN_INFO "LSM/TRM: [FAIL] Encrypted using public key: %d\n", res);
@@ -236,13 +236,13 @@ int trm_rsa_self_test(void) {
     }
 
     // Test decrypt using private key.
-    printk(KERN_INFO "LSM/TRM: RSA test -- stage 2.\n");
+    // printk(KERN_INFO "LSM/TRM: RSA test -- stage 2.\n");
     result = kzalloc(PAGE_SIZE, GFP_KERNEL);
     if (result) {
         res = trm_akcrypto_decrypt_priv((void*)cipher, cipher_len, result, &result_len);
         if(!res) {
             hexmsg2 = to_hexstring(result, result_len);
-            printk(KERN_INFO "LSM/TRM: Decrypted using private key: (%d bytes) %s\n", result_len, hexmsg2);
+            // printk(KERN_INFO "LSM/TRM: Decrypted using private key: (%d bytes) %s\n", result_len, hexmsg2);
             kfree(hexmsg2);
         } else {
             printk(KERN_INFO "LSM/TRM: [FAIL] Decrypted using private key: %d\n", res);

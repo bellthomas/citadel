@@ -12,9 +12,10 @@ int rsa_encrypt(unsigned char *msg, size_t len, unsigned char *out, size_t *outl
         ocall_print(error_to_string(err));
         rsa_free(&pkey_encrypt);
         return err;
-    } else {
-        ocall_print("Private key loaded.");
     }
+    // else {
+    //     ocall_print("Private key loaded.");
+    // }
 
     // Register hash algorithm.
 	const ltc_hash_descriptor& hash_desc = sha1_desc;
