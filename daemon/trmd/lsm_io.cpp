@@ -54,6 +54,24 @@ int send_update(void *data, size_t datalen) {
 void test_aes(void) {
     char msg[] = "aes test message";
     char *cipher = (char*)malloc(sizeof(msg) + 16);
+}
 
 
+int install_ticket(uint8_t* ticket_data, size_t ticket_length) {
+    printf("Installing ticket of length %lu\n", ticket_length);
+    return send_update(ticket_data, ticket_length);
+}
+
+int process_updates(uint8_t* ticket_data, size_t ticket_length) {
+    // FILE *f_update;
+    // f_update = fopen("/sys/kernel/security/trm/update", "rb");
+
+    // char buffer[4096];
+    // size_t bytes_read = fread(buffer, 1, sizeof(buffer), f_update);
+    // fclose(f_update);
+
+    // memcpy(ticket_data, buffer, bytes_read);
+
+
+    return 0;
 }

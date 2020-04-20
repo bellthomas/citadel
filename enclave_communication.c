@@ -2,7 +2,7 @@
 
 static unsigned char current_challenge[32];
 static char registered_name[40];
-static char aes_key[128];
+static char aes_key[16];
 static int registered = 0;
 
 void* generate_challenge(size_t *len) {
@@ -119,7 +119,6 @@ void* generate_update(size_t *len) {
     size_t outlen;
     int res;
     
-
     if (!registered) {
         printk(PFX "Can't generate update. Not registered.\n");
         *len = 0;

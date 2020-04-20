@@ -53,7 +53,7 @@ int pkcs_1_v1_5_decode(const unsigned char *msg,
 
   /* separate encoded message */
   if ((msg[0] != 0x00) || (msg[1] != (unsigned char)block_type)) {
-    result = 124;//CRYPT_INVALID_PACKET;
+    result = CRYPT_INVALID_PACKET;
   }
 
   if (block_type == LTC_PKCS_1_EME) {

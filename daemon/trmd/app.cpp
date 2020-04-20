@@ -22,6 +22,11 @@ int main(int argc, char const *argv[]) {
     
     // Initialise with LSM.
     int reg_res = lsm_register();
+    // sgx_status_treturn 124 pulse_res = timer_pulse(global_eid);
+
+    // int updates_res;
+    // char data[] = "test";
+    // sgx_status_t updates_success = process_updates(global_eid, &updates_res, (uint8_t*)data, sizeof(data)); 
 
     return 0;
 }

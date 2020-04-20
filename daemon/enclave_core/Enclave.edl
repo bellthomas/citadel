@@ -4,6 +4,8 @@ enclave {
     trusted {
         /* define ECALLs here. */
         public int generate_random_number(void);
+
+        /*  */
         public sgx_status_t handle_challenge_phase_1(
             [in, size=challenge_length] uint8_t* challenge_data, 
             size_t challenge_length,
@@ -11,16 +13,16 @@ enclave {
             size_t response_length
         );
 
-        public sgx_status_t aes_encrypt_data(
-            [in, size=in_length] uint8_t* in_data, 
-            size_t in_length,
-            [out, size=out_length] uint8_t* out_data,
-            size_t out_length
-        );
+        public void timer_pulse(void); 
+       
     };
 
     untrusted {
         /* define OCALLs here. */
         void ocall_print([in, string]const char* str);
+        int install_ticket([in, size=ticket_length] uint8_t* ticket_data, size_t ticket_length);
     };
 };
+
+
+/*  // public int process_updates([in, size=update_length] uint8_t* update_data, size_t update_length); */

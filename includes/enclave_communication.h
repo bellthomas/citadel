@@ -23,9 +23,9 @@ struct trm_challenge {
     unsigned char signature[8];
     unsigned char challenge[32];
     unsigned char name[40];
-    unsigned char key[128];
+    unsigned char key[16];
     pid_t pid;
-    unsigned char padding[2];
+    unsigned char padding[112];
 };
 
 extern void* generate_challenge(size_t *len);

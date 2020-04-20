@@ -29,7 +29,6 @@ int aead_wait_async_op(struct tcrypt_result *tr, int ret) {
 static int trm_aes_operation(struct crypto_aead *tfm, struct aead_request *req, 
                              u8 *key, size_t key_size, void *data, size_t datasize, int mode, void *out, size_t *outlen) {
 
-//     struct scatterlist sg;
     struct scatterlist plaintext[1];
     struct scatterlist ciphertext[1];
     unsigned char *plaindata = NULL;
@@ -37,12 +36,8 @@ static int trm_aes_operation(struct crypto_aead *tfm, struct aead_request *req,
     struct tcrypt_result result;
     u8 iv[IV_LENGTH];
     int err;
-    size_t outsize;
+    *outlen = 0;
      
-    outsize = (mode == AES_ENCRYPT) ? datasize + TAG_LENGTH : datasize - TAG_LENGTH;
-    // if (mode == AES_ENCRYPT) printk(PFX "AES Encrypting: %ld -> %ld", datasize, outsize);
-    // else printk(PFX "AES Decrypting: %ld -> %ld", datasize, outsize);
-
     init_completion(&result.completion);
 
     err = crypto_aead_setkey(tfm, key, key_size);
@@ -52,7 +47,11 @@ static int trm_aes_operation(struct crypto_aead *tfm, struct aead_request *req,
     }
 
     /* Initialize the IV */
-    memset(iv, 0, sizeof(iv));
+    if (mode == AES_ENCRYPT) memset(iv, 0, sizeof(iv));
+    else {
+        memcpy(iv, data + (datasize - IV_LENGTH), IV_LENGTH);
+        datasize -= IV_LENGTH;
+    }
     // get_random_bytes(iv, sizeof(iv));
 
     /* Set authentication tag length */
@@ -62,82 +61,54 @@ static int trm_aes_operation(struct crypto_aead *tfm, struct aead_request *req,
         goto bail;
     }
 
-    /* Set IV size */
-    // iv_len = crypto_aead_ivsize(tfm);
-    // if (!(iv_len)){
-    //     pr_info("IV size could not be authenticated\n");
-    //     err = -EAGAIN;
-    //     goto bail;
-    // }
-    // pr_info(PFX "IV size: %d\n", iv_len);
-        
-
-    plaindata  = kmalloc(datasize + TAG_LENGTH, GFP_KERNEL);
-    cipherdata = kmalloc(datasize + TAG_LENGTH, GFP_KERNEL);
+    plaindata  = kmalloc(datasize + TAG_LENGTH + IV_LENGTH, GFP_KERNEL);
+    cipherdata = kmalloc(datasize + TAG_LENGTH + IV_LENGTH, GFP_KERNEL);
     if(!plaindata || !cipherdata) {
-        printk("Memory not availaible\n");
+        printk("Memory not available\n");
         err = -ENOMEM;
         goto bail;
     }
 
 
     memcpy(plaindata, data, datasize);
-    memset(plaindata + datasize, 0, TAG_LENGTH);
+    memset(plaindata + datasize, 0, TAG_LENGTH + IV_LENGTH);
+    memset(cipherdata, 0, datasize + TAG_LENGTH + IV_LENGTH);
 
-    memset(cipherdata, 0, datasize + TAG_LENGTH); // TODO bug
-    // memset(gmacdata, 0, 16);
-
-    sg_init_one(&plaintext[0], plaindata, datasize + TAG_LENGTH);
-    sg_init_one(&ciphertext[0], cipherdata, datasize + TAG_LENGTH);
-
-    // To avoid panicking.
-    // new_cipher = kmalloc(PAGE_SIZE, GFP_KERNEL);
-    // if (!new_cipher) goto out;
-    // sg_init_table(ciphertext, 1);
-    // sg_set_buf(&ciphertext[0], new_cipher, datasize);
-    // sg_init_one(&gmactext[0], gmacdata, 128);
-
+    sg_init_one(&plaintext[0], plaindata, datasize + TAG_LENGTH + IV_LENGTH);
+    sg_init_one(&ciphertext[0], cipherdata, datasize + TAG_LENGTH + IV_LENGTH);
 
     aead_request_set_callback(req, CRYPTO_TFM_REQ_MAY_BACKLOG, aead_work_done, &result);
     crypto_aead_clear_flags(tfm, ~0);
 
     aead_request_set_crypt(req, &plaintext[0], &ciphertext[0], datasize, iv);
-    // aead_request_set_assoc(req, gmactext, datasize);
-    // aead_request_set_assoc(req, NULL, 0);
     aead_request_set_ad(req, 0);
-    crypto_aead_setauthsize(tfm, 16);
+    crypto_aead_setauthsize(tfm, TAG_LENGTH);
 
 
     if (mode == AES_ENCRYPT) err = aead_wait_async_op(&result, crypto_aead_encrypt(req));
-    else err = aead_wait_async_op(&result, crypto_aead_decrypt(req));
+    else                     err = aead_wait_async_op(&result, crypto_aead_decrypt(req));
     if (err) {
         pr_err(PFX "AES processing error: %d\n", err);
         goto bail;
     }
-//     /*
-//      * Encrypt the data in-place.
-//      *
-//      * For simplicity, in this example we wait for the request to complete
-//      * before proceeding, even if the underlying implementation is asynchronous.
-//      *
-//      * To decrypt instead of encrypt, just change crypto_aead_encrypt() to
-//      * crypto_aead_decrypt().
-//      */
-//     sg_init_one(&sg, data, datasize);
-//     aead_request_set_callback(req, CRYPTO_TFM_REQ_MAY_BACKLOG, aead_tcrypt_complete, &result);
-//     aead_request_set_crypt(req, &sg, &sg, datasize, iv);
-//     aead_request_set_ad(req, TAG_LENGTH);
 
-//     if (mode == AES_ENCRYPT) err = aead_wait_async_op(&result, crypto_aead_encrypt(req));
-//     else err = aead_wait_async_op(&result, crypto_aead_decrypt(req));
-//     if (err) {
-//         pr_err(PFX "AES processing error: %d\n", err);
-//         goto out;
-//     }
-    // sg_copy_from_buffer(ciphertext, sg_nents(ciphertext), new_cipher, datasize + 16);
-    // kfree(new_cipher);
-    memcpy(out, cipherdata, outsize);
-    *outlen = outsize;
+
+    // How big is it?
+        // outsize = (mode == AES_ENCRYPT) ? datasize + TAG_LENGTH : datasize - TAG_LENGTH;
+    // if (mode == AES_ENCRYPT) printk(PFX "AES Encrypting: %ld -> %ld", datasize, outsize);
+    // else printk(PFX "AES Decrypting: %ld -> %ld", datasize, outsize);
+
+    if (mode == AES_ENCRYPT) {
+        memcpy(out, cipherdata, datasize + TAG_LENGTH);
+        memcpy(out + (datasize + TAG_LENGTH), iv, IV_LENGTH);
+        *outlen = datasize + TAG_LENGTH + IV_LENGTH;
+    }
+    else {
+        // NB. IV size already removed from datasize.
+        memcpy(out, cipherdata, datasize - TAG_LENGTH);
+        *outlen = datasize - TAG_LENGTH;
+    }
+
 bail:
     kfree(plaindata);
     kfree(cipherdata);
@@ -193,17 +164,17 @@ int trm_aes_encrypt(uint8_t *key, void *data, size_t datasize, void *out, size_t
 
 int trm_aes_self_test(void) {
     char *data, *key, *cipher, *plain;
-    char *h1, *h2, *h3, *h4;
+    // char *h1, *h2, *h3, *h4;
     int err;
     size_t datasize = 365;
     size_t cipher_len, plainlen;
 
     data = kzalloc(datasize, GFP_KERNEL);
     if (!data) return -ENOMEM;
-    random_bytes(data, datasize + TAG_LENGTH + IV_LENGTH);
-    h1 = to_hexstring(data, datasize);
+    random_bytes(data, datasize);
+    // h1 = to_hexstring(data, datasize);
     // printk(KERN_INFO PFX "Raw data -- %s\n", h1);
-    kfree(h1);
+    // kfree(h1);
     
     key = kzalloc(AES_KEY_SIZE, GFP_KERNEL);
     if (!key) {
@@ -211,23 +182,23 @@ int trm_aes_self_test(void) {
         goto free_data;
     }
     random_bytes(key, AES_KEY_SIZE);
-    h2 = to_hexstring(key, AES_KEY_SIZE);
+    // h2 = to_hexstring(key, AES_KEY_SIZE);
     // printk(KERN_INFO PFX "Key -- %s\n", h2);
-    kfree(h2);
+    // kfree(h2);
 
     // Do encryption.
     
-    cipher = kzalloc(datasize + TAG_LENGTH, GFP_KERNEL);
+    cipher = kzalloc(datasize + TAG_LENGTH + IV_LENGTH, GFP_KERNEL);
     err = trm_aes_encrypt(key, data, datasize, cipher, &cipher_len);
-    h3 = to_hexstring(cipher, cipher_len);
+    // h3 = to_hexstring(cipher, cipher_len);
     // printk(KERN_INFO PFX "Cipher(%d) -- %s\n", err, h3);
-    kfree(h3);
+    // kfree(h3);
 
-    plain = kzalloc(datasize + TAG_LENGTH, GFP_KERNEL);
+    plain = kzalloc(datasize + TAG_LENGTH + IV_LENGTH, GFP_KERNEL);
     err = trm_aes_decrypt(key, cipher, cipher_len, plain, &plainlen);
-    h4 = to_hexstring(plain, plainlen);
+    // h4 = to_hexstring(plain, plainlen);
     // printk(KERN_INFO PFX "Plain(%d) -- %s\n", err, h4);
-    kfree(h4);
+    // kfree(h4);
 
 
     // // Do decryption.

@@ -8,6 +8,7 @@
 
 #include "../asm/interface.h"
 #include "../crypto/crypto.h"
+#include "lsm_communication.h"
 
 extern void print_hex(unsigned char *buf, unsigned int len);
 

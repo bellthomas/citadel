@@ -25,6 +25,10 @@ void print_hex(unsigned char *buf, unsigned int len) {
     ocall_print((const char*)hex_buffer);
 }
 
+void timer_pulse(void) {
+    ocall_print("Timer...");
+    // generate_ticket();
+}
 
 //
 int generate_random_number() {
