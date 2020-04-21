@@ -47,11 +47,12 @@ static int trm_aes_operation(struct crypto_aead *tfm, struct aead_request *req,
     }
 
     /* Initialize the IV */
-    if (mode == AES_ENCRYPT) memset(iv, 0, sizeof(iv));
+    if (mode == AES_ENCRYPT) get_random_bytes(iv, sizeof(iv));
     else {
         memcpy(iv, data + (datasize - IV_LENGTH), IV_LENGTH);
         datasize -= IV_LENGTH;
     }
+    // memset(iv, 0, sizeof(iv));
     // get_random_bytes(iv, sizeof(iv));
 
     /* Set authentication tag length */

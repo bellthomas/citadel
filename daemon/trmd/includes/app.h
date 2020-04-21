@@ -10,6 +10,7 @@
 #include "sgx_utils/sgx_utils.h"
 
 #include "lsm_io.h"
+#include "../../_trm_shared.h"
 
 extern sgx_enclave_id_t get_enclave_id();
 

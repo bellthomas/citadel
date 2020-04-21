@@ -85,18 +85,27 @@ bail:
 }
 
 
-// int trm_aes_decrypt(uint8_t *key, void *data, size_t datasize, void *out, size_t *outlen) {
-//     return prepare_aead(key, data, datasize, AES_DECRYPT, out, outlen);
-// }
+void update_aes_key(void *key, size_t key_len) {
+    // char *h;
+    int i;
+    if(key_len >= sizeof(aes_key)) {
+        for(i = 0; i < sizeof(aes_key); i++) {
+            aes_key[i] = aes_key[i] ^ ((unsigned char*)key)[i];
+        }
+    }
+    // h = to_hexstring(aes_key, sizeof(aes_key));
+    // printk(PFX "** Updated AES key.\n");
+    // printk(PFX "%s\n", h);
+    // printk(PFX "**\n");
+    // kfree(h);
+}
 
-// int trm_aes_encrypt(uint8_t *key, void *data, size_t datasize, void *out, size_t *outlen) {
-//     return prepare_aead(key, data, datasize, AES_ENCRYPT, out, outlen);
-// }
 
 void process_received_update(void *update, size_t update_len) {
-    char *plain, *hex;
+    char *plain; //, *hex;
     size_t outlen;
     int res;
+    struct trm_update_header *hdr;
 
     if (!registered) {
         printk(PFX "Can't process update. Not registered.\n");
@@ -107,17 +116,49 @@ void process_received_update(void *update, size_t update_len) {
     outlen = update_len;
     res = trm_aes_decrypt(aes_key, update, update_len, plain, &outlen);
 
-    hex = to_hexstring(plain, outlen);
-    printk(PFX "Received plain: %s\n", hex);
-    kfree(hex);
+    hdr = (struct trm_update_header*)plain;
+    if(memcmp(hdr->signature, challenge_signature, sizeof(challenge_signature))) {
+        printk(PFX "Rejected updates. Signature mismatch.\n");
+    }
+
+    printk(PFX "Received %d records.\n", hdr->records);
+    // hex = to_hexstring(plain, outlen);
+    // printk(PFX "Received plain: %s\n", hex);
+    // kfree(hex);
+
+    update_aes_key(hdr->key_update, sizeof(hdr->key_update));
 }
 
 
 void* generate_update(size_t *len) {
-    char msg[] = "This is some kind of update.";
-    char *cipher, *hex;
+
+    void *update;
+    struct trm_update_header *hdr;
+    struct trm_update_record *rcrd;
+    int num_records;
+    int tmp;
+    char *cipher; //, *hex;
     size_t outlen;
     int res;
+    size_t required_space;
+    
+    num_records = 5;
+    required_space = sizeof(struct trm_update_header) + num_records * sizeof(struct trm_update_record);
+
+    update = kzalloc(required_space, GFP_KERNEL);
+    if (!update) return NULL;
+
+    hdr = (struct trm_update_header*)update;
+    memcpy(hdr->signature, challenge_signature, sizeof(challenge_signature));
+    memset(hdr->key_update, 6, sizeof(hdr->key_update));
+    hdr->records = (uint8_t)num_records;
+
+    rcrd = (struct trm_update_record*)(update + sizeof(struct trm_update_header));
+    for(tmp = 1; tmp < 2*num_records; tmp += 2) {
+        memset(rcrd->subject, tmp, sizeof(rcrd->subject));
+        memset(rcrd->data, tmp + 1, sizeof(rcrd->data));
+        rcrd = (struct trm_update_record*)(rcrd + 1);
+    }
     
     if (!registered) {
         printk(PFX "Can't generate update. Not registered.\n");
@@ -125,14 +166,15 @@ void* generate_update(size_t *len) {
         return NULL;
     }
 
-    cipher = kzalloc(sizeof(msg) + TAG_LENGTH, GFP_KERNEL);
-    outlen = sizeof(msg) + TAG_LENGTH;
-    res = trm_aes_encrypt(aes_key, msg, sizeof(msg), cipher, &outlen);
+    cipher = kzalloc(required_space + TAG_LENGTH, GFP_KERNEL);
+    outlen = required_space + TAG_LENGTH;
+    res = trm_aes_encrypt(aes_key, update, required_space, cipher, &outlen);
 
-    hex = to_hexstring(cipher, outlen);
-    printk(PFX "Generated cipher: %s\n", hex);
-    kfree(hex);
+    // hex = to_hexstring(cipher, outlen);
+    // printk(PFX "Generated cipher: %s\n", hex);
+    // kfree(hex);
 
+    kfree(update);
     *len = outlen;
     return cipher;
 }

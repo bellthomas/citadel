@@ -6,21 +6,7 @@
 #include "enclave_keys.h"
 #endif
 
-static const unsigned char challenge_signature[8] = { 0x80, 0x70, 0x60, 0x50, 0x40, 0x30, 0x20, 0x10 };
-
-// Needs to be 214 bytes.
-struct trm_challenge {
-    unsigned char signature[8];
-    unsigned char challenge[32];
-    unsigned char name[40];
-    unsigned char key[16];
-    int pid; // pid_t
-    unsigned char padding[112];
-};
-
 static unsigned char aes_key[16] = {"\0"};
-
-
 
 sgx_status_t handle_challenge_phase_1(uint8_t* challenge_data, size_t challenge_length, uint8_t* response_data, size_t response_length) {
     sgx_status_t status = SGX_SUCCESS; 
@@ -32,8 +18,7 @@ sgx_status_t handle_challenge_phase_1(uint8_t* challenge_data, size_t challenge_
     size_t decrypted_len = RSA_BLOCK_SIZE;
     int result;
 
-    ocall_print("ok a");
-    print_hex((unsigned char *)challenge_data, challenge_length);
+    // print_hex((unsigned char *)challenge_data, challenge_length);
     int err = rsa_decrypt(challenge_data, challenge_length, decrypted, &decrypted_len, &result, enclave_key_priv, enclave_key_priv_len);
     if (err != 0) return (sgx_status_t)err;
     // print_hex(decrypted, decrypted_len);
@@ -71,42 +56,76 @@ sgx_status_t handle_challenge_phase_1(uint8_t* challenge_data, size_t challenge_
     return (sgx_status_t)0;
 }
 
-struct trm_ticket {
-    char data[29];
-};
-
-void generate_ticket() {
-    // Build ticket structure.
-    struct trm_ticket ticket;
-    unsigned char msg[] = "This is some kind of update.";
-    print_hex(msg, sizeof(msg));
-    memcpy(ticket.data, msg, sizeof(msg));
-
-    ocall_print("\nEncrypted");
-
-    // Encrypt.
-    unsigned char cipher[4096 + 16];
-    memset(cipher, 0, 4096+16);
-    size_t outlen = 4096;
-    int ret = aes_encrypt((unsigned char*)&ticket, sizeof(trm_ticket), cipher, &outlen, aes_key, sizeof(aes_key));
-    print_hex(cipher, outlen);
-
-    // Print key for debug.
-    ocall_print("\nKEY");
+void update_aes_key(void *key, size_t key_len) {
+    if(key_len >= sizeof(aes_key)) {
+        for(int i = 0; i < sizeof(aes_key); i++) {
+            aes_key[i] = aes_key[i] ^ ((unsigned char*)key)[i];
+        }
+    }
+    ocall_print("\n** Updated AES key.");
     print_hex(aes_key, sizeof(aes_key));
-    
-    ocall_print("-");
-    unsigned char plain[4096];
-    size_t outlen2 = 4096;
-    int ret2 = aes_decrypt(cipher, outlen, plain, &outlen2, aes_key, sizeof(aes_key));
-    print_hex(plain, outlen2);
-
-    // Install.
-    int install_ret;
-    install_ticket(&install_ret, (uint8_t*)cipher, outlen);
+    ocall_print("**");
 }
 
-// int process_updates(uint8_t* update_data, size_t update_length) {
-//     ocall_print("processing updates");
-//     return 0;
-// }
+
+void generate_ticket(int num_records) {
+    // Build ticket structure.
+
+    char data[sizeof(trm_update_header) + num_records * sizeof(trm_update_record)];
+    struct trm_update_header *hdr;
+    struct trm_update_record *rcrd;
+
+    hdr = (struct trm_update_header*)data;
+    memcpy(hdr->signature, challenge_signature, sizeof(challenge_signature));
+    sgx_read_rand(hdr->key_update, sizeof(hdr->key_update));
+    hdr->records = (uint8_t)num_records;
+
+    rcrd = (struct trm_update_record*)(data + sizeof(struct trm_update_header));
+    for(int tmp = 1; tmp < 2*num_records; tmp += 2) {
+        memset(rcrd->subject, tmp, sizeof(rcrd->subject));
+        memset(rcrd->data, tmp + 1, sizeof(rcrd->data));
+        rcrd = (struct trm_update_record*)(rcrd + 1);
+    }
+
+
+    // Encrypt.
+    unsigned char cipher[sizeof(data) + 16];
+    // memset(cipher, 0, 4096+16);
+    size_t outlen = sizeof(data) + 16;
+    int ret = aes_encrypt((unsigned char*)data, sizeof(data), cipher, &outlen, aes_key, sizeof(aes_key));
+    print_hex(cipher, outlen);
+
+    // // Install.
+    int install_ret;
+    install_ticket(&install_ret, (uint8_t*)cipher, outlen);
+
+    // TODO if successful.
+    update_aes_key(hdr->key_update, sizeof(hdr->key_update));
+}
+
+int process_updates(uint8_t* update_data, size_t update_length) {
+    ocall_print("-\nProcessing updates.");
+    print_hex((unsigned char*)update_data, update_length);
+
+    unsigned char plain[update_length];
+    size_t outlen = update_length;
+    int ret = aes_decrypt(update_data, update_length, plain, &outlen, aes_key, sizeof(aes_key));
+    print_hex((unsigned char*)plain, outlen);
+    ocall_print("\ndissecting records...");
+
+    struct trm_update_header *hdr;
+    struct trm_update_record *rcrd;
+    hdr = (struct trm_update_header*)plain;
+
+    if(memcmp(hdr->signature, challenge_signature, sizeof(challenge_signature))) {
+        ocall_print("Rejected updates. Signature mismatch.");
+        return -1;
+    }
+
+    char msg[256];
+    int n = snprintf(msg, sizeof(msg), "Found %d records.\nKey update:", hdr->records);
+    ocall_print(msg);
+    print_hex(hdr->key_update, sizeof(hdr->key_update));
+
+    return 0;
+}

@@ -14,7 +14,7 @@ enclave {
         );
 
         public void timer_pulse(void); 
-       
+        public int process_updates([in, size=update_length] uint8_t* update_data, size_t update_length);
     };
 
     untrusted {
@@ -25,4 +25,4 @@ enclave {
 };
 
 
-/*  // public int process_updates([in, size=update_length] uint8_t* update_data, size_t update_length); */
+/*  //  */

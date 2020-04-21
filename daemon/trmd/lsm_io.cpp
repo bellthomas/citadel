@@ -13,7 +13,7 @@ int send_registration(void *data, size_t datalen) {
 
 int perform_registration(void) {
     sgx_status_t challenge_ecall_ret;
-    unsigned char challenge_buffer[256], response_buffer[256];
+    unsigned char challenge_buffer[_TRM_RSA_KEY_LENGTH], response_buffer[_TRM_RSA_KEY_LENGTH];
     FILE *f_challenge, *f_response;
 
     // Read challenge.
@@ -22,11 +22,11 @@ int perform_registration(void) {
     fclose(f_challenge);
     
     // Pass challenge to enclave.
-    int status = handle_challenge_phase_1(get_enclave_id(), &challenge_ecall_ret, challenge_buffer, 256, response_buffer, 256);
-    printf("* %d\n", challenge_ecall_ret);
+    int status = handle_challenge_phase_1(get_enclave_id(), &challenge_ecall_ret, challenge_buffer, _TRM_RSA_KEY_LENGTH, response_buffer, _TRM_RSA_KEY_LENGTH);
+    if (!challenge_ecall_ret) printf("Successfully registered with LSM.\n");
     
     // Pass cipher to LSM.
-    int reg_res = send_registration(response_buffer, (size_t)256);
+    int reg_res = send_registration(response_buffer, (size_t)_TRM_RSA_KEY_LENGTH);
     return (int)challenge_ecall_ret;
 }
 
@@ -62,16 +62,21 @@ int install_ticket(uint8_t* ticket_data, size_t ticket_length) {
     return send_update(ticket_data, ticket_length);
 }
 
-int process_updates(uint8_t* ticket_data, size_t ticket_length) {
-    // FILE *f_update;
-    // f_update = fopen("/sys/kernel/security/trm/update", "rb");
+int trigger_process_updates() {
 
-    // char buffer[4096];
-    // size_t bytes_read = fread(buffer, 1, sizeof(buffer), f_update);
-    // fclose(f_update);
+    FILE *f_update;
+    f_update = fopen("/sys/kernel/security/trm/update", "rb");
+
+    char buffer[4096];
+    size_t bytes_read = fread(buffer, 1, sizeof(buffer), f_update);
+    fclose(f_update);
+
+
+    int updates_res;
+    sgx_status_t updates_success = process_updates(get_enclave_id(), &updates_res, (uint8_t*)buffer, bytes_read); 
 
     // memcpy(ticket_data, buffer, bytes_read);
 
 
-    return 0;
+    return updates_res;
 }

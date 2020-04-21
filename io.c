@@ -114,6 +114,7 @@ ssize_t update_read(struct file *file, char __user *buf, size_t count, loff_t *p
 
     // Generate secret message.
     pos = *ppos;
+    if(pos != 0) return 0; // Only allow read from the start.
     cipher = generate_update(&cipher_len);
 
     if (cipher_len == 0) {

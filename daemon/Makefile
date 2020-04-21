@@ -119,7 +119,7 @@ Enclave_Cpp_Files := $(Enclave_Folder)/Enclave.cpp \
 					 $(Enclave_Folder)/lsm_communication.cpp \
 			         $(Enclave_Folder)/crypto/rsa_encrypt.cpp \
 			         $(Enclave_Folder)/crypto/rsa_decrypt.cpp \
-			         $(Enclave_Folder)/crypto/aes_encrypt.cpp
+			         $(Enclave_Folder)/crypto/aes.cpp
 
 Enclave_Include_Paths := -I$(Enclave_Folder) -I$(SGX_SDK)/include -I$(SGX_SDK)/include/tlibc -I$(SGX_SDK)/include/stlport -I$(LibTomCrypt_Folder)/src/headers -I/opt/devel/sgx-gmp
 

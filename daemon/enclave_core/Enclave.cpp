@@ -27,7 +27,16 @@ void print_hex(unsigned char *buf, unsigned int len) {
 
 void timer_pulse(void) {
     ocall_print("Timer...");
-    // generate_ticket();
+    generate_ticket(9);
+    generate_ticket(8);
+    generate_ticket(7);
+    generate_ticket(6);
+    generate_ticket(5);
+    generate_ticket(4);
+    generate_ticket(3);
+    generate_ticket(2);
+    generate_ticket(1);
+    generate_ticket(9);
 }
 
 //

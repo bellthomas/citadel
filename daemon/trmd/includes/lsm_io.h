@@ -12,5 +12,6 @@
 #include "app.h"
 
 extern int lsm_register();
+extern int trigger_process_updates();
 
 #endif  /* _U_ENCLAVE_TRM_LSM_IO_H */
