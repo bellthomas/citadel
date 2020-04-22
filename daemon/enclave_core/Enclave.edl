@@ -1,4 +1,6 @@
 enclave {
+    from "sgx_tstdc.edl" import *;
+    from "sgx_tswitchless.edl" import *;
     from "Sealing/Sealing.edl" import *;
 
     trusted {
@@ -11,16 +13,16 @@ enclave {
             size_t challenge_length,
             [out, size=response_length] uint8_t* response_data,
             size_t response_length
-        );
+        ) transition_using_threads;
 
-        public void timer_pulse(void); 
-        public int process_updates([in, size=update_length] uint8_t* update_data, size_t update_length);
+        public void timer_pulse(void) transition_using_threads; 
+        public int process_updates([in, size=update_length] uint8_t* update_data, size_t update_length) transition_using_threads;
     };
 
     untrusted {
         /* define OCALLs here. */
-        void ocall_print([in, string]const char* str);
-        int install_ticket([in, size=ticket_length] uint8_t* ticket_data, size_t ticket_length);
+        void ocall_print([in, string]const char* str) transition_using_threads;
+        int install_ticket([in, size=ticket_length] uint8_t* ticket_data, size_t ticket_length) transition_using_threads;
     };
 };
 
