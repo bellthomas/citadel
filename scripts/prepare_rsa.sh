@@ -1,7 +1,7 @@
 #!/bin/bash
 TS=$(date +%s)
 LSM_DIR=$1
-if [ -z "$var" ]; then
+if [ -z "$LSM_DIR" ]; then
     echo "No path provided. Using script path."
     LSM_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 fi
@@ -36,10 +36,10 @@ done
 
 # Construct final header files.
 KEY_HEADER='// Auto generated.'
-echo -e $KEY_HEADER > $LSM_DIR/lsm_keys.h 
-cat $LSM_DIR/rsa.lsm_key_priv >> $LSM_DIR/lsm_keys.h 
-cat $LSM_DIR/rsa.lsm_key_pub >> $LSM_DIR/lsm_keys.h 
-cat $LSM_DIR/rsa.enclave_key_pub >> $LSM_DIR/lsm_keys.h 
+echo -e $KEY_HEADER > $LSM_DIR/includes/lsm_keys.h 
+cat $LSM_DIR/rsa.lsm_key_priv >> $LSM_DIR/includes/lsm_keys.h 
+cat $LSM_DIR/rsa.lsm_key_pub >> $LSM_DIR/includes/lsm_keys.h 
+cat $LSM_DIR/rsa.enclave_key_pub >> $LSM_DIR/includes/lsm_keys.h 
 
 echo -e $KEY_HEADER > $LSM_DIR/daemon/enclave_core/enclave_keys.h 
 cat $LSM_DIR/rsa.enclave_key_priv >> $LSM_DIR/daemon/enclave_core/enclave_keys.h 
