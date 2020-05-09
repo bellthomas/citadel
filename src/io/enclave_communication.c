@@ -1,9 +1,13 @@
-#include "includes/enclave_communication.h"
+#include "../../includes/enclave_communication.h"
 
-static unsigned char current_challenge[32];
-static char registered_name[40];
-static char aes_key[16];
+static unsigned char current_challenge[_TRM_CHALLENGE_LENGTH];
+static char registered_name[_TRM_NAME_LENGTH];
+static char aes_key[_TRM_AES_KEY_LENGTH];
 static int registered = 0;
+
+int system_ready() {
+    return registered;
+}
 
 void* generate_challenge(size_t *len) {
     struct trm_challenge *challenge;
@@ -111,6 +115,11 @@ void process_received_update(void *update, size_t update_len) {
         printk(PFX "Can't process update. Not registered.\n");
         return;
     }
+
+    if (update_len <= IV_LENGTH + TAG_LENGTH) {
+        printk(PFX "Invalid payload. Too short (%ld)\n", update_len);
+        return;
+    }
     
     plain = kzalloc(update_len, GFP_KERNEL);
     outlen = update_len;
@@ -127,6 +136,7 @@ void process_received_update(void *update, size_t update_len) {
     // kfree(hex);
 
     update_aes_key(hdr->key_update, sizeof(hdr->key_update));
+    kfree(plain);
 }
 
 
@@ -179,5 +189,57 @@ void* generate_update(size_t *len) {
     return cipher;
 }
 
-// void update_requested(void);
-// void update_received(void);
+int xattr_enclave_installation(const void *value, size_t size, struct dentry *dentry) {
+    char *plain, *identifier_hex;
+    size_t outlen;
+    int res, xattr_success;
+    struct trm_update_header *hdr;
+    struct trm_update_record *rcrd;
+
+    if (!registered) {
+        printk(PFX_W "Can't process update. Not registered.\n");
+        return -1;
+    }
+
+    if (size <= IV_LENGTH + TAG_LENGTH) {
+        printk(PFX_W "Invalid payload. Too short (%ld)\n", size);
+        return -1;
+    }
+    
+    plain = kzalloc(size, GFP_KERNEL);
+    outlen = size;
+
+    res = trm_aes_decrypt(aes_key, (void*)value, size, plain, &outlen);
+    if (res) {
+        printk(PFX_W "Rejected updates. Decryption failed.\n");
+        return -1;
+    }
+
+    hdr = (struct trm_update_header*)plain;
+    if(memcmp(hdr->signature, challenge_signature, sizeof(challenge_signature))) {
+        printk(PFX_W "Rejected updates. Signature mismatch.\n");
+        return -1;
+    }
+
+    // Only expecting a single record.
+    if (hdr->records != 1) return -1;
+    rcrd = (struct trm_update_record*)(plain + sizeof(struct trm_update_header));
+
+    // Set the xattr values.
+    identifier_hex = to_hexstring(rcrd->subject, _TRM_IDENTIFIER_LENGTH);
+    // need to lock inode->i_rwsem
+    down_write(&dentry->d_inode->i_rwsem);
+    xattr_success = __vfs_setxattr_noperm(dentry, TRM_XATTR_ID_NAME, (const void*)identifier_hex, _TRM_IDENTIFIER_LENGTH * 2, 0);
+    __vfs_setxattr_noperm(dentry, TRM_XATTR_REALM_NAME, NULL, 0, 0);
+	up_write(&dentry->d_inode->i_rwsem);
+    kfree(identifier_hex);
+
+    if(xattr_success == 0) {
+        update_aes_key(hdr->key_update, sizeof(hdr->key_update));
+        kfree(plain);
+        return 0;
+    } else {
+        kfree(plain);
+        return -1;
+    }
+}

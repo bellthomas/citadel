@@ -62,9 +62,9 @@ void update_aes_key(void *key, size_t key_len) {
             aes_key[i] = aes_key[i] ^ ((unsigned char*)key)[i];
         }
     }
-    ocall_print("\n** Updated AES key.");
-    print_hex(aes_key, sizeof(aes_key));
-    ocall_print("**");
+    // ocall_print("\n** Updated AES key.");
+    // print_hex(aes_key, sizeof(aes_key));
+    // ocall_print("**");
 }
 
 
@@ -93,7 +93,7 @@ void generate_ticket(int num_records) {
     // memset(cipher, 0, 4096+16);
     size_t outlen = sizeof(data) + 16;
     int ret = aes_encrypt((unsigned char*)data, sizeof(data), cipher, &outlen, aes_key, sizeof(aes_key));
-    print_hex(cipher, outlen);
+    // print_hex(cipher, outlen);
 
     // // Install.
     int install_ret;
@@ -104,14 +104,14 @@ void generate_ticket(int num_records) {
 }
 
 int process_updates(uint8_t* update_data, size_t update_length) {
-    ocall_print("-\nProcessing updates.");
-    print_hex((unsigned char*)update_data, update_length);
+    // ocall_print("-\nProcessing updates.");
+    // print_hex((unsigned char*)update_data, update_length);
 
     unsigned char plain[update_length];
     size_t outlen = update_length;
     int ret = aes_decrypt(update_data, update_length, plain, &outlen, aes_key, sizeof(aes_key));
-    print_hex((unsigned char*)plain, outlen);
-    ocall_print("\ndissecting records...");
+    // print_hex((unsigned char*)plain, outlen);
+    // ocall_print("\ndissecting records...");
 
     struct trm_update_header *hdr;
     struct trm_update_record *rcrd;
@@ -122,10 +122,41 @@ int process_updates(uint8_t* update_data, size_t update_length) {
         return -1;
     }
 
-    char msg[256];
-    int n = snprintf(msg, sizeof(msg), "Found %d records.\nKey update:", hdr->records);
-    ocall_print(msg);
-    print_hex(hdr->key_update, sizeof(hdr->key_update));
+    // char msg[256];
+    // int n = snprintf(msg, sizeof(msg), "Found %d records.\nKey update:", hdr->records);
+    // ocall_print(msg);
+    // print_hex(hdr->key_update, sizeof(hdr->key_update));
 
     return 0;
+}
+
+void generate_xattr_ticket(void) {
+    char data[sizeof(trm_update_header) + sizeof(trm_update_record)];
+    struct trm_update_header *hdr;
+    struct trm_update_record *rcrd;
+
+    hdr = (struct trm_update_header*)data;
+    memcpy(hdr->signature, challenge_signature, sizeof(challenge_signature));
+    sgx_read_rand(hdr->key_update, sizeof(hdr->key_update));
+    hdr->records = (uint8_t)1;
+
+    rcrd = (struct trm_update_record*)(data + sizeof(struct trm_update_header));
+    sgx_read_rand(rcrd->subject, sizeof(rcrd->subject));
+    memset(rcrd->data, 2, sizeof(rcrd->data));
+
+    print_hex((unsigned char*)rcrd->subject, sizeof(rcrd->subject));
+    print_hex((unsigned char*)data, sizeof(data));
+
+    // Encrypt.
+    unsigned char cipher[sizeof(data) + 16];
+    size_t outlen = sizeof(data) + 16;
+    int ret = aes_encrypt((unsigned char*)data, sizeof(data), cipher, &outlen, aes_key, sizeof(aes_key));
+    // print_hex(cipher, outlen);
+
+    int install_ret;
+    char path[22] = "/opt/testing_dir/test";
+    install_xattr(&install_ret, path, sizeof(path), (uint8_t*)cipher, outlen);
+
+    if(install_ret == XATTR_ACCEPTED_SIGNAL)
+        update_aes_key(hdr->key_update, sizeof(hdr->key_update));
 }

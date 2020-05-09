@@ -29,33 +29,10 @@
  */
 
 
-#include <linux/types.h>
-#include <linux/xattr.h>
-#include <linux/binfmts.h>
-#include <linux/lsm_hooks.h>
-#include <linux/cred.h>
-#include <linux/fs.h>
-#include <linux/uidgid.h>
-#include <linux/kobject.h>
-#include <linux/crypto.h>
+#include "../includes/trm.h"
 
-// #include "trm_keys.h"
-// #include "trm_keys2.h"
-#include "includes/trm.h"
-#include "includes/ticket_cache.h"
-#include "includes/crypto.h"
 
 /* LSM's BLOB allocation. */
-
-struct task_trm {
-    uint8_t t_data;
-};
-
-struct inode_trm {
-    uint8_t i_data;
-    struct mutex lock;
-};
-
 struct lsm_blob_sizes trm_blob_sizes __lsm_ro_after_init = {
 	.lbs_cred = sizeof(struct task_trm),
 	.lbs_file = 0, //sizeof(struct smack_known *),
@@ -65,11 +42,14 @@ struct lsm_blob_sizes trm_blob_sizes __lsm_ro_after_init = {
 };
 
 
+
 static int rsa_available = 0;
+static int aes_available = 0;
 static int secondary = 0;
 struct dentry *integrity_dir;
 struct dentry *challenge_file;
 struct dentry *update_file;
+
 
 /*
  * Perform a check of a program execution/map.
@@ -106,12 +86,7 @@ static int trm_task_prctl(int option, unsigned long arg2, unsigned long arg3, un
 
 
 // Trying out inode-y things.
-static inline struct inode_trm *trm_inode(const struct inode *inode) {
-	return inode->i_security + trm_blob_sizes.lbs_inode;
-}
-static inline struct task_trm *trm_cred(const struct cred *cred) {
-	return cred->security + trm_blob_sizes.lbs_cred;
-}
+
 
 // static inline struct smack_known *smk_of_task_struct(const struct task_struct *t) {
 // 	struct smack_known *skp;
@@ -132,175 +107,7 @@ static inline struct task_trm *trm_cred(const struct cred *cred) {
 // }
 
 
-static char *trm_get_dentry_path(struct dentry *dentry, char * const buffer,
-				    const int buflen)
-{
-	char *pos = ERR_PTR(-ENOMEM);
 
-	if (buflen >= 256) {
-		pos = dentry_path_raw(dentry, buffer, buflen - 1);
-		if (!IS_ERR(pos) && *pos == '/' && pos[1]) {
-			struct inode *inode = d_backing_inode(dentry);
-
-			if (inode && S_ISDIR(inode->i_mode)) {
-				buffer[buflen - 2] = '/';
-				buffer[buflen - 1] = '\0';
-			}
-		}
-	}
-	return pos;
-}
-
-/**
- * smack_inode_rename - Smack check on rename
- * @old_inode: unused
- * @old_dentry: the old object
- * @new_inode: unused
- * @new_dentry: the new object
- *
- * Read and write access is required on both the old and
- * new directories.
- *
- * Returns 0 if access is permitted, an error code otherwise
- */
-static int trm_inode_rename(struct inode *old_inode,
-			      struct dentry *old_dentry,
-			      struct inode *new_inode,
-			      struct dentry *new_dentry)
-{
-    int xattr_success;
-    char *pos;
-    char *pathname = NULL;
-	struct dentry *dentry;
-    int pathname_len = 1024;
-    struct inode_trm *itp = trm_inode(new_inode);
-
-    dentry = d_find_alias(new_inode);
-    if (dentry) {
-        pathname = kzalloc(pathname_len, GFP_KERNEL);
-        pos = trm_get_dentry_path(dentry, pathname, pathname_len);
-        if (!IS_ERR(pos)) {
-            printk(PFX "trm_inode_rename() -- from %s\n", pos);
-            
-            xattr_success = security_inode_setxattr(dentry, "security.citadel_protected", (const void*)"yes", 4, 0);
-            printk(PFX "xattr setting: %d\n", xattr_success);
-            xattr_success = __vfs_setxattr_noperm(dentry, "security.citadel_protected_2", (const void*)"yes", 4, 0);
-            printk(PFX "xattr setting 2: %d\n", xattr_success);
-        } else {
-            printk(PFX "trm_inode_rename() -- error\n");
-        }
-        kfree(pathname);
-    }
-
-
-	// int rc;
-	// struct smack_known *isp;
-	// struct smk_audit_info ad;
-
-	// smk_ad_init(&ad, __func__, LSM_AUDIT_DATA_DENTRY);
-	// smk_ad_setfield_u_fs_path_dentry(&ad, old_dentry);
-
-	// isp = smk_of_inode(d_backing_inode(old_dentry));
-	// rc = smk_curacc(isp, MAY_READWRITE, &ad);
-	// rc = smk_bu_inode(d_backing_inode(old_dentry), MAY_READWRITE, rc);
-
-	// if (rc == 0 && d_is_positive(new_dentry)) {
-	// 	isp = smk_of_inode(d_backing_inode(new_dentry));
-	// 	smk_ad_setfield_u_fs_path_dentry(&ad, new_dentry);
-	// 	rc = smk_curacc(isp, MAY_READWRITE, &ad);
-	// 	rc = smk_bu_inode(d_backing_inode(new_dentry), MAY_READWRITE, rc);
-	// }
-    printk(PFX "Doing rename -- %d\n", itp->i_data);
-	return 0;
-}
-
-
-/**
- * init_inode_smack - initialize an inode security blob
- * @inode: inode to extract the info from
- * @skp: a pointer to the Smack label entry to use in the blob
- *
- */
-static void init_inode_trm(struct inode *inode) { //, struct smack_known *skp
-	struct inode_trm *itp = trm_inode(inode);
-    itp->i_data = 23;
-	mutex_init(&itp->lock);
-}
-
-static int trm_inode_alloc_security(struct inode *inode) {
-	init_inode_trm(inode);
-	return 0;
-}
-
-/**
- * smack_inode_init_security - copy out the smack from an inode
- * @inode: the newly created inode
- * @dir: containing directory object
- * @qstr: unused
- * @name: where to put the attribute name
- * @value: where to put the attribute value
- * @len: where to put the length of the attribute
- *
- * Returns 0 if it all works out, -ENOMEM if there's no memory
- */
-static int trm_inode_init_security(struct inode *inode, struct inode *dir,
-				     const struct qstr *qstr, const char **name,
-				     void **value, size_t *len)
-{
-    return 0;
-}
-
-
-/**
- * smack_inode_setsecurity - set smack xattrs
- * @inode: the object
- * @name: attribute name
- * @value: attribute value
- * @size: size of the attribute
- * @flags: unused
- *
- * Sets the named attribute in the appropriate blob
- *
- * Returns 0 on success, or an error code
- */
-// static int smack_inode_setsecurity(struct inode *inode, const char *name,
-// 				   const void *value, size_t size, int flags)
-// {
-// 	struct smack_known *skp;
-// 	struct inode_smack *nsp = smack_inode(inode);
-// 	struct socket_smack *ssp;
-// 	struct socket *sock;
-// 	int rc = 0;
-
-// 	if (value == NULL || size > SMK_LONGLABEL || size == 0)
-// 		return -EINVAL;
-
-// 	skp = smk_import_entry(value, size);
-// 	if (IS_ERR(skp))
-// 		return PTR_ERR(skp);
-
-// 	if (strcmp(name, XATTR_SMACK_SUFFIX) == 0) {
-// 		nsp->smk_inode = skp;
-// 		nsp->smk_flags |= SMK_INODE_INSTANT;
-// 		return 0;
-// 	}
-
-
-
-static int trm_inode_setxattr(struct dentry *dentry, const char *name,
-				  const void *value, size_t size, int flags)
-{
-    // struct inode *inode = d_backing_inode(dentry);
-	// struct inode_security_struct *isec;
-	// struct superblock_security_struct *sbsec;
-	// struct common_audit_data ad;
-	// u32 newsid, sid = current_sid();
-	// int rc = 0;
-
-    printk(PFX "trm_inode_setxattr() -- %s", name);
-
-    return 0;
-}
 
 // ----------------------------------------------------------------//
 // Region: securityfs operations.
@@ -340,32 +147,45 @@ static int __init integrity_fs_init(void)
 }
 
 late_initcall(integrity_fs_init)
+
+
 // ----------------------------------------------------------------//
-
-
-
-static int __init crypto_init(void) {
-    int res, res2;
-    res = trm_rsa_self_test();
-    res2 = trm_aes_self_test();
-    if(!res) {
-        printk(KERN_INFO PFX "RSA support enabled.\n");
-        rsa_available = 1;
-    } else {
-        printk(KERN_INFO PFX "Crypto Test -- %d\n", res);
-    }
-    return res;
-}
-late_initcall(crypto_init)
-// ----------------------------------------------------------------//
-
+// Region: Crypto.
 
 int is_rsa_available(void) {
     return rsa_available;
 }
 
+int is_aes_available(void) {
+    return aes_available;
+}
+
+static void __init crypto_init(void) {
+    int res_rsa, res_aes;
+
+    // Check RSA.
+    res_rsa = trm_rsa_self_test();
+    if(!res_rsa) {
+        printk(KERN_INFO PFX "RSA support enabled.\n");
+        rsa_available = 1;
+    } else {
+        printk(KERN_INFO PFX "RSA Selftest -- %d\n", res_rsa);
+    }
+
+    // Check AES.
+    res_aes = trm_aes_self_test();
+    if(!res_rsa) {
+        printk(KERN_INFO PFX "AES support enabled.\n");
+        aes_available = 1;
+    } else {
+        printk(KERN_INFO PFX "AES Selftest -- %d\n", res_aes);
+    }
+}
+late_initcall(crypto_init)
 
 
+// ----------------------------------------------------------------//
+// Region: Core LSM definitions.
 
 /*
  * The hooks we wish to be installed.
@@ -375,11 +195,15 @@ static struct security_hook_list trm_hooks[] __lsm_ro_after_init = {
     LSM_HOOK_INIT(inode_permission, trm_inode_permission),
     LSM_HOOK_INIT(task_prctl, trm_task_prctl),
 
+    // Provided by lsm_functions/inode.c
     LSM_HOOK_INIT(inode_alloc_security, trm_inode_alloc_security),
 	LSM_HOOK_INIT(inode_init_security, trm_inode_init_security),
-    LSM_HOOK_INIT(inode_rename, trm_inode_rename),
+    // LSM_HOOK_INIT(inode_rename, trm_inode_rename),
     LSM_HOOK_INIT(inode_setxattr, trm_inode_setxattr),
-
+    LSM_HOOK_INIT(inode_post_setxattr, trm_inode_post_setxattr),
+	LSM_HOOK_INIT(inode_getxattr, trm_inode_getxattr),
+	LSM_HOOK_INIT(inode_listxattr, trm_inode_listxattr),
+	LSM_HOOK_INIT(inode_removexattr, trm_inode_removexattr),
     // LSM_HOOK_INIT(inode_setsecurity, trm_inode_setsecurity), // for xattrs
 };
 

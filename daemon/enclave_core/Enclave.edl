@@ -23,6 +23,12 @@ enclave {
         /* define OCALLs here. */
         void ocall_print([in, string]const char* str) transition_using_threads;
         int install_ticket([in, size=ticket_length] uint8_t* ticket_data, size_t ticket_length) transition_using_threads;
+        int install_xattr(
+            [in, size=path_length] char* path,
+            size_t path_length,
+            [in, size=ticket_length] uint8_t* ticket_data,
+            size_t ticket_length
+        ) transition_using_threads;
     };
 };
 

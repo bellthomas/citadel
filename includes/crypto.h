@@ -25,7 +25,7 @@
 #define AES_DECRYPT 2
 #define AES_KEY_SIZE 16
 
-// Parameters to GCM-AES-128.
+// Parameters for GCM-AES-128.
 #define IV_LENGTH 12
 #define TAG_LENGTH 16
 

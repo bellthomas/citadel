@@ -23,6 +23,9 @@ int main(int argc, char const *argv[]) {
     // Initialise with LSM.
     int reg_res = lsm_register();
     sgx_status_t pulse_res = timer_pulse(global_eid);
-    // int updates_res = trigger_process_updates();
+
+
+    // char *value = "Some testing value here kajshdkjahsdkjhaskjhakjhasdkjhas";
+    // int updates_res = xattr_install("/opt/testing_dir/test", value, sizeof(value));
     return 0;
 }

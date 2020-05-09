@@ -1,6 +1,5 @@
-#include "includes/crypto.h"
-#include "lsm_keys.h"
-// #include "enclave_keys.h"
+#include "../../includes/crypto.h"
+#include "../../includes/lsm_keys.h"
 
 
 #define RSA_ENCRYPT  0
@@ -102,7 +101,7 @@ int trm_akcrypto(char* key, int key_len, void *data, int data_len, int mode, int
     int err, key_err;
 
     // Create RSA object.
-    tfm = crypto_alloc_akcipher("rsa", CRYPTO_ALG_INTERNAL, 0);
+    tfm = crypto_alloc_akcipher("pkcs1pad(rsa,sha1)", CRYPTO_ALG_INTERNAL, 0);
     if (IS_ERR(tfm)) {
         pr_err("LSM/TRM: akcipher: Failed to load tfm for rsa: %ld\n", PTR_ERR(tfm));
         return PTR_ERR(tfm);
@@ -141,10 +140,14 @@ free_cipher:
 
 
 int trm_akcrypto_encrypt_pub(void *data, int datalen, void* res, int* res_len) {
-    return trm_akcrypto(lsm_key_pub, lsm_key_pub_len, data, datalen, RSA_ENCRYPT, RSA_PUB_KEY, res, res_len);
+    return trm_akcrypto(enclave_key_pub, enclave_key_pub_len, data, datalen, RSA_ENCRYPT, RSA_PUB_KEY, res, res_len);
 }
 
-int trm_akcrypto_decrypt_pub(void *data, int datalen, void* res, int* res_len) {
+int trm_akcrypto_encrypt_pub_self(void *data, int datalen, void* res, int* res_len) {
+    return trm_akcrypto(lsm_key_pub, lsm_key_pub_len, data, datalen, RSA_ENCRYPT, RSA_PUB_KEY, res, res_len);
+}
+// Evil.
+int trm_akcrypto_decrypt_pub_self(void *data, int datalen, void* res, int* res_len) {
     return trm_akcrypto(lsm_key_pub, lsm_key_pub_len, data, datalen, RSA_DECRYPT, RSA_PUB_KEY, res, res_len);
 }
 
@@ -158,7 +161,7 @@ int trm_akcrypto_decrypt_priv(void *data, int datalen, void* res, int* res_len) 
 
 // ------------------------------------------------
 
-char* trm_encrypt(char* data, size_t data_len, int* return_size) {
+char* trm_rsa_encrypt(char* data, size_t data_len, int* return_size) {
     void *cipher_page, *cipher;
     int res;
 
@@ -182,7 +185,7 @@ fail:
     return NULL;
 }
 
-char* trm_decrypt(char* data, size_t data_len, int* return_size) {
+char* trm_rsa_decrypt(char* data, size_t data_len, int* return_size) {
     void *plain_page, *plain;
     int res;
 
@@ -206,7 +209,7 @@ fail:
     return NULL;
 }
 
-int trm_crypto_self_test(void) {   
+int trm_rsa_self_test(void) {   
     int res;
     void *cipher, *result;
     char *hexmsg, *hexmsg2;
@@ -215,13 +218,13 @@ int trm_crypto_self_test(void) {
     const int msg_len = 8;
 
     // Encrypt with public key.
-    printk(KERN_INFO "LSM/TRM: RSA test -- stage 1.\n");
+    // printk(KERN_INFO "LSM/TRM: RSA test -- stage 1.\n");
     cipher = kzalloc(PAGE_SIZE, GFP_KERNEL);
     if (cipher) {
-        res = trm_akcrypto_encrypt_pub((void*)msg, msg_len, cipher, &cipher_len);
+        res = trm_akcrypto_encrypt_pub_self((void*)msg, msg_len, cipher, &cipher_len);
         if(!res) {
             hexmsg = to_hexstring(cipher, cipher_len);
-            printk(KERN_INFO "LSM/TRM: Encrypted using public key: (%d bytes) %s\n", cipher_len, hexmsg);
+            // printk(KERN_INFO "LSM/TRM: Encrypted using public key: (%d bytes) %s\n", cipher_len, hexmsg);
             kfree(hexmsg);
         } else {
             printk(KERN_INFO "LSM/TRM: [FAIL] Encrypted using public key: %d\n", res);
@@ -232,13 +235,13 @@ int trm_crypto_self_test(void) {
     }
 
     // Test decrypt using private key.
-    printk(KERN_INFO "LSM/TRM: RSA test -- stage 2.\n");
+    // printk(KERN_INFO "LSM/TRM: RSA test -- stage 2.\n");
     result = kzalloc(PAGE_SIZE, GFP_KERNEL);
     if (result) {
         res = trm_akcrypto_decrypt_priv((void*)cipher, cipher_len, result, &result_len);
         if(!res) {
             hexmsg2 = to_hexstring(result, result_len);
-            printk(KERN_INFO "LSM/TRM: Decrypted using private key: (%d bytes) %s\n", result_len, hexmsg2);
+            // printk(KERN_INFO "LSM/TRM: Decrypted using private key: (%d bytes) %s\n", result_len, hexmsg2);
             kfree(hexmsg2);
         } else {
             printk(KERN_INFO "LSM/TRM: [FAIL] Decrypted using private key: %d\n", res);

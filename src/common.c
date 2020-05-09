@@ -1,5 +1,5 @@
 
-#include "includes/common.h"
+#include "../includes/common.h"
 
 char* to_hexstring(unsigned char *buf, unsigned int len) {
     char   *out;
@@ -14,4 +14,21 @@ char* to_hexstring(unsigned char *buf, unsigned int len) {
 	}
     out[len*2] = '\0';
     return out;
+}
+
+char *get_dentry_path(struct dentry *dentry, char * const buffer, const int buflen) {
+	char *pos = ERR_PTR(-ENOMEM);
+
+	if (buflen >= 256) {
+		pos = dentry_path_raw(dentry, buffer, buflen - 1);
+		if (!IS_ERR(pos) && *pos == '/' && pos[1]) {
+			struct inode *inode = d_backing_inode(dentry);
+
+			if (inode && S_ISDIR(inode->i_mode)) {
+				buffer[buflen - 2] = '/';
+				buffer[buflen - 1] = '\0';
+			}
+		}
+	}
+	return pos;
 }

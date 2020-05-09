@@ -58,7 +58,7 @@ void test_aes(void) {
 
 
 int install_ticket(uint8_t* ticket_data, size_t ticket_length) {
-    printf("Installing ticket of length %lu\n", ticket_length);
+    // printf("Installing ticket of length %lu\n", ticket_length);
     return send_update(ticket_data, ticket_length);
 }
 
@@ -79,4 +79,14 @@ int trigger_process_updates() {
 
 
     return updates_res;
+}
+
+
+// xattr IO.
+int install_xattr(char *path, size_t path_length, uint8_t *ticket_data, size_t ticket_length) {
+    printf("Path: %s\n", path);
+    setxattr(path, "security.citadel.install", ticket_data, ticket_length, 0);
+    int res = errno; 
+    printf("xattr_install return value: %d\n", res);
+    return res;
 }

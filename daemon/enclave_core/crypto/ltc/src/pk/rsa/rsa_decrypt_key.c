@@ -8,8 +8,6 @@
  */
 #include "tomcrypt_private.h"
 
-extern void ocall_print(const char* msg);
-
 /**
   @file rsa_decrypt_key.c
   RSA PKCS #1 Decryption, Tom St Denis and Andreas Lange

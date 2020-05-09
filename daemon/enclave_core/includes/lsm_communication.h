@@ -12,5 +12,6 @@
 
 extern sgx_status_t handle_challenge_phase_1(uint8_t* challenge_data, size_t challenge_length, uint8_t* response_data, size_t response_length);
 extern void generate_ticket(int num_records);
+extern void generate_xattr_ticket(void);
 
 #endif
