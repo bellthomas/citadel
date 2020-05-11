@@ -5,6 +5,7 @@ obj-y := src/trm.o \
          src/io/io.o \
          src/io/enclave_communication.o \
 		 src/lsm_functions/inode.o \
+		 src/lsm_functions/file.o \
 		 src/ticketing/ticket_cache.o
 
 

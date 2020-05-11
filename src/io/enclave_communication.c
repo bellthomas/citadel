@@ -195,6 +195,7 @@ int xattr_enclave_installation(const void *value, size_t size, struct dentry *de
     int res, xattr_success;
     struct trm_update_header *hdr;
     struct trm_update_record *rcrd;
+    struct inode_trm *d_inode_trm = trm_inode(dentry->d_inode);
 
     if (!registered) {
         printk(PFX_W "Can't process update. Not registered.\n");
@@ -228,13 +229,17 @@ int xattr_enclave_installation(const void *value, size_t size, struct dentry *de
     // Set the xattr values.
     identifier_hex = to_hexstring(rcrd->subject, _TRM_IDENTIFIER_LENGTH);
     // need to lock inode->i_rwsem
-    down_write(&dentry->d_inode->i_rwsem);
+    // down_write(&(dentry->d_inode->i_rwsem));
     xattr_success = __vfs_setxattr_noperm(dentry, TRM_XATTR_ID_NAME, (const void*)identifier_hex, _TRM_IDENTIFIER_LENGTH * 2, 0);
     __vfs_setxattr_noperm(dentry, TRM_XATTR_REALM_NAME, NULL, 0, 0);
-	up_write(&dentry->d_inode->i_rwsem);
+	// up_write(&(dentry->d_inode->i_rwsem));
     kfree(identifier_hex);
 
     if(xattr_success == 0) {
+        // Update internal kernel structure.
+        d_inode_trm->in_realm = true;
+        memcpy(d_inode_trm->identifier, rcrd->subject, sizeof(d_inode_trm->identifier));
+
         update_aes_key(hdr->key_update, sizeof(hdr->key_update));
         kfree(plain);
         return 0;

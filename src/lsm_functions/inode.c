@@ -2,7 +2,6 @@
 #include "../../includes/inode.h"
 
 
-
 /**
  * smack_inode_rename - Smack check on rename
  * @old_inode: unused
@@ -15,186 +14,213 @@
  *
  * Returns 0 if access is permitted, an error code otherwise
  */
-
-// Internal implementation.
-int __trm_inode_rename(struct inode *old_inode, struct dentry *old_dentry,
-			           struct inode *new_inode, struct dentry *new_dentry)
-{
-    int xattr_success;
-    char *pos;
-    char *pathname = NULL;
-	struct dentry *dentry;
-    int pathname_len = 1024;
-    struct inode_trm *itp = trm_inode(new_inode);
-
-    dentry = d_find_alias(new_inode);
-    if (dentry) {
-        pathname = kzalloc(pathname_len, GFP_KERNEL);
-        pos = get_dentry_path(dentry, pathname, pathname_len);
-        if (!IS_ERR(pos)) {
-            // printk(PFX "trm_inode_rename() -- from %s\n", pos);
-            // vfs_removexattr(dentry, "security.citadel_protected_2");
-            // vfs_removexattr(dentry, "security.citadel_protected");
-            // xattr_success = security_inode_setxattr(dentry, "security.citadel_protected", (const void*)"yes", 4, 0);
-            // printk(PFX "xattr setting: %d\n", xattr_success);
-            inode_lock(new_inode);
-			xattr_success = __vfs_setxattr_noperm(dentry, "security.citadel", (const void*)"yes", 4, 0);
-            inode_unlock(new_inode);
-			printk(PFX "xattr setting: %d\n", xattr_success);
-        } else {
-            printk(PFX "trm_inode_rename() -- error\n");
-        }
-        kfree(pathname);
-    }
-
-
-	// int rc;
-	// struct smack_known *isp;
-	// struct smk_audit_info ad;
-
-	// smk_ad_init(&ad, __func__, LSM_AUDIT_DATA_DENTRY);
-	// smk_ad_setfield_u_fs_path_dentry(&ad, old_dentry);
-
-	// isp = smk_of_inode(d_backing_inode(old_dentry));
-	// rc = smk_curacc(isp, MAY_READWRITE, &ad);
-	// rc = smk_bu_inode(d_backing_inode(old_dentry), MAY_READWRITE, rc);
-
-	// if (rc == 0 && d_is_positive(new_dentry)) {
-	// 	isp = smk_of_inode(d_backing_inode(new_dentry));
-	// 	smk_ad_setfield_u_fs_path_dentry(&ad, new_dentry);
-	// 	rc = smk_curacc(isp, MAY_READWRITE, &ad);
-	// 	rc = smk_bu_inode(d_backing_inode(new_dentry), MAY_READWRITE, rc);
-	// }
-    printk(PFX "Doing rename -- %d\n", itp->i_data);
-	return 0;
-}
-
 int trm_inode_rename(struct inode *old_inode, struct dentry *old_dentry,
 			         struct inode *new_inode, struct dentry *new_dentry)
 {
-	// If not registered with enclave don't do anything.
-	if(!system_ready()) return 0;
-	return __trm_inode_rename(old_inode, old_dentry, new_inode, new_dentry);
+	return -EOPNOTSUPP;
 }
 
 
-/**
- * init_inode_smack - initialize an inode security blob
- * @inode: inode to extract the info from
- * @skp: a pointer to the Smack label entry to use in the blob
- *
+
+/*
+ *	Allocate and attach a security structure to @inode->i_security.  The
+ *	i_security field is initialized to NULL when the inode structure is
+ *	allocated.
+ *	@inode contains the inode structure.
+ *	Return 0 if operation was successful.
  */
-void init_inode_trm(struct inode *inode) { //, struct smack_known *skp
-	struct inode_trm *itp = trm_inode(inode);
-    itp->i_data = 23;
-	mutex_init(&itp->lock);
-}
-
 int trm_inode_alloc_security(struct inode *inode) {
-	init_inode_trm(inode);
+	struct inode_trm *itp = trm_inode(inode);
+    itp->in_realm = false;
+	itp->needs_xattr_update = false;
+	itp->checked_disk_xattr = false;
+	itp->data = 234;
+	mutex_init(&itp->lock);
 	return 0;
 }
 
-/**
- * smack_inode_init_security - copy out the smack from an inode
- * @inode: the newly created inode
- * @dir: containing directory object
- * @qstr: unused
- * @name: where to put the attribute name
- * @value: where to put the attribute value
- * @len: where to put the length of the attribute
- *
- * Returns 0 if it all works out, -ENOMEM if there's no memory
+
+/*
+ *	Obtain the security attribute name suffix and value to set on a newly
+ *	created inode and set up the incore security field for the new inode.
+ *	This hook is called by the fs code as part of the inode creation
+ *	transaction and provides for atomic labeling of the inode, unlike
+ *	the post_create/mkdir/... hooks called by the VFS.  The hook function
+ *	is expected to allocate the name and value via kmalloc, with the caller
+ *	being responsible for calling kfree after using them.
+ *	If the security module does not use security attributes or does
+ *	not wish to put a security attribute on this particular inode,
+ *	then it should return -EOPNOTSUPP to skip this processing.
+ *	@inode contains the inode structure of the newly created inode.
+ *	@dir contains the inode structure of the parent directory.
+ *	@qstr contains the last path component of the new object
+ *	@name will be set to the allocated name suffix (e.g. selinux).
+ *	@value will be set to the allocated attribute value.
+ *	@len will be set to the length of the value.
+ *	Returns 0 if @name and @value have been successfully set,
+ *	-EOPNOTSUPP if no security attribute is needed, or
+ *	-ENOMEM on memory allocation failure.
  */
-int trm_inode_init_security(struct inode *inode, struct inode *dir,
-				     const struct qstr *qstr, const char **name,
-				     void **value, size_t *len)
-{
-    return 0;
+int trm_inode_init_security(struct inode *inode, struct inode *dir, const struct qstr *qstr, const char **name, void **value, size_t *len) {
+	struct inode_trm *new_inode_trm = trm_inode(inode);
+	struct inode_trm *parent_inode_trm = trm_inode(dir);
+
+	// Hierarchical subsumption.
+	if (parent_inode_trm->in_realm && !new_inode_trm->in_realm) {
+		new_inode_trm->in_realm = true;
+		new_inode_trm->needs_xattr_update = true;
+	}
+
+	return -EOPNOTSUPP; // We don't use security attributes here.
 }
 
 
-/**
- * smack_inode_setsecurity - set smack xattrs
- * @inode: the object
- * @name: attribute name
- * @value: attribute value
- * @size: size of the attribute
- * @flags: unused
- *
- * Sets the named attribute in the appropriate blob
- *
- * Returns 0 on success, or an error code
+
+/*
+ *	Check permission before creating a new hard link to a file.
+ *	@old_dentry contains the dentry structure for an existing
+ *	link to the file.
+ *	@dir contains the inode structure of the parent directory
+ *	of the new link.
+ *	@new_dentry contains the dentry structure for the new link.
+ *	Return 0 if permission is granted.
  */
-// static int smack_inode_setsecurity(struct inode *inode, const char *name,
-// 				   const void *value, size_t size, int flags)
-// {
-// 	struct smack_known *skp;
-// 	struct inode_smack *nsp = smack_inode(inode);
-// 	struct socket_smack *ssp;
-// 	struct socket *sock;
-// 	int rc = 0;
+int trm_inode_link(struct dentry *old_dentry, struct inode *dir, struct dentry *new_dentry)
+{
+	char *pos, *hex_id;
+    char *pathname = NULL;
+	int pathname_len = 1024;
+	struct inode_trm *old_inode_trm = trm_dentry(old_dentry);
+	struct inode_trm *new_inode_trm = trm_dentry(new_dentry);
 
-// 	if (value == NULL || size > SMK_LONGLABEL || size == 0)
-// 		return -EINVAL;
 
-// 	skp = smk_import_entry(value, size);
-// 	if (IS_ERR(skp))
-// 		return PTR_ERR(skp);
+	if (old_inode_trm == NULL) {
+		printk(PFX "old_inode_trm == NULL"); 
+		return 0;
+	}
 
-// 	if (strcmp(name, XATTR_SMACK_SUFFIX) == 0) {
-// 		nsp->smk_inode = skp;
-// 		nsp->smk_flags |= SMK_INODE_INSTANT;
-// 		return 0;
+	if (new_inode_trm == NULL) {
+		printk(PFX "new_inode_trm == NULL");
+		return 0;
+	}
+	// Copy metadata to the new inode link.
+	if (old_inode_trm->in_realm) {
+		new_inode_trm->in_realm = true;
+		memcpy(new_inode_trm->identifier, old_inode_trm->identifier, sizeof(new_inode_trm->identifier));
+
+		// Log for debug.
+		pathname = kzalloc(pathname_len, GFP_KERNEL);
+		if(pathname) {
+			hex_id = to_hexstring(old_inode_trm->identifier, sizeof(old_inode_trm->identifier));
+			pos = get_dentry_path(new_dentry, pathname, pathname_len);
+			if (!IS_ERR(pos)) {
+				printk(PFX "[TX_LINK] Setting in_realm for %s (inode=%s)\n", pos, hex_id);
+			}
+			kfree(pathname);
+			kfree(hex_id);
+		}
+	}
+
+	return 0;
+}
+
+
+/*
+ *	Change the security context of an inode.  Updates the
+ *	incore security context managed by the security module and invokes the
+ *	fs code as needed (via __vfs_setxattr_noperm) to update any backing
+ *	xattrs that represent the context.  Example usage:  NFS server invokes
+ *	this hook to change the security context in its incore inode and on the
+ *	backing filesystem to a value provided by the client on a SETATTR
+ *	operation.
+ *	Must be called with inode->i_mutex locked.
+ *	@dentry contains the inode we wish to set the security context of.
+ *	@ctx contains the string which we wish to set in the inode.
+ *	@ctxlen contains the length of @ctx.
+ */
+// int trm_inode_setsecctx(struct dentry *dentry, void *ctx, u32 ctxlen) {
+// 	struct inode_trm *current_inode_trm = trm_dentry(dentry);
+// 	char *pos;
+//     char *pathname = NULL;
+// 	int pathname_len = 1024;
+// 	int res;
+// 	size_t xattr_size;
+
+// 	if (current_inode_trm->in_realm) {
+// 		printk(PFX "trm_inode_setsecctx and in realm\n");
+// 		// Check if the xattr is set.
+// 		xattr_size = __vfs_getxattr(dentry, d_backing_inode(dentry), TRM_XATTR_REALM_NAME, NULL, 0);
+//        	if (xattr_size == 0) {
+// 			// context is initialised by xattr is blank; update.
+// 			res = __set_xattr_in_realm(dentry);
+// 			printk(PFX "xattr setting success: %d\n", res);
+
+// #if TRM_DEBUG == 1
+// 			// Log for debug.
+// 			pathname = kzalloc(pathname_len, GFP_KERNEL);
+// 			if(pathname) {
+// 				pos = get_dentry_path(dentry, pathname, pathname_len);
+// 				if (!IS_ERR(pos)) {
+// 					printk(PFX "[HIER_SUB] Setting in_realm for %s\n", pos);
+// 				}
+// 				kfree(pathname);
+// 			}
+// #endif
+// 		}
 // 	}
 
+// 	return -EOPNOTSUPP; // We don't use security attributes here.
+// }
+
+// int trm_inode_notifysecctx(struct inode *inode, void *ctx, u32 ctxlen) {
+// 	struct inode_trm *current_inode_trm = trm_inode(inode);
+// 	if(current_inode_trm->in_realm) {
+// 		printk(PFX "trm_inode_notifysecctx and in realm");
+// 	}
+// 	return -EOPNOTSUPP;
+// }
 
 
+
+
+
+
+
+/* Region: xattrs */
 int trm_inode_setxattr(struct dentry *dentry, const char *name,
 				       const void *value, size_t size, int flags)
 {
-    // struct inode *inode = d_backing_inode(dentry);
-	// struct inode_security_struct *isec;
-	// struct superblock_security_struct *sbsec;
-	// struct common_audit_data ad;
-	// u32 newsid, sid = current_sid();
 	int rc = 0;
 	char *pos;
     char *pathname = NULL;
-	int pathname_len = 1024;
-
-    
+	int pathname_len = 1024;    
 
 	// Check for security.citadel.install
 	if (!strcmp(name, TRM_XATTR_INSTALL_NAME)) {
+		if(system_ready())
+			rc = xattr_enclave_installation(value, size, dentry) ? -XATTR_REJECTED_SIGNAL : -XATTR_ACCEPTED_SIGNAL;
+		else
+			rc = -ECANCELED; // Can't process this operation yet.
+		
+#if TRM_DEBUG == 1
 		pathname = kzalloc(pathname_len, GFP_KERNEL);
         pos = get_dentry_path(dentry, pathname, pathname_len);
         if (!IS_ERR(pos)) {
-			printk(PFX "security.citadel.install for %s\n", pos);
-			rc = (xattr_enclave_installation(value, size, dentry) ? -XATTR_REJECTED_SIGNAL : -XATTR_ACCEPTED_SIGNAL);
-		} else {
-			rc = -XATTR_REJECTED_SIGNAL;
+			printk(PFX "security.citadel.install for %s (err=%d)\n", pos, rc);
 		}
 		kfree(pathname);
+#endif
+
 		return rc;
 	}
 
-	// Normal, non-security.citadel attribute.
-	if (strcmp(name, TRM_XATTR_PREFIX)) {
-		rc = cap_inode_setxattr(dentry, name, value, size, flags);
-		if (rc)
-			return rc;
-
-		/* Not an attribute we recognize, so just check the
-		   ordinary setattr permission. */
-		return 0; //dentry_has_perm(current_cred(), dentry, FILE__SETATTR);
+	// Normal, non-security.citadel.* attribute.
+	if (strncmp(name, TRM_XATTR_PREFIX, strlen(TRM_XATTR_PREFIX))) {
+		return cap_inode_setxattr(dentry, name, value, size, flags);
 	}
 
-	printk(PFX "trm_inode_setxattr() -- %s\n", name);
-	// if (!selinux_initialized(&selinux_state))
-	// 	return (inode_owner_or_capable(inode) ? 0 : -EPERM);
-
 	// No-one can set this xattr apart from the kernel.
+	printk(PFX "Rejected trm_inode_setxattr() -- %s\n", name);
     return -EPERM; //(inode_owner_or_capable(inode) ? 0 : -EPERM);
 }
 
@@ -202,44 +228,35 @@ void trm_inode_post_setxattr(struct dentry *dentry, const char *name,
 					const void *value, size_t size,
 					int flags)
 {
-	// struct inode *inode = d_backing_inode(dentry);
-	// struct inode_security_struct *isec;
-	// u32 newsid;
-	// int rc;
+	struct inode_trm *current_inode_trm = trm_dentry(dentry);
+	char *pos;
+    char *pathname = NULL;
+	int pathname_len = 1024; 
 
-	// if (strcmp(name, XATTR_NAME_SELINUX)) {
-	// 	/* Not an attribute we recognize, so nothing to do. */
-	// 	return;
-	// }
+	if (current_inode_trm) {
+		if (current_inode_trm->in_realm) {
 
+			// Log for debug.
+			pathname = kzalloc(pathname_len, GFP_KERNEL);
+			if(pathname) {
+				pos = get_dentry_path(dentry, pathname, pathname_len);
+				if (!IS_ERR(pos)) {
+					printk(PFX "trm_inode_post_setxattr for %s\n", pos);
+				}
+				kfree(pathname);
+			}
+		}
+	}
 	return;
 }
 
-int trm_inode_getxattr(struct dentry *dentry, const char *name)
-{
-	// const struct cred *cred = current_cred();
-	return 0; //dentry_has_perm(cred, dentry, FILE__GETATTR);
-}
-
-int trm_inode_listxattr(struct dentry *dentry)
-{
-	// const struct cred *cred = current_cred();
-	return 0; //dentry_has_perm(cred, dentry, FILE__GETATTR);
-}
 
 int trm_inode_removexattr(struct dentry *dentry, const char *name)
 {
-	if (strcmp(name, TRM_XATTR_PREFIX)) {
-		int rc = cap_inode_removexattr(dentry, name);
-		if (rc)
-			return rc;
-
-		/* Not an attribute we recognize, so just check the
-		   ordinary setattr permission. */
-		return 0; //dentry_has_perm(current_cred(), dentry, FILE__SETATTR);
+	if (strncmp(name, TRM_XATTR_PREFIX, strlen(TRM_XATTR_PREFIX))) {
+		return cap_inode_removexattr(dentry, name);
 	}
 
-	/* No one is allowed to remove a SELinux security label.
-	   You can change the label, but all data must be labeled. */
+	/* No one is allowed to remove a Citadel security label. */
 	return -EACCES;
 }
