@@ -22,9 +22,7 @@
  */
 int trm_file_permission(struct file *file, int mask) {
 
-	char *pos;
-    char *pathname = NULL;
-	int pathname_len = 1024;
+	char *path;
     struct dentry *f_dentry = file->f_path.dentry;
     struct inode_trm *current_inode_trm = trm_dentry(f_dentry);
 
@@ -34,13 +32,10 @@ int trm_file_permission(struct file *file, int mask) {
     if (!current_inode_trm->in_realm) return 0;
 
     // Log for debug.
-    pathname = kzalloc(pathname_len, GFP_KERNEL);
-    if(pathname) {
-        pos = get_dentry_path(f_dentry, pathname, pathname_len);
-        if (!IS_ERR(pos)) {
-            printk(PFX "trm_file_permission for %s\n", pos);
-        }
-        kfree(pathname);
+    path = get_path_for_dentry(f_dentry);
+    if(path) {
+        printk(PFX "trm_file_permission for %s (mask:%d)\n", path, mask);
+        kfree(path);
     }
 
     return 0;

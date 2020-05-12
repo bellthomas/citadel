@@ -27,18 +27,21 @@ char* to_hexstring(unsigned char *buf, unsigned int len) {
 }
 
 
-char *get_dentry_path(struct dentry *dentry, char * const buffer, const int buflen) {
+char *get_dentry_path(struct dentry *dentry, char * const buffer, const int buflen, bool check_inode) {
 	char *pos = ERR_PTR(-ENOMEM);
+	struct inode *inode;
 
 	if (buflen >= 256) {
 		pos = dentry_path_raw(dentry, buffer, buflen - 1);
 		if (!IS_ERR(pos) && *pos == '/' && pos[1]) {
-			struct inode *inode = d_backing_inode(dentry);
 
-			if (inode && S_ISDIR(inode->i_mode)) {
-				buffer[buflen - 2] = '/';
-				buffer[buflen - 1] = '\0';
-			}
+			if(check_inode) {
+				inode = d_backing_inode(dentry);
+				if (inode && S_ISDIR(inode->i_mode)) {
+					buffer[buflen - 2] = '/';
+					buffer[buflen - 1] = '\0';
+				}
+			} 
 		}
 	}
 	return pos;
@@ -55,6 +58,28 @@ char *get_dentry_path(struct dentry *dentry, char * const buffer, const int bufl
 // }
 
 
+
+char *get_path_for_dentry_raw(struct dentry *dentry, bool check_inode) {
+	char *pos;
+    char *pathname = NULL;
+	int pathname_len = 1024;
+
+	// Log for debug.
+	pathname = kzalloc(pathname_len, GFP_KERNEL);
+	if(pathname) {
+		pos = get_dentry_path(dentry, pathname, pathname_len, check_inode);
+		if (IS_ERR(pos)) {
+			kfree(pathname);
+			return NULL;
+		}
+		return pos;
+	}
+	return NULL;
+}
+
+inline char *get_path_for_dentry(struct dentry *dentry) {
+	return get_path_for_dentry_raw(dentry, true);
+}
 
 
 /*
@@ -105,16 +130,37 @@ int set_xattr_identifier(struct dentry *dentry, char *value, size_t len) {
 }
 
 void* _hex_identifier_to_bytes(char* hexstring) {
-	char* identifier = kmalloc(_TRM_IDENTIFIER_LENGTH, GFP_KERNEL);
-	char* tracker = hexstring;
-	size_t count;
-	for(count = 0; count < _TRM_IDENTIFIER_LENGTH; count++) {
-		sscanf(tracker, "%2hhx", &identifier[count]);
-        tracker += 2;
+	size_t i, j;
+	size_t len = strlen(hexstring);
+	size_t final_len = len / 2;
+	unsigned char* identifier; 
+
+    if(len % 2 != 0) return NULL;
+
+	identifier = (unsigned char*) kmalloc(final_len, GFP_KERNEL);
+    for (i = 0, j = 0; j < final_len; i += 2, j++) {
+        identifier[j] = (hexstring[i] % 32 + 9) % 25 * 16 + (hexstring[i+1] % 32 + 9) % 25;
 	}
 	return identifier;
 }
 
+char *get_xattr_identifier(struct dentry *dentry) {
+	int x;
+	char *hex_identifier, *identifier;
+	size_t identifier_length = 2 * _TRM_IDENTIFIER_LENGTH + 1;
+	
+	hex_identifier = kzalloc(identifier_length, GFP_KERNEL);
+	x = __vfs_getxattr(dentry, d_backing_inode(dentry), TRM_XATTR_ID_NAME, hex_identifier, identifier_length);
+	if (x > 0) {
+		printk(PFX "Loaded xattr from disk: %s\n", hex_identifier);
+		identifier = _hex_identifier_to_bytes(hex_identifier);
+	} else {
+		identifier = NULL;
+	}
+
+	kfree(hex_identifier);
+	return identifier;
+}
 
 void realm_housekeeping(struct inode_trm *i_trm, struct dentry *dentry) {
     if (!i_trm->in_realm) return;
@@ -128,26 +174,19 @@ void realm_housekeeping(struct inode_trm *i_trm, struct dentry *dentry) {
 
 void global_housekeeping(struct inode_trm *i_trm, struct dentry *dentry) {
 	int x;
-	size_t identifier_length = 2 * _TRM_IDENTIFIER_LENGTH + 1;
-	char *hex_identifier, *identifier, *h2;
+	char *identifier;
+
+	// Abort if invalid.
+	if (i_trm == NULL || dentry == NULL) return;
+
 	if (!i_trm->checked_disk_xattr) {
 		i_trm->checked_disk_xattr = true;
 
 		// Fetch identifier.
-		hex_identifier = kzalloc(identifier_length, GFP_KERNEL);
-		x = __vfs_getxattr(dentry, d_backing_inode(dentry), TRM_XATTR_ID_NAME, hex_identifier, identifier_length);
-		if (x > 0) {
-			printk(PFX "Loaded xattr from disk: %s\n", hex_identifier);
-			identifier = _hex_identifier_to_bytes(hex_identifier);
+		identifier = get_xattr_identifier(dentry);
+		if (identifier) {
 			memcpy(i_trm->identifier, identifier, _TRM_IDENTIFIER_LENGTH);
 			i_trm->in_realm = true;
-
-			// ---
-			h2 = to_hexstring(identifier, _TRM_IDENTIFIER_LENGTH);
-			printk(PFX "Test conversion: %s\n", h2);
-			kfree(h2);
-			// ---
-
 			kfree(identifier);
 		}
 		else {
@@ -155,7 +194,6 @@ void global_housekeeping(struct inode_trm *i_trm, struct dentry *dentry) {
 			x = __vfs_getxattr(dentry, d_backing_inode(dentry), TRM_XATTR_REALM_NAME, NULL, 0);
 			i_trm->in_realm = (x > 0);
 		}
-		kfree(hex_identifier);
     }
 
 	if (i_trm->in_realm) realm_housekeeping(i_trm, dentry);

@@ -238,6 +238,8 @@ int xattr_enclave_installation(const void *value, size_t size, struct dentry *de
     if(xattr_success == 0) {
         // Update internal kernel structure.
         d_inode_trm->in_realm = true;
+        d_inode_trm->needs_xattr_update = false;
+        d_inode_trm->checked_disk_xattr = true;
         memcpy(d_inode_trm->identifier, rcrd->subject, sizeof(d_inode_trm->identifier));
 
         update_aes_key(hdr->key_update, sizeof(hdr->key_update));

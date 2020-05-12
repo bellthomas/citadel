@@ -190,8 +190,11 @@ static struct security_hook_list trm_hooks[] __lsm_ro_after_init = {
     // LSM_HOOK_INIT(inode_rename, trm_inode_rename),
     LSM_HOOK_INIT(inode_setxattr, trm_inode_setxattr),
     LSM_HOOK_INIT(inode_post_setxattr, trm_inode_post_setxattr),
+    LSM_HOOK_INIT(inode_getxattr, trm_inode_getxattr),
+    LSM_HOOK_INIT(inode_listxattr, trm_inode_listxattr),
 	LSM_HOOK_INIT(inode_removexattr, trm_inode_removexattr),
     // LSM_HOOK_INIT(inode_setsecurity, trm_inode_setsecurity), // for xattrs
+    LSM_HOOK_INIT(d_instantiate, trm_d_instantiate),
 
     // Provided by lsm_functions/file.c
     LSM_HOOK_INIT(file_permission, trm_file_permission),
