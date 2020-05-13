@@ -67,7 +67,7 @@ int trm_inode_init_security(struct inode *inode, struct inode *dir, const struct
 
 	// Hierarchical subsumption.
 	if (parent_inode_trm->in_realm && !new_inode_trm->in_realm) {
-		printk(PFX "trm_inode_init_security setting child");
+		printk(PFX "trm_inode_init_security setting child (%ld)\n", inode->i_ino);
 		new_inode_trm->in_realm = true;
 		new_inode_trm->needs_xattr_update = true;
 	}
@@ -88,33 +88,31 @@ int trm_inode_init_security(struct inode *inode, struct inode *dir, const struct
  */
 int trm_inode_link(struct dentry *old_dentry, struct inode *dir, struct dentry *new_dentry)
 {
-	char *pos, *hex_id, *identifier;
+	char *hex_id, *identifier;
     char *pathname = NULL;
-	int pathname_len = 1024;
 	int res;
 	// struct inode *inode = d_backing_inode(old_dentry);
 	struct inode_trm *old_inode_trm = trm_dentry(old_dentry);
 
-	global_housekeeping(old_inode_trm, old_dentry);
+	// global_housekeeping(old_inode_trm, old_dentry);
 
 	// Copy metadata to the new inode link.
-	if (old_inode_trm->in_realm) {
-		// Copy xattr values over to new dentry.
-		identifier = get_xattr_identifier(old_dentry);
-		res = set_xattr_identifier(new_dentry, identifier, _TRM_IDENTIFIER_LENGTH);
-		kfree(identifier);
-
-		// Log for debug.
-		pathname = kzalloc(pathname_len, GFP_KERNEL);
-		if(pathname) {
-			hex_id = to_hexstring(old_inode_trm->identifier, sizeof(old_inode_trm->identifier));
-			pos = get_dentry_path(new_dentry, pathname, pathname_len, true);
-			if (!IS_ERR(pos)) {
-				printk(PFX "[TX_LINK] Setting in_realm for %s (inode=%s)\n", pos, hex_id);
+	if (old_inode_trm) {
+		if (old_inode_trm->in_realm) {
+			if (new_dentry->d_inode) {
+				printk(PFX "trm_inode_link, in realm and got new inode\n");
+			} else {
+				printk(PFX "trm_inode_link, in realm and NOT got new inode\n");
 			}
-			kfree(pathname);
-			kfree(hex_id);
+
+			if (old_dentry->d_inode) {
+				printk(PFX "trm_inode_link, in realm and got old inode\n");
+			} else {
+				printk(PFX "trm_inode_link, in realm and NOT got old inode\n");
+			}
 		}
+	} else {
+		printk(PFX "no old_inode_trm\n");
 	}
 
 	return 0;
@@ -155,7 +153,7 @@ int trm_inode_link(struct dentry *old_dentry, struct inode *dir, struct dentry *
 // 			// Log for debug.
 // 			pathname = kzalloc(pathname_len, GFP_KERNEL);
 // 			if(pathname) {
-// 				pos = get_dentry_path(dentry, pathname, pathname_len, true);
+// 				pos = get_dentry_path(dentry, pathname, pathname_len);
 // 				if (!IS_ERR(pos)) {
 // 					printk(PFX "[HIER_SUB] Setting in_realm for %s\n", pos);
 // 				}
@@ -179,11 +177,11 @@ int trm_inode_link(struct dentry *old_dentry, struct inode *dir, struct dentry *
 
 void trm_d_instantiate(struct dentry *dentry, struct inode *inode) {
 	struct inode_trm *current_inode_trm = trm_inode(inode);
-	// char *path;
 	if(current_inode_trm->in_realm) {
-		// path = get_path_for_dentry_raw(dentry, false);
-		printk(PFX "trm_d_instantiate (in_realm) for %s\n", "...");
-		// kfree(path);
+		dentry->d_inode = inode;
+		realm_housekeeping(current_inode_trm, dentry);
+		dentry->d_inode = NULL;
+		printk(PFX "trm_d_instantiate (in_realm, %ld)\n", inode->i_ino);
 	}
 }
 
@@ -195,9 +193,7 @@ int trm_inode_setxattr(struct dentry *dentry, const char *name,
 				       const void *value, size_t size, int flags)
 {
 	int rc = 0;
-	char *pos;
     char *pathname = NULL;
-	int pathname_len = 1024;    
 
 	// Check for security.citadel.install
 	if (!strcmp(name, TRM_XATTR_INSTALL_NAME)) {
@@ -207,12 +203,11 @@ int trm_inode_setxattr(struct dentry *dentry, const char *name,
 			rc = -ECANCELED; // Can't process this operation yet.
 		
 #if TRM_DEBUG == 1
-		pathname = kzalloc(pathname_len, GFP_KERNEL);
-        pos = get_dentry_path(dentry, pathname, pathname_len, true);
-        if (!IS_ERR(pos)) {
-			printk(PFX "security.citadel.install for %s (err=%d)\n", pos, rc);
+		pathname = get_path_for_dentry(dentry);
+		if(pathname) {
+			printk(PFX "security.citadel.install for %s (err=%d)\n", pathname, rc);
+			kfree(pathname);
 		}
-		kfree(pathname);
 #endif
 
 		return rc;
@@ -233,9 +228,7 @@ void trm_inode_post_setxattr(struct dentry *dentry, const char *name,
 					int flags)
 {
 	struct inode_trm *current_inode_trm = trm_dentry(dentry);
-	char *pos;
     char *pathname = NULL;
-	int pathname_len = 1024; 
 
 
 
@@ -246,12 +239,9 @@ void trm_inode_post_setxattr(struct dentry *dentry, const char *name,
 		if (current_inode_trm->in_realm) {
 
 			// Log for debug.
-			pathname = kzalloc(pathname_len, GFP_KERNEL);
+			pathname = get_path_for_dentry(dentry);
 			if(pathname) {
-				pos = get_dentry_path(dentry, pathname, pathname_len, true);
-				if (!IS_ERR(pos)) {
-					printk(PFX "trm_inode_post_setxattr for %s\n", pos);
-				}
+				printk(PFX "trm_inode_post_setxattr for %s\n", pathname);
 				kfree(pathname);
 			}
 		}

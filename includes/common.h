@@ -58,12 +58,11 @@ static inline struct task_trm *trm_cred(const struct cred *cred) {
 }
 
 extern char* to_hexstring(unsigned char *buf, unsigned int len);
-extern char* get_dentry_path(struct dentry *dentry, char * const buffer, const int buflen, bool check_inode);
 extern char *get_path_for_dentry(struct dentry *dentry);
-extern char *get_path_for_dentry_raw(struct dentry *dentry, bool check_inode);
 extern int set_xattr_in_realm(struct dentry *dentry);
 extern int set_xattr_identifier(struct dentry *dentry, char *value, size_t len);
 extern char *get_xattr_identifier(struct dentry *dentry);
+extern void realm_housekeeping(struct inode_trm *i_trm, struct dentry *dentry);
 extern void global_housekeeping(struct inode_trm *i_trm, struct dentry *dentry);
 
 #endif  /* _SECURITY_TRM_CRYPTO_H */

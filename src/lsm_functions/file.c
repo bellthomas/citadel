@@ -22,7 +22,7 @@
  */
 int trm_file_permission(struct file *file, int mask) {
 
-	char *path;
+	// char *path;
     struct dentry *f_dentry = file->f_path.dentry;
     struct inode_trm *current_inode_trm = trm_dentry(f_dentry);
 
@@ -32,11 +32,11 @@ int trm_file_permission(struct file *file, int mask) {
     if (!current_inode_trm->in_realm) return 0;
 
     // Log for debug.
-    path = get_path_for_dentry(f_dentry);
-    if(path) {
-        printk(PFX "trm_file_permission for %s (mask:%d)\n", path, mask);
-        kfree(path);
-    }
+    // path = get_path_for_dentry(f_dentry);
+    // if(path) {
+    //     printk(PFX "trm_file_permission for %s (mask:%d)\n", path, mask);
+    //     kfree(path);
+    // }
 
     return 0;
 }

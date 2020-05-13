@@ -27,25 +27,6 @@ char* to_hexstring(unsigned char *buf, unsigned int len) {
 }
 
 
-char *get_dentry_path(struct dentry *dentry, char * const buffer, const int buflen, bool check_inode) {
-	char *pos = ERR_PTR(-ENOMEM);
-	struct inode *inode;
-
-	if (buflen >= 256) {
-		pos = dentry_path_raw(dentry, buffer, buflen - 1);
-		if (!IS_ERR(pos) && *pos == '/' && pos[1]) {
-
-			if(check_inode) {
-				inode = d_backing_inode(dentry);
-				if (inode && S_ISDIR(inode->i_mode)) {
-					buffer[buflen - 2] = '/';
-					buffer[buflen - 1] = '\0';
-				}
-			} 
-		}
-	}
-	return pos;
-}
 
 // void find_dentry_root(struct dentry *dentry) {
 // 	printk(PFX "Finding dentry root...\n");
@@ -57,28 +38,141 @@ char *get_dentry_path(struct dentry *dentry, char * const buffer, const int bufl
 // 	}
 // }
 
+static char *tomoyo_get_dentry_path(struct dentry *dentry, char * const buffer,
+				    const int buflen)
+{
+	char *pos = ERR_PTR(-ENOMEM);
 
+	if (buflen >= 256) {
+		pos = dentry_path_raw(dentry, buffer, buflen - 1);
+		if (!IS_ERR(pos) && *pos == '/' && pos[1]) {
+			struct inode *inode = d_backing_inode(dentry);
 
-char *get_path_for_dentry_raw(struct dentry *dentry, bool check_inode) {
-	char *pos;
-    char *pathname = NULL;
-	int pathname_len = 1024;
-
-	// Log for debug.
-	pathname = kzalloc(pathname_len, GFP_KERNEL);
-	if(pathname) {
-		pos = get_dentry_path(dentry, pathname, pathname_len, check_inode);
-		if (IS_ERR(pos)) {
-			kfree(pathname);
-			return NULL;
+			if (inode && S_ISDIR(inode->i_mode)) {
+				buffer[buflen - 2] = '/';
+				buffer[buflen - 1] = '\0';
+			}
 		}
-		return pos;
 	}
-	return NULL;
+	return pos;
 }
 
-inline char *get_path_for_dentry(struct dentry *dentry) {
-	return get_path_for_dentry_raw(dentry, true);
+/**
+ * tomoyo_get_local_path - Get the path of a dentry.
+ *
+ * @dentry: Pointer to "struct dentry".
+ * @buffer: Pointer to buffer to return value in.
+ * @buflen: Sizeof @buffer.
+ *
+ * Returns the buffer on success, an error code otherwise.
+ */
+static char *tomoyo_get_local_path(struct dentry *dentry, char * const buffer,
+				   const int buflen)
+{
+	struct super_block *sb = dentry->d_sb;
+	char *pos = tomoyo_get_dentry_path(dentry, buffer, buflen);
+
+	if (IS_ERR(pos))
+		return pos;
+	/* Convert from $PID to self if $PID is current thread. */
+	if (sb->s_magic == PROC_SUPER_MAGIC && *pos == '/') {
+		char *ep;
+		const pid_t pid = (pid_t) simple_strtoul(pos + 1, &ep, 10);
+
+		if (*ep == '/' && pid && pid ==
+		    task_tgid_nr_ns(current, sb->s_fs_info)) {
+			pos = ep - 5;
+			if (pos < buffer)
+				goto out;
+			memmove(pos, "/self", 5);
+		}
+		goto prepend_filesystem_name;
+	}
+	/* Use filesystem name for unnamed devices. */
+	if (!MAJOR(sb->s_dev))
+		goto prepend_filesystem_name;
+	{
+		struct inode *inode = d_backing_inode(sb->s_root);
+
+		/*
+		 * Use filesystem name if filesystem does not support rename()
+		 * operation.
+		 */
+		if (!inode->i_op->rename)
+			goto prepend_filesystem_name;
+	}
+	/* Prepend device name. */
+	{
+		char name[64];
+		int name_len;
+		const dev_t dev = sb->s_dev;
+
+		name[sizeof(name) - 1] = '\0';
+		snprintf(name, sizeof(name) - 1, "dev(%u,%u):", MAJOR(dev),
+			 MINOR(dev));
+		name_len = strlen(name);
+		pos -= name_len;
+		if (pos < buffer)
+			goto out;
+		memmove(pos, name, name_len);
+		return pos;
+	}
+	/* Prepend filesystem name. */
+prepend_filesystem_name:
+	{
+		const char *name = sb->s_type->name;
+		const int name_len = strlen(name);
+
+		pos -= name_len + 1;
+		if (pos < buffer)
+			goto out;
+		memmove(pos, name, name_len);
+		pos[name_len] = ':';
+	}
+	return pos;
+out:
+	return ERR_PTR(-ENOMEM);
+}
+
+
+char *get_path_for_dentry(struct dentry *dentry) {
+	// char *pos = NULL;
+    // char *pathname = NULL;
+	// size_t pathname_len = 2048;
+	// struct inode *d_inode;
+
+	// pathname = kzalloc(pathname_len, GFP_NOFS);
+	// pos = pathname;
+	// if(pathname) {
+	// 	pos = dentry_path_raw(dentry, pathname, pathname_len - 1);
+	// 	if (!IS_ERR(pos)) {
+	// 		if(*pos == '/' && pos[1]) {
+	// 			printk(PFX "Doing inode things\n");
+	// 			d_inode = d_backing_inode(dentry);
+	// 			if (d_inode) {
+	// 				printk(PFX "Got inode\n");
+	// 				if(S_ISDIR(d_inode->i_mode)) {
+	// 					printk(PFX "Is directory\n");
+	// 					pathname[pathname_len - 2] = '/';
+	// 					pathname[pathname_len - 1] = '\0';
+	// 				}
+	// 			}
+	// 		}
+
+	// 		printk(PFX "%p %p\n", pathname, pos);
+	// 		return pathname;
+	// 	} else {
+	// 		printk(PFX "Aborting get_path_for_dentry()\n");
+	// 		return pathname; // Empty buffer. 3101233312 - 2936675473
+	// 	}
+	// }
+	return NULL;
+	// pos = tomoyo_get_local_path(dentry, pathname, pathname_len);
+	// if (IS_ERR(pos)) {
+	// 	return pathname;
+	// }
+
+	// return pos;
 }
 
 
@@ -163,11 +257,13 @@ char *get_xattr_identifier(struct dentry *dentry) {
 }
 
 void realm_housekeeping(struct inode_trm *i_trm, struct dentry *dentry) {
+	int res;
     if (!i_trm->in_realm) return;
-    
     if (i_trm->needs_xattr_update) {
-		printk(PFX "Need XATTR update\n");
-        // Update xattrs.
+		i_trm->needs_xattr_update = false;
+		res = set_xattr_in_realm(dentry);
+		printk(PFX "realm_housekeeping -> set xattr (%d)\n", res);
+		// TODO support setting identifier
     }
 }
 
