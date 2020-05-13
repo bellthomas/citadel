@@ -262,7 +262,7 @@ void realm_housekeeping(struct inode_trm *i_trm, struct dentry *dentry) {
     if (i_trm->needs_xattr_update) {
 		i_trm->needs_xattr_update = false;
 		res = set_xattr_in_realm(dentry);
-		printk(PFX "realm_housekeeping -> set xattr (%d)\n", res);
+		// printk(PFX "realm_housekeeping -> set xattr (%d)\n", res);
 		// TODO support setting identifier
     }
 }

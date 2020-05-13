@@ -265,6 +265,7 @@ int trm_inode_listxattr(struct dentry *dentry) {
 
 int trm_inode_removexattr(struct dentry *dentry, const char *name)
 {
+	struct task_struct *task = current;
 	struct inode_trm *current_inode_trm = trm_dentry(dentry);
 	if(current_inode_trm)
 		global_housekeeping(current_inode_trm, dentry);
@@ -272,6 +273,8 @@ int trm_inode_removexattr(struct dentry *dentry, const char *name)
 	if (strncmp(name, TRM_XATTR_PREFIX, strlen(TRM_XATTR_PREFIX))) {
 		return cap_inode_removexattr(dentry, name);
 	}
+
+	printk(PFX "trm_inode_removexattr from PID %d\n", task->pid);
 
 	/* No one is allowed to remove a Citadel security label. */
 	return -EACCES;
