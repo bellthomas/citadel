@@ -1,5 +1,6 @@
 
 #include "includes/app.h"
+#include <nng/nng.h>
 
 /* Global EID shared by multiple threads */
 sgx_enclave_id_t global_eid = 0;
@@ -33,5 +34,8 @@ int main(int argc, char const *argv[]) {
 
     // char *value = "Some testing value here kajshdkjahsdkjhaskjhakjhasdkjhas";
     // int updates_res = xattr_install("/opt/testing_dir/test", value, sizeof(value));
+    while(1) {
+        ;;
+    }
     return 0;
 }

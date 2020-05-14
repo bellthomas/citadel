@@ -82,10 +82,10 @@ else
 		App_C_Flags += -DNDEBUG -UEDEBUG -UDEBUG
 endif
 
-App_Cpp_Flags := $(App_C_Flags) -std=c++11
+App_Cpp_Flags := $(App_C_Flags) -std=c++11 -I/opt/playground/nng/include
 App_Link_Flags := $(SGX_COMMON_CFLAGS) -L$(SGX_LIBRARY_PATH) \
                   -Wl,--whole-archive  -lsgx_uswitchless -Wl,--no-whole-archive \
-                  -l$(Urts_Library_Name) -lpthread	
+                  -l$(Urts_Library_Name) -lpthread	-L/opt/devel/libnng -lnng
 
 ifneq ($(SGX_MODE), HW)
 	App_Link_Flags += -lsgx_uae_service_sim
@@ -233,18 +233,23 @@ enclave-uflume: trm-uflume $(Build_Folder)/trm.uflume.signed.so clean-enclave
 
 enclave: enclave-basic
 
+.PHONY: install-daemon install-app install
+install-daemon:
+	@sudo cp $(Scripts_Folder)/citadel.service /etc/systemd/system/
+	@sudo systemctl enable citadel
 
-install:
+install-app:
 	@mkdir -p $(Install_Folder)
 	@rm -rf $(Install_Folder)/*
 	@cp -r $(Build_Folder)/* $(Install_Folder)/
 	@mv $(Install_Folder)/app $(Install_Folder)/citadel
 	@cp $(Scripts_Folder)/start_citadel.sh $(Install_Folder)/
 	@sudo chmod +x $(Install_Folder)/start_citadel.sh
-	@sudo cp $(Scripts_Folder)/citadel.service /etc/systemd/system/
-	@sudo systemctl enable citadel
 
-.PHONY: clean enclave enclave-uflume install
+install: install-app install-daemon
+	
+
+.PHONY: clean enclave enclave-uflume
 clean: 
 	@rm -rf $(App_Name) $(App_Cpp_Objects) $(App_Folder)/Enclave_u.* $(Enclave_Cpp_Objects) $(Enclave_Folder)/Enclave_t.* $(Enclave_Folder)/asm/*
 	@rm -rf $(Build_Folder)/*
