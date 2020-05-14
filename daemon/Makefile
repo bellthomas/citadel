@@ -16,6 +16,8 @@ SGX_ARCH ?= x64
 Build_Folder := build
 Enclave_Impls := basic uflume
 LibTomCrypt_Folder := /build/kernel/linux-5.6/security/trm/daemon/enclave_core/crypto/ltc
+Install_Folder := /opt/citadel
+Scripts_Folder := scripts
 
 ifeq ($(shell getconf LONG_BIT), 32)
 	SGX_ARCH := x86
@@ -232,7 +234,17 @@ enclave-uflume: trm-uflume $(Build_Folder)/trm.uflume.signed.so clean-enclave
 enclave: enclave-basic
 
 
-.PHONY: clean enclave enclave-uflume
+install:
+	@mkdir -p $(Install_Folder)
+	@rm -rf $(Install_Folder)/*
+	@cp -r $(Build_Folder)/* $(Install_Folder)/
+	@mv $(Install_Folder)/app $(Install_Folder)/citadel
+	@cp $(Scripts_Folder)/start_citadel.sh $(Install_Folder)/
+	@sudo chmod +x $(Install_Folder)/start_citadel.sh
+	@sudo cp $(Scripts_Folder)/citadel.service /etc/systemd/system/
+	@sudo systemctl enable citadel
+
+.PHONY: clean enclave enclave-uflume install
 clean: 
 	@rm -rf $(App_Name) $(App_Cpp_Objects) $(App_Folder)/Enclave_u.* $(Enclave_Cpp_Objects) $(Enclave_Folder)/Enclave_t.* $(Enclave_Folder)/asm/*
 	@rm -rf $(Build_Folder)/*

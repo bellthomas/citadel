@@ -1,0 +1,13 @@
+[Unit]
+Description=Citadel Reference Monitor
+After=network.target
+StartLimitIntervalSec=0
+[Service]
+Type=simple
+Restart=always
+RestartSec=1
+User=root
+ExecStart=/opt/citadel/start_citadel.sh /opt/citadel/trm.basic.signed.so
+
+[Install]
+WantedBy=multi-user.target

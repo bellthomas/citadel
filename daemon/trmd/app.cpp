@@ -15,7 +15,13 @@ sgx_enclave_id_t get_enclave_id(void) {
 
 
 int main(int argc, char const *argv[]) {
-    if (initialize_enclave(&global_eid, "enclave.token", "build/trm.basic.signed.so") < 0) {
+    if (argc < 2) {
+        printf("Need to specify the enclave library to use.\n");
+        return -1;
+    }
+
+    printf("Citadel enclave: %s\n", argv[1]);
+    if (initialize_enclave(&global_eid, "enclave.token", argv[1]) < 0) {
         std::cout << "Fail to initialize enclave." << std::endl;
         return 1;
     }
