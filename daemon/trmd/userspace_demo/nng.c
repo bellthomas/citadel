@@ -82,12 +82,15 @@ server(const char *url)
 		fatal("nng_listen", rv);
 	}
 	for (;;) {
+		printf("Starting loop\n");
 		char *   buf = NULL;
 		size_t   sz;
 		uint64_t val;
 		if ((rv = nng_recv(sock, &buf, &sz, NNG_FLAG_ALLOC)) != 0) {
 			fatal("nng_recv", rv);
 		}
+		printf("received\n");
+		if (sz == sizeof(uint64_t)) printf("right size\n");
 		if ((sz == sizeof(uint64_t)) &&
 		    ((GET64(buf, val)) == DATECMD)) {
 			time_t now;

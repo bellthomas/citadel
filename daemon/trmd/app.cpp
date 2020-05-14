@@ -1,6 +1,7 @@
 
 #include "includes/app.h"
 #include <nng/nng.h>
+#include <pthread.h>
 
 /* Global EID shared by multiple threads */
 sgx_enclave_id_t global_eid = 0;
@@ -14,6 +15,12 @@ sgx_enclave_id_t get_enclave_id(void) {
     return global_eid;
 }
 
+void *thread(void *arg) {
+    char *ret;
+
+    strcpy(ret, "This is a test");
+    pthread_exit(ret);
+}
 
 int main(int argc, char const *argv[]) {
     if (argc < 2) {
@@ -25,6 +32,18 @@ int main(int argc, char const *argv[]) {
     if (initialize_enclave(&global_eid, "enclave.token", argv[1]) < 0) {
         std::cout << "Fail to initialize enclave." << std::endl;
         return 1;
+    }
+
+    pthread_t thid;
+    void *ret;
+    if (pthread_create(&thid, NULL, thread, NULL) != 0) {
+        perror("pthread_create() error");
+        exit(1);
+    }
+
+    if (pthread_join(thid, &ret) != 0) {
+        perror("pthread_create() error");
+        exit(3);
     }
     
     // Initialise with LSM.

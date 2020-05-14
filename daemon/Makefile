@@ -18,6 +18,8 @@ Enclave_Impls := basic uflume
 LibTomCrypt_Folder := /build/kernel/linux-5.6/security/trm/daemon/enclave_core/crypto/ltc
 Install_Folder := /opt/citadel
 Scripts_Folder := scripts
+NNG_Include_Folder := /opt/playground/nng/include
+NNG_Library_Folder := /opt/devel/libnng
 
 ifeq ($(shell getconf LONG_BIT), 32)
 	SGX_ARCH := x86
@@ -67,8 +69,8 @@ App_Cpp_Files := $(App_Folder)/app.cpp \
 				 $(App_Folder)/sgx_utils/sgx_utils.cpp \
 				 $(App_Folder)/lsm_io.cpp
 
-App_Include_Paths := -I$(App_Folder) -I$(SGX_SDK)/include
-App_C_Flags := $(SGX_COMMON_CFLAGS) -fPIC -Wno-attributes $(App_Include_Paths)
+App_Include_Paths := -I$(App_Folder) -I$(SGX_SDK)/include -I$(NNG_Include_Folder)
+App_C_Flags := $(SGX_COMMON_CFLAGS) -fPIC -Wno-attributes $(App_Include_Paths) -L$(NNG_Library_Folder) -l nng
 
 # Three configuration modes - Debug, prerelease, release
 #   Debug - Macro DEBUG enabled.
