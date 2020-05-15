@@ -62,7 +62,7 @@ static void ipc_declare_self(void) {
 
     if ((rv = nng_dial(sock, CITADEL_IPC_URI, NULL, 0)) != 0) {
 		// fatal("nng_dial", rv);
-        printf("died at b\n");
+        printf("died at b: %s\n", nng_strerror(rv));
         return;
 	}
     

@@ -4,6 +4,7 @@ static unsigned char current_challenge[_TRM_CHALLENGE_LENGTH];
 static char registered_name[_TRM_NAME_LENGTH];
 static char aes_key[_TRM_AES_KEY_LENGTH];
 static int registered = 0;
+static int32_t pid = 0;
 
 int system_ready() {
     return registered;
@@ -79,8 +80,9 @@ void process_challenge_response(void *response, size_t response_len) {
     // Challenge response successful.
     memcpy(registered_name, challenge->name, sizeof(registered_name));
     memcpy(aes_key, challenge->key, sizeof(aes_key));
+    pid = challenge->pid;
 
-    printk(PFX "Successfully registered with %s\n", registered_name);
+    printk(PFX "Successfully registered with %s (%d)\n", registered_name, pid);
     registered = 1;
 
 bail: 

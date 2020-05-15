@@ -71,7 +71,7 @@ App_Cpp_Files := $(App_Folder)/app.cpp \
 				 $(App_Folder)/socket.cpp 
 
 App_Include_Paths := -I$(App_Folder) -I$(SGX_SDK)/include -I$(NNG_Include_Folder)
-App_C_Flags := $(SGX_COMMON_CFLAGS) -fPIC -Wno-attributes $(App_Include_Paths) -L$(NNG_Library_Folder) -l nng
+App_C_Flags := $(SGX_COMMON_CFLAGS) -fPIC -Wno-attributes $(App_Include_Paths) 
 
 # Three configuration modes - Debug, prerelease, release
 #   Debug - Macro DEBUG enabled.
@@ -88,7 +88,7 @@ endif
 App_Cpp_Flags := $(App_C_Flags) -std=c++11 -I/opt/playground/nng/include
 App_Link_Flags := $(SGX_COMMON_CFLAGS) -L$(SGX_LIBRARY_PATH) \
                   -Wl,--whole-archive  -lsgx_uswitchless -Wl,--no-whole-archive \
-                  -l$(Urts_Library_Name) -lpthread	-L/opt/devel/libnng -lnng
+                  -l$(Urts_Library_Name) -lpthread -L/opt/devel/libnng -lnng -pthread
 
 ifneq ($(SGX_MODE), HW)
 	App_Link_Flags += -lsgx_uae_service_sim
