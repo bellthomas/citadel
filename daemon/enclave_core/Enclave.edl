@@ -8,11 +8,12 @@ enclave {
         public int generate_random_number(void);
 
         /*  */
-        public sgx_status_t handle_challenge_phase_1(
+        public sgx_status_t handle_kernel_challenge(
             [in, size=challenge_length] uint8_t* challenge_data, 
             size_t challenge_length,
             [out, size=response_length] uint8_t* response_data,
-            size_t response_length
+            size_t response_length,
+            int32_t pid
         ) transition_using_threads;
 
         public void timer_pulse(void) transition_using_threads; 

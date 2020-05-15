@@ -31,7 +31,7 @@ struct trm_challenge {
     unsigned char challenge[_TRM_CHALLENGE_LENGTH];
     unsigned char name[_TRM_NAME_LENGTH];
     unsigned char key[_TRM_AES_KEY_LENGTH];
-    int pid; /* pid_t */
+    int32_t pid; /* pid_t */
     unsigned char padding[_TRM_CHALLENGE_PADDING];
 };
 

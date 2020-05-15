@@ -67,7 +67,8 @@ endif
 
 App_Cpp_Files := $(App_Folder)/app.cpp \
 				 $(App_Folder)/sgx_utils/sgx_utils.cpp \
-				 $(App_Folder)/lsm_io.cpp
+				 $(App_Folder)/lsm_io.cpp \
+				 $(App_Folder)/socket.cpp 
 
 App_Include_Paths := -I$(App_Folder) -I$(SGX_SDK)/include -I$(NNG_Include_Folder)
 App_C_Flags := $(SGX_COMMON_CFLAGS) -fPIC -Wno-attributes $(App_Include_Paths) -L$(NNG_Library_Folder) -l nng

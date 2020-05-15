@@ -16,13 +16,16 @@ int perform_registration(void) {
     unsigned char challenge_buffer[_TRM_RSA_KEY_LENGTH], response_buffer[_TRM_RSA_KEY_LENGTH];
     FILE *f_challenge, *f_response;
 
+    pid_t pid = getpid();
+    printf("Process ID: %d\n", pid);
+
     // Read challenge.
     f_challenge = fopen("/sys/kernel/security/trm/challenge", "rb");
     size_t challenge_read = fread(challenge_buffer, sizeof(challenge_buffer), 1, f_challenge);
     fclose(f_challenge);
     
     // Pass challenge to enclave.
-    int status = handle_challenge_phase_1(get_enclave_id(), &challenge_ecall_ret, challenge_buffer, _TRM_RSA_KEY_LENGTH, response_buffer, _TRM_RSA_KEY_LENGTH);
+    int status = handle_kernel_challenge(get_enclave_id(), &challenge_ecall_ret, challenge_buffer, _TRM_RSA_KEY_LENGTH, response_buffer, _TRM_RSA_KEY_LENGTH, (int32_t)pid);
     if (!challenge_ecall_ret) printf("Successfully registered with LSM.\n");
     
     // Pass cipher to LSM.
@@ -88,5 +91,14 @@ int install_xattr(char *path, size_t path_length, uint8_t *ticket_data, size_t t
     setxattr(path, "security.citadel.install", ticket_data, ticket_length, 0);
     int res = errno; 
     printf("xattr_install return value: %d\n", res);
+    errno = 0;
+
+    // Testing.
+    removexattr(path, "security.citadel.in_realm");
+    res = errno; 
+    printf("xattr_install return value: %d\n", res);
+    errno = 0;
+    //
+
     return res;
 }

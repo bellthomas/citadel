@@ -37,6 +37,8 @@
 *.cmd
 *.order
 *.log
+.*.o.d
+.*.o.cmd
 
 # SGX artefacts.
 *_u.c
@@ -46,3 +48,4 @@
 
 # Other.
 daemon/build
+

@@ -8,7 +8,7 @@
 
 static unsigned char aes_key[16] = {"\0"};
 
-sgx_status_t handle_challenge_phase_1(uint8_t* challenge_data, size_t challenge_length, uint8_t* response_data, size_t response_length) {
+sgx_status_t handle_kernel_challenge(uint8_t* challenge_data, size_t challenge_length, uint8_t* response_data, size_t response_length, int32_t pid) {
     sgx_status_t status = SGX_SUCCESS; 
 
     // ocall_print("-- Challenge read");
@@ -40,7 +40,7 @@ sgx_status_t handle_challenge_phase_1(uint8_t* challenge_data, size_t challenge_
     memcpy(challenge->name, name, sizeof(name));
     sgx_read_rand(aes_key, 16);
     memcpy(challenge->key, aes_key, sizeof(aes_key));
-    challenge->pid = 420;
+    challenge->pid = pid;
 
 
     // ocall_print("-- Response write");

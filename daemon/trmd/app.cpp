@@ -1,10 +1,10 @@
 
 #include "includes/app.h"
-#include <nng/nng.h>
-#include <pthread.h>
+
 
 /* Global EID shared by multiple threads */
 sgx_enclave_id_t global_eid = 0;
+static bool running = true;
 
 // OCall implementations
 void ocall_print(const char* str) {
@@ -15,11 +15,14 @@ sgx_enclave_id_t get_enclave_id(void) {
     return global_eid;
 }
 
-void *thread(void *arg) {
-    char *ret;
+void signal_handler(int s) {
+    printf("\nRequesting termination.\n");
+    running = false;
+}
 
-    strcpy(ret, "This is a test");
-    pthread_exit(ret);
+void handle_request(void) {
+    sleep(2);
+    return;
 }
 
 int main(int argc, char const *argv[]) {
@@ -34,27 +37,45 @@ int main(int argc, char const *argv[]) {
         return 1;
     }
 
-    pthread_t thid;
-    void *ret;
-    if (pthread_create(&thid, NULL, thread, NULL) != 0) {
-        perror("pthread_create() error");
-        exit(1);
-    }
-
-    if (pthread_join(thid, &ret) != 0) {
-        perror("pthread_create() error");
-        exit(3);
+    // Catch Ctrl+C and systemd stop commands.
+    struct sigaction interrupt_handler;
+    interrupt_handler.sa_handler = signal_handler;
+    sigemptyset(&interrupt_handler.sa_mask);
+    interrupt_handler.sa_flags = 0;
+    sigaction(SIGINT, &interrupt_handler, NULL);
+    sigaction(SIGTERM, &interrupt_handler, NULL);
+    
+    // Start receiving socket.
+    if (!SUCCESS(initialise_socket())) {
+        perror("Aborting. Failed to create socket.\n");
+        return -EIO;
     }
     
     // Initialise with LSM.
     int reg_res = lsm_register();
     sgx_status_t pulse_res = timer_pulse(global_eid);
 
+    // Main execution loop.
+    while(running) handle_request();
 
-    // char *value = "Some testing value here kajshdkjahsdkjhaskjhakjhasdkjhas";
-    // int updates_res = xattr_install("/opt/testing_dir/test", value, sizeof(value));
-    while(1) {
-        ;;
+    // Begin termination sequence.
+    printf("\nTerminating...\n");
+
+    // First stop listening on the ingress socket.
+    if (!SUCCESS(close_socket())) {
+        printf("Error. Socket not closed cleanly. Continuing..\n");
     }
+    printf("* Closed socket.\n");
+
+
+    // Save state.
+    // TODO
+    printf("* State saved.\n");
+
+    /* Destroy the enclave */
+    printf("* Enclave destroyed.\n");
+    sgx_destroy_enclave(global_eid);
+    global_eid = 0;
+
     return 0;
 }
