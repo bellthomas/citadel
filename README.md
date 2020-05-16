@@ -1,13 +1,5 @@
-whitelist
----------
+<p align="center">
+  <img width="200" src="https://github.com/HarriBellThomas/citadel/blob/master/images/citadel.png?raw=true">
+</p>
 
-This is a LSM in which the kernel denies the execution of binaries
-to non-root users, unless there is an extended-attribute named
-`security.whitelisted` present upon the binary.
-
-**NOTE**: The content/value of that attribute doesn't matter, only
-the existance is tested
-
-There is some back-story in the following blog-post:
-
-* https://blog.steve.fi/so_i_accidentally_wrote_a_linux_security_module.html
+## Citadel — Trusted Reference Monitors for Linux using Intel SGX Enclaves
