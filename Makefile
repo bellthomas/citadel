@@ -2,8 +2,8 @@ obj-y := src/trm.o \
          src/common.o \
          src/crypto/rsa.o \
          src/crypto/aes.o \
-         src/io/io.o \
-         src/io/enclave_communication.o \
+         src/communication/file_io.o \
+         src/communication/payload_io.o \
 		 src/lsm_functions/inode.o \
 		 src/lsm_functions/file.o \
 		 src/ticketing/ticket_cache.o

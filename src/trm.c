@@ -37,6 +37,7 @@ static int secondary = 0;
 struct dentry *integrity_dir;
 struct dentry *challenge_file;
 struct dentry *update_file;
+struct dentry *ptoken_file;
 
 /*
  * Perform a check of a program execution/map.
@@ -101,6 +102,7 @@ static int trm_task_prctl(int option, unsigned long arg2, unsigned long arg3, un
 
 static const struct file_operations challenge_file_ops = { .read = challenge_read, .write = challenge_receive };
 static const struct file_operations update_file_ops = { .read = update_read, .write = update_receive };
+static const struct file_operations ptoken_file_ops = { .read = ptoken_read };
 
 static int __init integrity_fs_init(void)
 {
@@ -128,6 +130,14 @@ static int __init integrity_fs_init(void)
         integrity_dir,
         (void*)"test",
         &update_file_ops
+    );
+
+    ptoken_file = securityfs_create_file(
+        "get_ptoken", // name
+        S_IRUSR | S_IRGRP,
+        integrity_dir,
+        (void*)"test",
+        &ptoken_file_ops
     );
 
 	return 0;

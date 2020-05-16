@@ -10,6 +10,10 @@
 #define _TRM_SIGNATURE_LENGTH 8
 #define _TRM_PID_LENGTH 4
 
+// Parameters for GCM-AES-128.
+#define IV_LENGTH 12
+#define TAG_LENGTH 16
+
 // Challenge.
 #define _TRM_CHALLENGE_LENGTH 32
 #define _TRM_NAME_LENGTH 40
@@ -22,6 +26,12 @@
 
 #define XATTR_ACCEPTED_SIGNAL 359
 #define XATTR_REJECTED_SIGNAL 360
+
+
+// Userspace.
+#define _TRM_PROCESS_PTOKEN_LENGTH 8
+#define _TRM_PROCESS_SIGNED_PTOKEN_LENGTH (0 + _TRM_PROCESS_PTOKEN_LENGTH + _TRM_PID_LENGTH + _TRM_SIGNATURE_LENGTH + IV_LENGTH + TAG_LENGTH)
+#define _TRM_PTOKEN_PAYLOAD_SIZE (0 + _TRM_SIGNATURE_LENGTH + _TRM_PROCESS_PTOKEN_LENGTH + _TRM_PROCESS_SIGNED_PTOKEN_LENGTH)
 
 static const unsigned char challenge_signature[_TRM_SIGNATURE_LENGTH] = { 0x80, 0x70, 0x60, 0x50, 0x40, 0x30, 0x20, 0x10 };
 
@@ -44,6 +54,18 @@ struct trm_update_header {
 struct trm_update_record {
     unsigned char subject[_TRM_UPDATE_SUBJECT_LENGTH];
     unsigned char data[_TRM_UPDATE_DATA_LENGTH];
+};
+
+struct trm_ptoken {
+    unsigned char signature[_TRM_SIGNATURE_LENGTH];
+    unsigned char ptoken[_TRM_PROCESS_PTOKEN_LENGTH];
+    unsigned char signed_ptoken[_TRM_PROCESS_SIGNED_PTOKEN_LENGTH]; // Encrypted trm_ptoken_protected.
+};
+
+struct trm_ptoken_protected {
+    unsigned char signature[_TRM_SIGNATURE_LENGTH];
+    int32_t pid; /* pid_t */
+    unsigned char ptoken[_TRM_PROCESS_PTOKEN_LENGTH];
 };
 
 #endif /* TRM_SHARED_DEFINITIONS_H_ */

@@ -18,7 +18,7 @@
 
 #include "_trm_shared.h"
 #include "common.h"
-#include "io.h"
+#include "file_io.h"
 #include "ticket_cache.h"
 #include "crypto.h"
 #include "inode.h"

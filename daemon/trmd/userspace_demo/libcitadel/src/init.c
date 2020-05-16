@@ -45,7 +45,7 @@ static char *generate_random_key(void) {
 	    (((uint64_t)((uint8_t)(ptr)[6])) << 8) +  \
 	    (((uint64_t)(uint8_t)(ptr)[7]))
 
-static void ipc_declare_self(void) {
+static int ipc_declare_self(void) {
 	nng_socket sock;
 	int        rv;
 	size_t     sz;
@@ -57,42 +57,69 @@ static void ipc_declare_self(void) {
     if ((rv = nng_req0_open(&sock)) != 0) {
 		// fatal("nng_socket", rv);
         printf("died at a\n");
-        return;
+        return -1;
 	}
 
     if ((rv = nng_dial(sock, CITADEL_IPC_URI, NULL, 0)) != 0) {
 		// fatal("nng_dial", rv);
         printf("died at b: %s\n", nng_strerror(rv));
-        return;
+        return -1;
 	}
     
+	nng_setopt_ms(sock, NNG_OPT_RECVTIMEO, 10); // milliseconds
     // memset(cmd, 5, sizeof(uint64_t));
     
 
-    printf("CLIENT: SENDING DATE REQUEST\n");
-    if ((rv = nng_send(sock, cmd, sizeof(cmd), 0)) != 0) {
-		// fatal("nng_send", rv);
-        printf("died at c\n");
-        return;
+    // printf("CLIENT: SENDING DATE REQUEST\n");
+	while(true) {
+		int attempts = 0;
+		int timeout = 1000; // milliseconds
+		int timeout_us = timeout * 1000;
+		bool sent = false;
+		while (attempts < timeout_us && !sent) {
+			rv = nng_send(sock, cmd, sizeof(cmd), NNG_FLAG_NONBLOCK);
+			switch (rv) {
+			case NNG_EAGAIN:
+				usleep(1);
+				attempts++;
+				if(attempts >= timeout_us) {
+					printf("Timed out. Failed to send.\n");
+					nng_close(sock);
+					return -1;
+				}
+				break;
+			case 0:
+				sent = true;
+				// printf("Sent\n");
+				break;
+			default:
+				printf("Error, %s\n", nng_strerror(rv));
+				nng_close(sock);
+				return -1;
+			}
+		}
+		// usleep(10);
 	}
-    printf("SENT\n");
-	if ((rv = nng_recv(sock, &buf, &sz, NNG_FLAG_ALLOC)) != 0) {
-		// fatal("nng_recv", rv);
-        printf("died at d\n");
-        return;
-	}
+    // printf("SENT\n");
+	// if ((rv = nng_recv(sock, &buf, &sz, NNG_FLAG_ALLOC)) != 0) {
+	// 	// fatal("nng_recv", rv);
+    //     printf("died at d\n");
+    //     return;
+	// }
 
     // This assumes that buf is ASCIIZ (zero terminated).
-	nng_free(buf, sz);
+	// nng_free(buf, sz);
+	// TODO fix ^
 	nng_close(sock);
-    printf("AT END\n");
-    return;
+    // printf("AT END\n");
+    return 0;
 }
 
 int citadel_init(void) {
     char *key = generate_random_key();
     int set_env = setenv(CITADEL_ENV_ATTR_NAME, key, 1);
     printf("%s, %d\n", key, set_env);
-    ipc_declare_self();
+	int res = 0;
+    while(!res) res = ipc_declare_self();
     return 0;
 }
