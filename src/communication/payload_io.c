@@ -62,6 +62,10 @@ void process_challenge_response(void *response, size_t response_len) {
     }
 
     challenge = (struct trm_challenge*) trm_rsa_decrypt((char*)response, response_len, (int*)&decrypted_len);
+    if (decrypted_len == 0) {
+        printk(PFX "Rejected challenge response: decryption failed.\n");
+        goto bail;
+    }
     // hex = to_hexstring((unsigned char*)challenge, sizeof(struct trm_challenge));
     // printk(PFX "Decrypted challenge: %s\n", hex);
     // kfree(hex);

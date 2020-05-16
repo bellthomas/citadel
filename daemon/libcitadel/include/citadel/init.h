@@ -10,8 +10,10 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <string.h>
+#include <stdint.h>
 
-#include "_shared.h"
+#include "_trm_shared.h"
+#include "common.h"
 
 #define CITADEL_KEY_PID_MULTIPLIER 137
 

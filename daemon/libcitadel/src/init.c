@@ -14,9 +14,9 @@ static char *generate_random_key(void) {
     unsigned int seed = seconds + CITADEL_KEY_PID_MULTIPLIER * pid;
 
     srand(seed);
-    char *key = (char*) malloc(CITADEL_ENV_KEY_SIZE + 1);
-    for (size_t i = 0 ; i < CITADEL_ENV_KEY_SIZE; i++) key[i] = (rand()%(90-65))+65;
-    key[CITADEL_ENV_KEY_SIZE] = '\0';
+    char *key = (char*) malloc(_TRM_PROCESS_PTOKEN_LENGTH + 1);
+    for (size_t i = 0 ; i < _TRM_PROCESS_PTOKEN_LENGTH; i++) key[i] = (rand()%(90-65))+65;
+    key[_TRM_PROCESS_PTOKEN_LENGTH] = '\0';
     return key;
 }
 
@@ -115,11 +115,27 @@ static int ipc_declare_self(void) {
     return 0;
 }
 
+int get_ptoken(void) {
+	// Read challenge.
+	FILE *f_challenge;
+	unsigned char buffer[_TRM_PTOKEN_PAYLOAD_SIZE];
+    f_challenge = fopen(_TRM_PROCESS_GET_PTOKEN_PATH, "rb");
+    size_t challenge_read = fread(buffer, sizeof(buffer), 1, f_challenge);
+    fclose(f_challenge);
+
+	char *hex_ptoken = to_hexstring(buffer, _TRM_PTOKEN_PAYLOAD_SIZE);
+	printf("PToken: %s\n", hex_ptoken);
+	free(hex_ptoken);
+	return 0;
+}
+
 int citadel_init(void) {
     char *key = generate_random_key();
     int set_env = setenv(CITADEL_ENV_ATTR_NAME, key, 1);
     printf("%s, %d\n", key, set_env);
-	int res = 0;
-    while(!res) res = ipc_declare_self();
+
+	get_ptoken();
+	// int res = 0;
+    // while(!res) res = ipc_declare_self();
     return 0;
 }

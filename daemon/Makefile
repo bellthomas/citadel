@@ -1,25 +1,19 @@
-# all:
-# 	[ -f "enclave_keys.h" ] || exit 1
-# 	[ -d "exports" ] || mkdir exports
-# 	gcc -o exports/daemon test.c
-# 	rm enclave_keys.h
-
-# clean:
-# 	rm -rf exports enclave_keys.h
-
 
 ######## SGX SDK Settings ########
 
+CWD := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 SGX_SDK ?= /opt/intel/sgxsdk
 SGX_MODE ?= SIM
 SGX_ARCH ?= x64
 Build_Folder := build
 Enclave_Impls := basic uflume
-LibTomCrypt_Folder := /build/kernel/linux-5.6/security/trm/daemon/enclave_core/crypto/ltc
+LibTomCrypt_Folder := $(CWD)/enclave_core/crypto/ltc
 Install_Folder := /opt/citadel
 Scripts_Folder := scripts
 NNG_Include_Folder := /opt/playground/nng/include
 NNG_Library_Folder := /opt/devel/libnng
+
+
 
 ifeq ($(shell getconf LONG_BIT), 32)
 	SGX_ARCH := x86
@@ -155,7 +149,7 @@ endif
 .PHONY: all run
 
 ifeq ($(Build_Mode), HW_RELEASE)
-all: $(App_Name) enclave:
+all: $(App_Name) enclave install-app
 	@echo "The project has been built in release hardware mode."
 	@echo "Please sign the $(Enclave_Name) first with your signing key before you run the $(App_Name) to launch and access the enclave."
 	@echo "To sign the enclave use the command:"
@@ -163,13 +157,13 @@ all: $(App_Name) enclave:
 	@echo "You can also sign the enclave using an external signing tool. See User's Guide for more details."
 	@echo "To build the project in simulation mode set SGX_MODE=SIM. To build the project in prerelease mode set SGX_PRERELEASE=1 and SGX_MODE=HW."
 else
-all: $(App_Name) enclave
+all: $(App_Name) enclave install-app libcitadel/libcitadel.a userspace_demo/app
 endif
 
 run: all
 ifneq ($(Build_Mode), HW_RELEASE)
-	@$(CURDIR)/$(App_Name)
 	@echo "RUN  =>  $(App_Name) [$(SGX_MODE)|$(SGX_ARCH), OK]"
+	@sudo /opt/sgxrun /opt/citadel/citadel /opt/citadel/trm.basic.signed.so
 endif
 
 ######## App Objects ########
@@ -230,8 +224,8 @@ $(Build_Folder)/trm.%.signed.so: $(Build_Folder)/trm.%.so
 	@$(SGX_ENCLAVE_SIGNER) sign -key $(Enclave_Folder)/Enclave_private.pem -enclave $(Build_Folder)/trm.$*.so -out $@ -config $(Enclave_Config_File)
 	@echo "SIGN =>  $@"
 
-enclave-basic: trm-basic $(Build_Folder)/trm.basic.signed.so clean-enclave
 
+enclave-basic: trm-basic $(Build_Folder)/trm.basic.signed.so clean-enclave
 enclave-uflume: trm-uflume $(Build_Folder)/trm.uflume.signed.so clean-enclave
 
 enclave: enclave-basic
@@ -252,9 +246,21 @@ install-app:
 install: install-app install-daemon
 	
 
-.PHONY: clean enclave enclave-uflume
+
+.PHONY: clean enclave enclave-uflume libcitadel userspace_demo
 clean: 
 	@rm -rf $(App_Name) $(App_Cpp_Objects) $(App_Folder)/Enclave_u.* $(Enclave_Cpp_Objects) $(Enclave_Folder)/Enclave_t.* $(Enclave_Folder)/asm/*
 	@rm -rf $(Build_Folder)/*
+	@$(MAKE) --no-print-directory -C libcitadel clean
+	@$(MAKE) --no-print-directory -C userspace_demo clean
 
+libcitadel/libcitadel.a:
+	@echo "\n/libcitadel"
+	@$(MAKE) --no-print-directory -C libcitadel clean
+	@$(MAKE) --no-print-directory -C libcitadel
+
+userspace_demo/app:
+	@echo "\n/userspace_demo"
+	@$(MAKE) --no-print-directory -C userspace_demo clean
+	@$(MAKE) --no-print-directory -C userspace_demo
 

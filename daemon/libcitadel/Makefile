@@ -12,22 +12,9 @@ C_Flags := -L$(NNG_Library_Folder) -lnng -pthread
 
 all: libcitadel.a
 
-# install: libcitadel.a
-# 	@sudo cp libcitadel.so /usr/local/lib
-
-
 libcitadel.a: %: $(OBJECTS)	
 	@$(AR) rcs $@ $(OBJECTS)
 	@echo "   AR      libcitadel.a"
-
-
-#	@$(CC) -shared -o $@ $(OBJECTS) $(C_Includes) $(C_Flags) 
-
-# @$(AR) rcs $@ $(OBJECTS)
-# @cp $(NNG_Library_Folder)/libnng.a $@
-# $(LIBNNG_FOLDER):
-# 	@mkdir -p $(LIBNNG_FOLDER) && cd $(LIBNNG_FOLDER) && $(AR) x $(NNG_Library_Folder)/libnng.a
-# 	@echo "   GEN     libnng"
 
 %.o: %.c
 	@$(CC) -c -o $@ $< $(C_Includes) $(C_Flags)
