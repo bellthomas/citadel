@@ -118,6 +118,7 @@ Enclave_Cpp_Files := $(Enclave_Folder)/Enclave.cpp \
 					 $(Enclave_Folder)/Sealing/Sealing.cpp \
 					 $(Enclave_Folder)/asm/interface.cpp \
 					 $(Enclave_Folder)/lsm_communication.cpp \
+					 $(Enclave_Folder)/userspace_io.cpp \
 			         $(Enclave_Folder)/crypto/rsa_encrypt.cpp \
 			         $(Enclave_Folder)/crypto/rsa_decrypt.cpp \
 			         $(Enclave_Folder)/crypto/aes.cpp
@@ -163,7 +164,7 @@ endif
 run: all
 ifneq ($(Build_Mode), HW_RELEASE)
 	@echo "RUN  =>  $(App_Name) [$(SGX_MODE)|$(SGX_ARCH), OK]"
-	@sudo /opt/sgxrun /opt/citadel/citadel /opt/citadel/trm.basic.signed.so
+	@sudo /opt/sgxrun /opt/citadel/citadel /opt/citadel/citadel.basic.signed.so
 endif
 
 ######## App Objects ########
@@ -209,24 +210,24 @@ clean-enclave:
 	@rm -rf $(Enclave_Cpp_Objects) $(Enclave_Folder)/Enclave_t.* $(Enclave_Folder)/asm
 
 
-trm-%: clean-enclave 
+citadel-%: clean-enclave 
 	@mkdir -p $(Enclave_Folder)/asm
 	@cp $(ASM_Folder)/$*/*.cpp $(Enclave_Folder)/asm
 	@cp $(ASM_Folder)/$*/*.h $(Enclave_Folder)/asm
 
 
-$(Build_Folder)/trm.%.so: $(Enclave_Folder)/Enclave_t.o $(Enclave_Cpp_Objects)
+$(Build_Folder)/citadel.%.so: $(Enclave_Folder)/Enclave_t.o $(Enclave_Cpp_Objects)
 	@$(CXX) $(Enclave_Folder)/Enclave_t.o $(Enclave_Cpp_Objects) -o $@ $(Enclave_Link_Flags)
 	@echo "LINK =>  $@"
 
 
-$(Build_Folder)/trm.%.signed.so: $(Build_Folder)/trm.%.so
-	@$(SGX_ENCLAVE_SIGNER) sign -key $(Enclave_Folder)/Enclave_private.pem -enclave $(Build_Folder)/trm.$*.so -out $@ -config $(Enclave_Config_File)
+$(Build_Folder)/citadel.%.signed.so: $(Build_Folder)/citadel.%.so
+	@$(SGX_ENCLAVE_SIGNER) sign -key $(Enclave_Folder)/Enclave_private.pem -enclave $(Build_Folder)/citadel.$*.so -out $@ -config $(Enclave_Config_File)
 	@echo "SIGN =>  $@"
 
 
-enclave-basic: trm-basic $(Build_Folder)/trm.basic.signed.so clean-enclave
-enclave-uflume: trm-uflume $(Build_Folder)/trm.uflume.signed.so clean-enclave
+enclave-basic: citadel-basic $(Build_Folder)/citadel.basic.signed.so clean-enclave
+enclave-uflume: citadel-uflume $(Build_Folder)/citadel.uflume.signed.so clean-enclave
 
 enclave: enclave-basic
 

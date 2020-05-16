@@ -29,7 +29,7 @@
  */
 
 
-#include "../includes/trm.h"
+#include "../includes/citadel.h"
 
 static int rsa_available = 0;
 static int aes_available = 0;
@@ -106,7 +106,7 @@ static const struct file_operations ptoken_file_ops = { .read = ptoken_read };
 
 static int __init integrity_fs_init(void)
 {
-	integrity_dir = securityfs_create_dir("trm", NULL);
+	integrity_dir = securityfs_create_dir("citadel", NULL);
 	if (IS_ERR(integrity_dir)) {
 		int ret = PTR_ERR(integrity_dir);
 

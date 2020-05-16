@@ -16,8 +16,7 @@
 #include <linux/delay.h>
 #include <linux/highmem.h>
 
-#include "trm.h"
-#include "common.h"
+#include "citadel.h"
 
 #define RSA_PAYLOAD_SIZE 256
 

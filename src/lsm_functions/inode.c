@@ -88,9 +88,9 @@ int trm_inode_init_security(struct inode *inode, struct inode *dir, const struct
  */
 int trm_inode_link(struct dentry *old_dentry, struct inode *dir, struct dentry *new_dentry)
 {
-	char *hex_id, *identifier;
-    char *pathname = NULL;
-	int res;
+	// char *hex_id, *identifier;
+    // char *pathname = NULL;
+	// int res;
 	// struct inode *inode = d_backing_inode(old_dentry);
 	struct inode_trm *old_inode_trm = trm_dentry(old_dentry);
 

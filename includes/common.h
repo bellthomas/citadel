@@ -12,7 +12,7 @@
 #include <linux/fs.h>
 #include <linux/uidgid.h>
 
-#include "trm.h"
+#include "citadel.h"
 
 #define TRM_DEBUG 1
 

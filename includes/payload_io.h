@@ -14,9 +14,7 @@
 #include <linux/crypto.h>
 #include <linux/semaphore.h>
 
-#include "_trm_shared.h"
-#include "common.h"
-#include "crypto.h"
+#include "citadel.h"
 
 extern int system_ready(void);
 extern void* generate_challenge(size_t *len);

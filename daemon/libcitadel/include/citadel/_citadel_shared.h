@@ -1,7 +1,7 @@
 
 
-#ifndef TRM_SHARED_DEFINITIONS_H_
-#define TRM_SHARED_DEFINITIONS_H_
+#ifndef __CITADEL_SHARED_DEFINITIONS_H
+#define __CITADEL_SHARED_DEFINITIONS_H
 
 // Generic.
 #define _TRM_IDENTIFIER_LENGTH 16
@@ -10,8 +10,10 @@
 #define _TRM_SIGNATURE_LENGTH 8
 #define _TRM_PID_LENGTH 4
 
-#define _TRM_SECURITYFS_ROOT "/sys/kernel/security/trm/"
+#define _TRM_SECURITYFS_ROOT "/sys/kernel/security/citadel/"
 #define _TRM_PROCESS_GET_PTOKEN_PATH _TRM_SECURITYFS_ROOT "get_ptoken"
+#define _TRM_LSM_CHALLENGE_PATH _TRM_SECURITYFS_ROOT "challenge"
+#define _TRM_LSM_UPDATE_PATH _TRM_SECURITYFS_ROOT "update"
 
 // Parameters for GCM-AES-128.
 #define IV_LENGTH 12
@@ -26,6 +28,7 @@
 // Updates.
 #define _TRM_UPDATE_SUBJECT_LENGTH _TRM_IDENTIFIER_LENGTH
 #define _TRM_UPDATE_DATA_LENGTH 32
+#define _TRM_XATTR_INSTALL_ID "security.citadel.install" // TODO unify
 
 #define XATTR_ACCEPTED_SIGNAL 359
 #define XATTR_REJECTED_SIGNAL 360
@@ -37,8 +40,9 @@
 #define _TRM_PTOKEN_PAYLOAD_SIZE (0 + _TRM_SIGNATURE_LENGTH + _TRM_PROCESS_PTOKEN_LENGTH + _TRM_PROCESS_SIGNED_PTOKEN_LENGTH)
 
 #define CITADEL_IPC_FILE "/run/citadel.socket"
-#define CITADEL_IPC_URI "ipc://" CITADEL_IPC_FILE
-#define CITADEL_ENV_ATTR_NAME "CITADEL_PROCESS_KEY"
+#define CITADEL_IPC_ADDRESS "ipc://" CITADEL_IPC_FILE
+#define CITADEL_ENV_ATTR_NAME "CITADEL_PTOKEN"
+#define CITADEL_SIGNED_ENV_ATTR_NAME "CITADEL_SIGNED_PTOKEN"
 
 
 static const unsigned char challenge_signature[_TRM_SIGNATURE_LENGTH] = { 0x80, 0x70, 0x60, 0x50, 0x40, 0x30, 0x20, 0x10 };
@@ -68,6 +72,7 @@ struct trm_ptoken {
     unsigned char signature[_TRM_SIGNATURE_LENGTH];
     unsigned char ptoken[_TRM_PROCESS_PTOKEN_LENGTH];
     unsigned char signed_ptoken[_TRM_PROCESS_SIGNED_PTOKEN_LENGTH]; // Encrypted trm_ptoken_protected.
+    int32_t citadel_pid; /* pid_t */
 };
 
 struct trm_ptoken_protected {
@@ -76,4 +81,4 @@ struct trm_ptoken_protected {
     unsigned char ptoken[_TRM_PROCESS_PTOKEN_LENGTH];
 };
 
-#endif /* TRM_SHARED_DEFINITIONS_H_ */
+#endif /* __CITADEL_SHARED_DEFINITIONS_H */

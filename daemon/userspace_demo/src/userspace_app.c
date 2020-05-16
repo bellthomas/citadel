@@ -1,5 +1,5 @@
 
-#include <citadel/init.h>
+#include <citadel/citadel.h>
 
 int main(void) {
 	citadel_init();

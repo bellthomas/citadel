@@ -13,9 +13,7 @@
 #include <linux/kobject.h>
 #include <linux/crypto.h>
 
-#include "trm.h"
-#include "common.h"
-#include "payload_io.h"
+#include "citadel.h"
 
 #define CHALLENGE_MAX_SIZE 256 // Using 2048-bit RSA.
 

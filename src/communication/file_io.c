@@ -146,11 +146,17 @@ ssize_t ptoken_read(struct file *file, char __user *buf, size_t count, loff_t *p
 
     // Generate secret message.
     pos = *ppos;
+    if (pos >= sizeof(struct trm_ptoken)) return 0;
     cipher = generate_ptoken(&cipher_len);
 
     if (cipher_len == 0) {
         printk(KERN_INFO PFX "Rejected ../get_ptoken read because challenge generation failed.");
         return (ssize_t)count; // TODO do proper error return
+    }
+    else if (cipher_len == 1) {
+        // System not ready yet.
+        *buf = '\0';
+        return (ssize_t)1;
     }
 
     if (pos >= cipher_len || !count) return 0;

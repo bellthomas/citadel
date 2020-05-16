@@ -1,7 +1,7 @@
 #ifndef _SECURITY_TRM_LSM_FILE_H
 #define _SECURITY_TRM_LSM_FILE_H
 
-#include "trm.h"
+#include "citadel.h"
 
 extern int trm_file_permission(struct file *file, int mask);
 

@@ -1,7 +1,7 @@
 #ifndef _SECURITY_TRM_LSM_INODE_H
 #define _SECURITY_TRM_LSM_INODE_H
 
-#include "trm.h"
+#include "citadel.h"
 
 extern int trm_inode_alloc_security(struct inode *inode);
 extern int trm_inode_init_security(struct inode *inode, struct inode *dir, const struct qstr *qstr, const char **name, void **value, size_t *len);
