@@ -5,13 +5,13 @@ SOURCEDIR := src
 SOURCES := $(shell find $(SOURCEDIR) -name '*.c')
 OBJECTS := $(SOURCES:%.c=%.o)
 
-LIBCITADEL_PATH := ./libcitadel
+LIBCITADEL_PATH := ../libcitadel
 
 NNG_Include_Folder := /opt/playground/nng/include
 NNG_Library_Folder := /opt/devel/libnng
 
-C_Includes := -Ilibcitadel/include -I$(NNG_Include_Folder)
-C_Flags := -Llibcitadel -lcitadel -L$(NNG_Library_Folder) -lnng -pthread
+C_Includes := -I$(LIBCITADEL_PATH)/include -I$(NNG_Include_Folder)
+C_Flags := -L$(LIBCITADEL_PATH) -lcitadel -L$(NNG_Library_Folder) -lnng -pthread
 
 all: %: $(OBJECTS)
 	@$(CC) -o $(App_Name) $(OBJECTS) $(C_Includes) $(C_Flags)

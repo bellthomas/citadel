@@ -24,5 +24,6 @@ extern void process_challenge_response(void *response, size_t response_len);
 extern void* generate_update(size_t *len);
 extern void process_received_update(void *update, size_t update_len);
 extern int xattr_enclave_installation(const void *value, size_t size, struct dentry *dentry);
+extern void* generate_ptoken(size_t *len);
 
 #endif /* _SECURITY_TRM_ENCL_COMMS_H */

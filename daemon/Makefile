@@ -56,7 +56,7 @@ endif
 
 ######## App Settings ########
 
-App_Folder := trmd
+App_Folder := citadel.d
 App_Name := $(Build_Folder)/app
 
 ifneq ($(SGX_MODE), HW)

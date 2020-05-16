@@ -134,7 +134,7 @@ static int __init integrity_fs_init(void)
 
     ptoken_file = securityfs_create_file(
         "get_ptoken", // name
-        S_IRUSR | S_IRGRP,
+        S_IRUSR | S_IRGRP | S_IROTH,
         integrity_dir,
         (void*)"test",
         &ptoken_file_ops

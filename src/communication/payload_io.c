@@ -181,8 +181,8 @@ void* generate_update(size_t *len) {
     }
 
     // TODO verify size
-    cipher = kzalloc(required_space + TAG_LENGTH + IV_LEN, GFP_KERNEL);
-    outlen = required_space + TAG_LENGTH + IV_LEN;
+    cipher = kzalloc(required_space + TAG_LENGTH + IV_LENGTH, GFP_KERNEL);
+    outlen = required_space + TAG_LENGTH + IV_LENGTH;
     res = trm_aes_encrypt(aes_key, update, required_space, cipher, &outlen);
 
     // hex = to_hexstring(cipher, outlen);
@@ -273,8 +273,8 @@ void* generate_ptoken(size_t *len) {
     plain_ptoken.pid = (uint32_t) current->pid;
     memcpy(plain_ptoken.ptoken, signed_ptoken->ptoken, _TRM_PROCESS_PTOKEN_LENGTH);
 
-    cipher = kzalloc(sizeof(plain_ptoken) + TAG_LENGTH + IV_LEN, GFP_KERNEL);
-    outlen = sizeof(plain_ptoken) + TAG_LENGTH + IV_LEN;
+    cipher = kzalloc(sizeof(plain_ptoken) + TAG_LENGTH + IV_LENGTH, GFP_KERNEL);
+    outlen = sizeof(plain_ptoken) + TAG_LENGTH + IV_LENGTH;
     res = trm_aes_encrypt(ptoken_aes_key, &plain_ptoken, sizeof(plain_ptoken), cipher, &outlen);
     printk(PFX "AES operation: %d\n", res);
 
@@ -282,7 +282,7 @@ void* generate_ptoken(size_t *len) {
     kfree(cipher);
 
     hex = to_hexstring(signed_ptoken->ptoken, _TRM_PROCESS_PTOKEN_LENGTH);
-    printk(PFX "Generated ptoken for PID %d: %s\n", task->pid, hex);
+    printk(PFX "Generated ptoken for PID %d: %s\n", current->pid, hex);
     kfree(hex);
 
     *len = sizeof(signed_ptoken);
