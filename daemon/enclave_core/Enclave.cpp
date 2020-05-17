@@ -26,7 +26,6 @@ void print_hex(unsigned char *buf, unsigned int len) {
 }
 
 void timer_pulse(void) {
-    ocall_print("Timer...");
     for(int i=1; i<=5; i++) generate_ticket(i);
 
     // Install xattr record.

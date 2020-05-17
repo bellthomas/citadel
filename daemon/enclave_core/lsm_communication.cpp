@@ -101,7 +101,7 @@ void generate_ticket(int num_records) {
     int install_ret;
     install_ticket(&install_ret, (uint8_t*)cipher, outlen);
 
-    // TODO if successful.
+    // TODO if successful
     update_aes_key(hdr->key_update, sizeof(hdr->key_update));
 }
 
@@ -146,8 +146,8 @@ void generate_xattr_ticket(void) {
     sgx_read_rand(rcrd->subject, sizeof(rcrd->subject));
     memset(rcrd->data, 2, sizeof(rcrd->data));
 
-    print_hex((unsigned char*)rcrd->subject, sizeof(rcrd->subject));
-    print_hex((unsigned char*)data, sizeof(data));
+    // print_hex((unsigned char*)rcrd->subject, sizeof(rcrd->subject));
+    // print_hex((unsigned char*)data, sizeof(data));
 
     // Encrypt.
     unsigned char cipher[sizeof(data) + 16];
@@ -159,6 +159,7 @@ void generate_xattr_ticket(void) {
     char path[22] = "/opt/testing_dir/test";
     install_xattr(&install_ret, path, sizeof(path), (uint8_t*)cipher, outlen);
 
-    if(install_ret == XATTR_ACCEPTED_SIGNAL)
+    if(install_ret == XATTR_ACCEPTED_SIGNAL) {
         update_aes_key(hdr->key_update, sizeof(hdr->key_update));
+    }
 }

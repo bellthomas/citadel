@@ -9,7 +9,7 @@ void set_ptoken_aes_key(unsigned char* key) {
 
 // int aes_decrypt(unsigned char *msg, size_t len, unsigned char *out, size_t *outlen, unsigned char *key, unsigned int keylen) {
 
-int handle_request(uint8_t* data, size_t length) {
+int handle_request(uint8_t* data, size_t length, int32_t pid) {
     // ocall_print("handle_request()");
     unsigned char decrypted[_TRM_PROCESS_SIGNED_PTOKEN_LENGTH + IV_LENGTH + TAG_LENGTH];
     size_t outlen = sizeof(decrypted);
@@ -24,7 +24,6 @@ int handle_request(uint8_t* data, size_t length) {
         return -1;
     }
 
-    print_hex(decrypted, outlen);
     struct trm_ptoken_protected *ptoken = (struct trm_ptoken_protected *)decrypted;
 
     if(memcmp(ptoken->signature, challenge_signature, sizeof(challenge_signature))) {
@@ -32,11 +31,16 @@ int handle_request(uint8_t* data, size_t length) {
         return -1;
     }
 
+    if (pid != ptoken->pid) {
+        ocall_print("Mismatching PIDs --- forged request.");
+    }
+    
     char buffer[100];
     int cx;
-    cx = snprintf(buffer, sizeof(buffer), "PID: %d", ptoken->pid);
-    ocall_print(buffer);
-
+    cx = snprintf(buffer, sizeof(buffer), "* Verified PID: %d", ptoken->pid);
+    // ocall_print(buffer);
+    generate_xattr_ticket();
+    // generate_ticket(1);
 
     return 0;
 }

@@ -18,7 +18,7 @@ enclave {
 
         public void timer_pulse(void) transition_using_threads; 
         public int process_updates([in, size=update_length] uint8_t* update_data, size_t update_length) transition_using_threads;
-        public int handle_request([in, size=length] uint8_t* data, size_t length) transition_using_threads;
+        public int handle_request([in, size=length] uint8_t* data, size_t length, int32_t pid) transition_using_threads;
     };
 
     untrusted {
