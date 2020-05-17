@@ -65,7 +65,7 @@ static bool ipc_send(char *data, size_t len) {
 		case 0:
 			clock_gettime(CLOCK_MONOTONIC, &end);
 			diff = 1000000000L * (end.tv_sec - start.tv_sec) + end.tv_nsec - start.tv_nsec;
-			printf("* ipc_send -- %llu microseconds\n", (long long unsigned int) diff / 1000);
+			// printf("* ipc_send -- %llu microseconds\n", (long long unsigned int) diff / 1000);
 			return true;
 		default:
 			printf("Error, %s\n", nng_strerror(rv));
@@ -103,7 +103,7 @@ static bool ipc_recv(nng_msg **msg) {
 		case 0:
 			clock_gettime(CLOCK_MONOTONIC, &end);
 			diff = 1000000000L * (end.tv_sec - start.tv_sec) + end.tv_nsec - start.tv_nsec;
-			printf("* ipc_recv -- %llu microseconds (attempts %d)\n--\n", (long long unsigned int) diff / 1000, attempts);
+			// printf("* ipc_recv -- %llu microseconds (attempts %d)\n--\n", (long long unsigned int) diff / 1000, attempts);
 			return true;
 		default:
 			printf("Error, %s\n", nng_strerror(rv));
@@ -135,6 +135,9 @@ static bool ipc_declare_self(void) {
 			nng_pipe_getopt_uint64(p, NNG_OPT_IPC_PEER_PID, &pid);
 			
 			if (pid == citadel_pid) {
+				if(memcmp(signed_ptoken, nng_msg_body(msg), _TRM_PROCESS_SIGNED_PTOKEN_LENGTH)) {
+					printf("Wrong payload back.\n");
+				}
 				// printf("* Successful transaction with Citadel enclave.\n");
 			} else {
 				printf("! Forged transaction from PID %lu (Citadel PID: %d).\n", pid, citadel_pid);
@@ -228,11 +231,11 @@ static void init_rand(void) {
 }
 
 int citadel_init(void) {
-	printf("---\n");
+	// printf("---\n");
 	init_rand();
 	int res_ptoken = get_ptoken();
 	init_socket();
-	printf("---\n");
+	// printf("---\n");
 
 	uint64_t diff;
 	struct timespec start, end;
@@ -240,14 +243,14 @@ int citadel_init(void) {
 	long int num_runs = 0;
 	int res;
 
-	for (size_t i = 0; i < 5; i++) {
+	for (size_t i = 0; i < 10; i++) {
 		clock_gettime(CLOCK_MONOTONIC, &start);	/* mark start time */
 		res = ipc_declare_self();
 		clock_gettime(CLOCK_MONOTONIC, &end);
 		diff = 1000000000L * (end.tv_sec - start.tv_sec) + end.tv_nsec - start.tv_nsec;
 		total_duration += diff;
 		num_runs++;
-		usleep(400 + (rand() % 200));
+		usleep((rand() % 50000));
 		// printf("* %llu microseconds\n", (long long unsigned int) diff / 1000);
 	}
 
