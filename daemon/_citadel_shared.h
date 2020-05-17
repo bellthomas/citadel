@@ -125,6 +125,10 @@ struct citadel_op_request {
     unsigned char signed_ptoken[_TRM_PROCESS_SIGNED_PTOKEN_LENGTH]; // Encrypted trm_ptoken_protected.
 };
 
+struct citadel_op_additional_metadata {
+    void *data[4096];
+};
+
 struct citadel_op_reply {
     unsigned char signature[_TRM_SIGNATURE_LENGTH];
     uint32_t operation;

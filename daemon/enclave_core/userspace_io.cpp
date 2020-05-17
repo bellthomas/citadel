@@ -71,7 +71,7 @@ uint8_t handle_request(uint8_t* data, size_t length, int32_t pid, uint8_t* ptoke
     uint8_t result = asm_handle_request(request);
 
     // Install tickets if required.
-    // TODO
+    // if (result == )
 
     return result;
 }
