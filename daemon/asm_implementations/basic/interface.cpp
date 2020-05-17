@@ -1,8 +1,7 @@
 
-#include "Enclave_t.h"
 #include "interface.h"
 
-int trm_test(void) {
-    return 2;
+uint8_t asm_handle_request(struct citadel_op_request *request) {
+    ocall_print("asm_handle_request");
+    return CITADEL_OP_APPROVED;
 }
-

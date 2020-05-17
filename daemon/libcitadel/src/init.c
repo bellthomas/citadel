@@ -32,9 +32,11 @@ static bool ipc_send(char *data, size_t len) {
 	int rv;
 	nng_msg *msg;
 
+#if _LIBCITADEL_PERF_METRICS
 	uint64_t diff;
 	struct timespec start, end;
 	clock_gettime(CLOCK_MONOTONIC, &start);
+#endif
 
 	if ((rv = nng_msg_alloc(&msg, len)) != 0) {
 		return false;
@@ -58,17 +60,20 @@ static bool ipc_send(char *data, size_t len) {
 			usleep(1);
 			attempts++;
 			if(attempts >= ipc_timeout) {
-				printf("Timed out. Failed to send.\n");
+				citadel_perror("Timed out. Failed to send.\n");
 				return false;
 			}
 			break;
 		case 0:
+
+#if _LIBCITADEL_PERF_METRICS
 			clock_gettime(CLOCK_MONOTONIC, &end);
 			diff = 1000000000L * (end.tv_sec - start.tv_sec) + end.tv_nsec - start.tv_nsec;
-			// printf("* ipc_send -- %llu microseconds\n", (long long unsigned int) diff / 1000);
+			citadel_perf("ipc_send, %lluμs\n", (long long unsigned int) diff / 1000);
+#endif
 			return true;
 		default:
-			printf("Error, %s\n", nng_strerror(rv));
+			citadel_perror("Error, %s\n", nng_strerror(rv));
 			return false;
 		}
 	}
@@ -78,9 +83,11 @@ static bool ipc_recv(nng_msg **msg) {
 	int attempts = 0;
 	int rv;
 
+#if _LIBCITADEL_PERF_METRICS
 	uint64_t diff;
 	struct timespec start, end;
 	clock_gettime(CLOCK_MONOTONIC, &start);
+#endif
 
 	// TODO check that sock is still ok.
 	// if (!sock) return false;
@@ -96,90 +103,109 @@ static bool ipc_recv(nng_msg **msg) {
 			usleep(1);
 			attempts++;
 			if(attempts >= ipc_timeout) {
-				printf("Timed out. Nothing received.\n");
+				citadel_perror("Timed out. Nothing received.\n");
 				return false;
 			}
 			break;
 		case 0:
+
+#if _LIBCITADEL_PERF_METRICS
 			clock_gettime(CLOCK_MONOTONIC, &end);
 			diff = 1000000000L * (end.tv_sec - start.tv_sec) + end.tv_nsec - start.tv_nsec;
-			// printf("* ipc_recv -- %llu microseconds (attempts %d)\n--\n", (long long unsigned int) diff / 1000, attempts);
+			citadel_perf("ipc_recv, %lluμs (attempts %d)\n", (long long unsigned int) diff / 1000, attempts);
+#endif
+
 			return true;
 		default:
-			printf("Error, %s\n", nng_strerror(rv));
+			citadel_perror("Error, %s\n", nng_strerror(rv));
 			return false;
 		}
 	}
 }
 
 static bool ipc_declare_self(void) {
-	int        rv;
-	size_t     sz;
-	char *     buf = NULL;
-
-	// char *ptoken = getenv(CITADEL_SIGNED_ENV_ATTR_NAME);
-	// char *ptoken_raw = ptoken; //_hex_identifier_to_bytes(ptoken);
-
+	int rv;
+	size_t sz;
+	char *buf = NULL;
 	bool success = false;
-	bool sent = ipc_send(signed_ptoken, _TRM_PROCESS_SIGNED_PTOKEN_LENGTH);	
+	bool received, sent;
+	uint64_t pid;
+	nng_msg *msg;
+
+	struct citadel_op_request request;
+	struct citadel_op_reply *reply;
+
+	memcpy(request.signature, challenge_signature, sizeof(challenge_signature));
+	request.operation = CITADEL_OP_REGISTER;
+	memcpy(request.signed_ptoken, signed_ptoken, sizeof(request.signed_ptoken));
+
+	sent = ipc_send((char*)&request, sizeof(struct citadel_op_request));	
 	if (sent) {
-		nng_msg *msg;
-
-		bool received = ipc_recv(&msg);
-		bool success = received;
-
-		if (success) {
+		received = ipc_recv(&msg);
+		if (received) {
 			// Get PID of sender.
 			nng_pipe p = nng_msg_get_pipe(msg);
-			uint64_t pid;
 			nng_pipe_getopt_uint64(p, NNG_OPT_IPC_PEER_PID, &pid);
 			
 			if (pid == citadel_pid) {
-				if(memcmp(signed_ptoken, nng_msg_body(msg), _TRM_PROCESS_SIGNED_PTOKEN_LENGTH)) {
-					printf("Wrong payload back.\n");
+				reply = (struct citadel_op_reply *)nng_msg_body(msg);
+
+				// Check response ptoken.
+				if( memcmp(reply->ptoken, ptoken, sizeof(reply->ptoken)) && 
+					memcmp(reply->signature, challenge_signature, sizeof(challenge_signature)))
+				{
+					citadel_perror("Registration: response ptoken/signature incorrect.\n");
+					nng_msg_free(msg);
+					return false;
 				}
-				// printf("* Successful transaction with Citadel enclave.\n");
+
+				// Check result.
+				bool res = false;
+				switch (reply->result) {
+				case CITADEL_OP_APPROVED:
+					citadel_printf("Registered with Citadel (PID %d).\n", citadel_pid);
+					res = true;
+					break;
+				default:
+					citadel_perror("Registration failed: %s.\n", citadel_error(reply->result));
+				}
+
+				nng_msg_free(msg);
+				return res;
 			} else {
-				printf("! Forged transaction from PID %lu (Citadel PID: %d).\n", pid, citadel_pid);
-				success = false;
+				citadel_perror("Forged transaction from PID %lu (Citadel PID: %d).\n", pid, citadel_pid);
 			}
 
 			nng_msg_free(msg);
 
 		} else {
-			printf("! Init call failed (receive timed out).\n");
+			citadel_perror("Init call failed (receive timed out).\n");
 		}
 	} else {
-		printf("! Init call failed (send timed out).\n");
+		citadel_perror("Init call failed (send timed out).\n");
 	}
 
-	// Free resources.
-	// if (ptoken_raw) free(ptoken_raw);
-	// nng_close(sock);
-    return success;
+    return false;
 }
 
 static bool init_socket(void) {
 	int rv;
 	if ((rv = nng_req0_open(&sock)) != 0) {
-        printf("! Failed to open local socket.\n");
+        citadel_perror("Failed to open local socket.\n");
         return false;
 	}
 
     if ((rv = nng_dial(sock, CITADEL_IPC_ADDRESS, NULL, 0)) != 0) {
-		// fatal("nng_dial", rv);
-        printf("! Failed to connect to %s: %s\n", CITADEL_IPC_ADDRESS, nng_strerror(rv));
+        citadel_perror("Failed to connect to %s: %s\n", CITADEL_IPC_ADDRESS, nng_strerror(rv));
         return false;
 	}
 
 	if ((rv = nng_aio_alloc(&ap, NULL, NULL)) != 0) {
-		printf("! Failed to init nng_aio: %s\n", nng_strerror(rv));
+		citadel_perror("Failed to init nng_aio: %s\n", nng_strerror(rv));
         return false;
 	}
-    nng_aio_set_timeout(ap, NNG_DURATION_ZERO);
-    // nng_aio_set_timeout(ap, 0.5);
 
-	// nng_setopt_int(sock, NNG_OPT_RECVBUF, 10000);
+    nng_aio_set_timeout(ap, NNG_DURATION_ZERO);
 	nng_setopt_ms(sock, NNG_OPT_RECONNMINT, 0);
 	nng_setopt_bool(sock, NNG_OPT_RAW, true);
 	nng_setopt_ms(sock, NNG_OPT_RECONNMAXT, 1);
@@ -188,72 +214,78 @@ static bool init_socket(void) {
 	return true;
 }
 
-int get_ptoken(void) {
+static bool get_ptoken(void) {
 	// Read challenge.
 	FILE *f_challenge;
 	unsigned char buffer[_TRM_PTOKEN_PAYLOAD_SIZE];
     f_challenge = fopen(_TRM_PROCESS_GET_PTOKEN_PATH, "rb");
+	if (!f_challenge) {
+		citadel_perror("Failed to open %s\n", _TRM_PROCESS_GET_PTOKEN_PATH);
+		return false;
+	}
     size_t challenge_read = fread(buffer, sizeof(buffer), 1, f_challenge);
     fclose(f_challenge);
 
 	struct trm_ptoken *ptoken_payload = (struct trm_ptoken *)buffer;
 	if(memcmp(ptoken_payload->signature, challenge_signature, sizeof(challenge_signature))) {
-		printf("Payload signature doesn't match\n");
-		return -1;
+		citadel_perror("Payload signature doesn't match\n");
+		return false;
 	}
 
+	// Save results locally.
 	ptoken = malloc(_TRM_PROCESS_PTOKEN_LENGTH);
 	memcpy(ptoken, ptoken_payload->ptoken, _TRM_PROCESS_PTOKEN_LENGTH);
 	signed_ptoken = malloc(_TRM_PROCESS_SIGNED_PTOKEN_LENGTH);
 	memcpy(signed_ptoken, ptoken_payload->signed_ptoken, _TRM_PROCESS_SIGNED_PTOKEN_LENGTH);
+	citadel_pid = ptoken_payload->citadel_pid;
 
-	// char *hex_ptoken = to_hexstring(ptoken_payload->ptoken, _TRM_PROCESS_PTOKEN_LENGTH);
-	// printf("ptoken: %s\n", hex_ptoken);
+#if CITADEL_DEBUG
+	char *hex_ptoken = to_hexstring(ptoken_payload->ptoken, _TRM_PROCESS_PTOKEN_LENGTH);
+	citadel_printf("ptoken: %s\n", hex_ptoken);
 	// int set_env = setenv(CITADEL_ENV_ATTR_NAME, hex_ptoken, 1);
-	// free(hex_ptoken);
+	free(hex_ptoken);
 
 	// char *hex_signed_ptoken = to_hexstring(ptoken_payload->signed_ptoken, _TRM_PROCESS_SIGNED_PTOKEN_LENGTH);
 	// set_env += setenv(CITADEL_SIGNED_ENV_ATTR_NAME, hex_signed_ptoken, 1);
 	// free(hex_signed_ptoken);
+#endif
 
-	printf("Citadel PID: %d\n", ptoken_payload->citadel_pid);
-	citadel_pid = ptoken_payload->citadel_pid;
-
-	return 0;
+	return true;
 }
 
 static void init_rand(void) {
 	pid_t pid = getpid();
-	printf("PID: %d\n", pid);
+	citadel_printf("PID: %d\n", pid);
     time_t seconds = time(NULL);
     unsigned int seed = seconds + CITADEL_KEY_PID_MULTIPLIER * pid;
     srand(seed);
 }
 
-int citadel_init(void) {
-	// printf("---\n");
+
+bool citadel_init(void) {
 	init_rand();
-	int res_ptoken = get_ptoken();
-	init_socket();
-	// printf("---\n");
-
-	uint64_t diff;
-	struct timespec start, end;
-	long long int total_duration = 0;
-	long int num_runs = 0;
-	int res;
-
-	for (size_t i = 0; i < 10; i++) {
-		clock_gettime(CLOCK_MONOTONIC, &start);	/* mark start time */
-		res = ipc_declare_self();
-		clock_gettime(CLOCK_MONOTONIC, &end);
-		diff = 1000000000L * (end.tv_sec - start.tv_sec) + end.tv_nsec - start.tv_nsec;
-		total_duration += diff;
-		num_runs++;
-		usleep((rand() % 50000));
-		// printf("* %llu microseconds\n", (long long unsigned int) diff / 1000);
+	if (get_ptoken() && init_socket()) {
+		return ipc_declare_self();
 	}
 
-	printf("Average duration = %llu microseconds\n", (long long unsigned int) ((total_duration / num_runs)/1000));
-    return 0;
+	return false;
+
+	// uint64_t diff;
+	// struct timespec start, end;
+	// long long int total_duration = 0;
+	// long int num_runs = 0;
+	// int res;
+
+	// for (size_t i = 0; i < 10; i++) {
+	// 	clock_gettime(CLOCK_MONOTONIC, &start);	/* mark start time */
+	// 	res = ipc_declare_self();
+	// 	clock_gettime(CLOCK_MONOTONIC, &end);
+	// 	diff = 1000000000L * (end.tv_sec - start.tv_sec) + end.tv_nsec - start.tv_nsec;
+	// 	total_duration += diff;
+	// 	num_runs++;
+	// 	usleep((rand() % 50000));
+	// 	printf("* %llu microseconds\n", (long long unsigned int) diff / 1000);
+	// }
+
+	// citadel_printf("Average duration = %llu microseconds\n", (long long unsigned int) ((total_duration / num_runs)/1000));
 }

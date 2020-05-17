@@ -21,6 +21,6 @@
 
 #define CITADEL_KEY_PID_MULTIPLIER 137
 
-extern int citadel_init(void);
+extern bool citadel_init(void);
 
 #endif

@@ -3,6 +3,8 @@
 #ifndef __CITADEL_SHARED_DEFINITIONS_H
 #define __CITADEL_SHARED_DEFINITIONS_H
 
+#define CITADEL_DEBUG true
+
 // Generic.
 #define _TRM_IDENTIFIER_LENGTH 16
 #define _TRM_AES_KEY_LENGTH 16
@@ -38,6 +40,7 @@
 #define _TRM_PROCESS_PTOKEN_LENGTH 8
 #define _TRM_PROCESS_SIGNED_PTOKEN_LENGTH (0 + _TRM_PROCESS_PTOKEN_LENGTH + _TRM_PID_LENGTH + _TRM_SIGNATURE_LENGTH + IV_LENGTH + TAG_LENGTH)
 #define _TRM_PTOKEN_PAYLOAD_SIZE (0 + _TRM_SIGNATURE_LENGTH + _TRM_PROCESS_PTOKEN_LENGTH + _TRM_PID_LENGTH + _TRM_PROCESS_SIGNED_PTOKEN_LENGTH)
+#define _TRM_PTOKEN_LENGTH_DIFFERENCE 36  // citadel_op_request - citadel_op_reply (without padding)
 
 #define CITADEL_IPC_FILE "/run/citadel.socket"
 #define CITADEL_IPC_ADDRESS "ipc://" CITADEL_IPC_FILE
@@ -80,5 +83,56 @@ struct trm_ptoken_protected {
     int32_t pid; /* pid_t */
     unsigned char ptoken[_TRM_PROCESS_PTOKEN_LENGTH];
 };
+
+
+// Citadel operation (uint32_t).
+#define CITADEL_OP_REGISTER    0
+#define CITADEL_OP_FILE_CREATE 1
+#define CITADEL_OP_FILE_OPEN   2
+
+// Citadel request response (uint8_t).
+// enum citadel_status {
+//     CITADEL_OP_INVALID,
+//     CITADEL_OP_FORGED,
+//     CITADEL_OP_APPROVED,
+//     CITADEL_OP_REJECTED,
+//     CITADEL_OP_ERROR
+// } citadel_status_t;
+
+#define CITADEL_OP_INVALID   0
+#define CITADEL_OP_FORGED    1
+#define CITADEL_OP_APPROVED  2
+#define CITADEL_OP_REJECTED  3
+#define CITADEL_OP_ERROR     4
+
+static const char* citadel_status_names[] = {
+    "Invalid operation",
+    "Forgery detected",
+    "Approved",
+    "Rejected",
+    "An internal error occurred"
+};
+
+static inline const char* citadel_error (uint8_t errno) {
+    if(errno > sizeof(citadel_status_names)) return "Invalid error";
+    else return citadel_status_names[errno];
+}
+
+struct citadel_op_request {
+    unsigned char signature[_TRM_SIGNATURE_LENGTH];
+    uint32_t operation;
+    unsigned char subject[_TRM_IDENTIFIER_LENGTH];
+    unsigned char signed_ptoken[_TRM_PROCESS_SIGNED_PTOKEN_LENGTH]; // Encrypted trm_ptoken_protected.
+};
+
+struct citadel_op_reply {
+    unsigned char signature[_TRM_SIGNATURE_LENGTH];
+    uint32_t operation;
+    unsigned char subject[_TRM_IDENTIFIER_LENGTH];
+    unsigned char ptoken[_TRM_PROCESS_PTOKEN_LENGTH];
+    uint8_t result;
+    uint8_t padding[_TRM_PTOKEN_LENGTH_DIFFERENCE];
+};
+
 
 #endif /* __CITADEL_SHARED_DEFINITIONS_H */

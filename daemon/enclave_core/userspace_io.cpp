@@ -9,38 +9,69 @@ void set_ptoken_aes_key(unsigned char* key) {
 
 // int aes_decrypt(unsigned char *msg, size_t len, unsigned char *out, size_t *outlen, unsigned char *key, unsigned int keylen) {
 
-int handle_request(uint8_t* data, size_t length, int32_t pid) {
-    // ocall_print("handle_request()");
-    unsigned char decrypted[_TRM_PROCESS_SIGNED_PTOKEN_LENGTH + IV_LENGTH + TAG_LENGTH];
-    size_t outlen = sizeof(decrypted);
-    int aes_ret = aes_decrypt((unsigned char*)data, length, decrypted, &outlen, ptoken_aes_key, _TRM_AES_KEY_LENGTH);
+uint8_t handle_request(uint8_t* data, size_t length, int32_t pid, uint8_t* ptoken, size_t ptoken_length) {
+    
+    // Before starting, check we have a valid ptoken output buffer.
+    if (!ptoken || ptoken_length != _TRM_PROCESS_PTOKEN_LENGTH) {
+        ocall_print("Output ptoken buffer too small.");
+        return CITADEL_OP_ERROR;
+    }
+
+    // First, check that the payload size is correct.
+    struct citadel_op_request *request = (struct citadel_op_request*)data;
+    if (length != sizeof(struct citadel_op_request)) {
+        ocall_print("Invalid request size.");
+        return CITADEL_OP_INVALID;
+    }
+
+    // Next, check that the signature matches.
+    if(memcmp(request->signature, challenge_signature, sizeof(challenge_signature))) {
+        ocall_print("Invalid signature");
+        return CITADEL_OP_INVALID;
+    }
+
+    // Then, try to decrypt the ptoken.
+    size_t signed_payload_len = sizeof(struct trm_ptoken_protected) + IV_LENGTH + TAG_LENGTH;
+    unsigned char decrypted[signed_payload_len];
+    size_t outlen = signed_payload_len;
+    int aes_ret = aes_decrypt((unsigned char*)request->signed_ptoken, signed_payload_len, decrypted, &outlen, ptoken_aes_key, _TRM_AES_KEY_LENGTH);
     if(aes_ret) {
-        ocall_print("Failed to decrypt");
-        return -1;
+        ocall_print("Failed to decrypt ptoken.");
+        return CITADEL_OP_INVALID;
     }
 
+    struct trm_ptoken_protected *ptoken_payload = (struct trm_ptoken_protected *)decrypted;
+
+    // Check that the decrypted ptoken has the right size and signature.
     if(outlen != sizeof(struct trm_ptoken_protected)) {
-        ocall_print("Invalid size");
-        return -1;
+        ocall_print("Invalid ptoken payload size.");
+        return CITADEL_OP_INVALID;
     }
 
-    struct trm_ptoken_protected *ptoken = (struct trm_ptoken_protected *)decrypted;
-
-    if(memcmp(ptoken->signature, challenge_signature, sizeof(challenge_signature))) {
-        ocall_print("Signatures don't match...");
-        return -1;
+    if(memcmp(ptoken_payload->signature, challenge_signature, sizeof(challenge_signature))) {
+        ocall_print("Invalid ptoken signature.");
+        return CITADEL_OP_INVALID;
     }
 
-    if (pid != ptoken->pid) {
+    // Check the PID reported by the IPC medium and signed in the payload.
+    if (pid != ptoken_payload->pid) {
         ocall_print("Mismatching PIDs --- forged request.");
+        return CITADEL_OP_FORGED;
     }
     
-    char buffer[100];
-    int cx;
-    cx = snprintf(buffer, sizeof(buffer), "* Verified PID: %d", ptoken->pid);
+    // char buffer[100];
+    // int cx;
+    // cx = snprintf(buffer, sizeof(buffer), "* Verified PID: %d", ptoken->pid);
     // ocall_print(buffer);
-    generate_xattr_ticket();
+    // generate_xattr_ticket();
     // generate_ticket(1);
 
-    return 0;
+    memcpy(ptoken, ptoken_payload->ptoken, ptoken_length);
+
+    uint8_t result = asm_handle_request(request);
+
+    // Install tickets if required.
+    // TODO
+
+    return result;
 }
