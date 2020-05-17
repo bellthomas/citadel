@@ -37,7 +37,7 @@
 // Userspace.
 #define _TRM_PROCESS_PTOKEN_LENGTH 8
 #define _TRM_PROCESS_SIGNED_PTOKEN_LENGTH (0 + _TRM_PROCESS_PTOKEN_LENGTH + _TRM_PID_LENGTH + _TRM_SIGNATURE_LENGTH + IV_LENGTH + TAG_LENGTH)
-#define _TRM_PTOKEN_PAYLOAD_SIZE (0 + _TRM_SIGNATURE_LENGTH + _TRM_PROCESS_PTOKEN_LENGTH + _TRM_PROCESS_SIGNED_PTOKEN_LENGTH)
+#define _TRM_PTOKEN_PAYLOAD_SIZE (0 + _TRM_SIGNATURE_LENGTH + _TRM_PROCESS_PTOKEN_LENGTH + _TRM_PID_LENGTH + _TRM_PROCESS_SIGNED_PTOKEN_LENGTH)
 
 #define CITADEL_IPC_FILE "/run/citadel.socket"
 #define CITADEL_IPC_ADDRESS "ipc://" CITADEL_IPC_FILE
@@ -70,9 +70,9 @@ struct trm_update_record {
 
 struct trm_ptoken {
     unsigned char signature[_TRM_SIGNATURE_LENGTH];
+    int32_t citadel_pid; /* pid_t */
     unsigned char ptoken[_TRM_PROCESS_PTOKEN_LENGTH];
     unsigned char signed_ptoken[_TRM_PROCESS_SIGNED_PTOKEN_LENGTH]; // Encrypted trm_ptoken_protected.
-    int32_t citadel_pid; /* pid_t */
 };
 
 struct trm_ptoken_protected {

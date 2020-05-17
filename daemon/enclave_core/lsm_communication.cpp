@@ -37,7 +37,7 @@ sgx_status_t handle_kernel_challenge(uint8_t* challenge_data, size_t challenge_l
     }
 
     // Got a valid decrypted challenge.
-    char name[] = "trm.basic.so";
+    char name[] = "citadel.basic.so";
     memcpy(challenge->name, name, sizeof(name));
     sgx_read_rand(aes_key, 16);
     memcpy(challenge->key, aes_key, sizeof(aes_key));

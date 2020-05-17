@@ -5,7 +5,7 @@ static char registered_name[_TRM_NAME_LENGTH];
 static char aes_key[_TRM_AES_KEY_LENGTH];
 static char ptoken_aes_key[_TRM_AES_KEY_LENGTH];
 static int registered = 0;
-static int32_t pid = 0;
+static int32_t enclave_pid = 0;
 
 int system_ready() {
     return registered;
@@ -86,9 +86,9 @@ void process_challenge_response(void *response, size_t response_len) {
     memcpy(registered_name, challenge->name, sizeof(registered_name));
     memcpy(aes_key, challenge->key, sizeof(aes_key));
     memcpy(ptoken_aes_key, challenge->key, sizeof(aes_key));
-    pid = challenge->pid;
+    enclave_pid = challenge->pid;
 
-    printk(PFX "Successfully registered with %s (%d)\n", registered_name, pid);
+    printk(PFX "Successfully registered with %s (%d)\n", registered_name, enclave_pid);
     registered = 1;
 
 bail: 
@@ -262,13 +262,13 @@ int xattr_enclave_installation(const void *value, size_t size, struct dentry *de
 
 
 void* generate_ptoken(size_t *len) {
-    char *cipher, *hex;
+    char *cipher, *hex, *hex2, *hex3;
     size_t outlen;
     int res, required_size;
     struct trm_ptoken_protected to_encrypt;
     struct trm_ptoken *signed_ptoken;
 
-    if (!registered) {
+    if (!system_ready()) {
         printk(PFX_W "Can't provide ptoken. Not registered.\n");
 
         // Single NULL byte to signify the system isn't ready yet.
@@ -280,7 +280,11 @@ void* generate_ptoken(size_t *len) {
     signed_ptoken = kzalloc(sizeof(struct trm_ptoken), GFP_KERNEL);
     memcpy(signed_ptoken->signature, challenge_signature, sizeof(challenge_signature));
     get_random_bytes(signed_ptoken->ptoken, _TRM_PROCESS_PTOKEN_LENGTH);
-    signed_ptoken->citadel_pid = (int32_t)pid;
+    signed_ptoken->citadel_pid = (int32_t)enclave_pid;
+
+    hex2 = to_hexstring((unsigned char*)signed_ptoken, sizeof(struct trm_ptoken));
+    printk(PFX "Pre encryption: %s\n", hex2);
+    kfree(hex2);
 
     // Generate cipher payload.
     memcpy(to_encrypt.signature, challenge_signature, sizeof(challenge_signature));
@@ -299,6 +303,10 @@ void* generate_ptoken(size_t *len) {
 
     memcpy(signed_ptoken->signed_ptoken, cipher, outlen);
     kfree(cipher);
+
+    hex3 = to_hexstring((unsigned char*)signed_ptoken, sizeof(struct trm_ptoken));
+    printk(PFX "After encryption: %s\n", hex3);
+    kfree(hex3);
 
     hex = to_hexstring(signed_ptoken->ptoken, _TRM_PROCESS_PTOKEN_LENGTH);
     printk(PFX "Generated ptoken for PID %d: %s\n", current->pid, hex);

@@ -134,6 +134,14 @@ ssize_t update_read(struct file *file, char __user *buf, size_t count, loff_t *p
     return cipher_len;
 }
 
+/*
+ * 
+ * Return:
+ *    PTR_ERR   --- an error occurred. ENOMEDIUM -- for not ready yet.
+ *    ENOMEDIUM --- system is not configured properly, abort.
+ *    0 bytes   --- system not ready yet, try again later.
+ *    >1 byte   --- valid ptoken.
+ */
 ssize_t ptoken_read(struct file *file, char __user *buf, size_t count, loff_t *ppos) {
     loff_t pos;
     char *cipher;
@@ -141,22 +149,29 @@ ssize_t ptoken_read(struct file *file, char __user *buf, size_t count, loff_t *p
 
     if (!is_aes_available()) {
         printk(KERN_INFO PFX "Rejected ../get_ptoken read because AES not available yet.");
-        return (ssize_t)count; // TODO do proper error return
+        return -ENOMEDIUM;
+    }
+
+    if (!system_ready()) {
+        printk(KERN_INFO PFX "Rejected ../get_ptoken read because system not ready yet.");
+        return (ssize_t)0;
     }
 
     // Generate secret message.
     pos = *ppos;
-    if (pos >= sizeof(struct trm_ptoken)) return 0;
+    if (pos != 0) return 0;
     cipher = generate_ptoken(&cipher_len);
 
     if (cipher_len == 0) {
         printk(KERN_INFO PFX "Rejected ../get_ptoken read because challenge generation failed.");
-        return (ssize_t)count; // TODO do proper error return
+        return -ENOMEDIUM;
     }
     else if (cipher_len == 1) {
-        // System not ready yet.
-        *buf = '\0';
-        return (ssize_t)1;
+        // // System not ready yet.
+        // *ppos = 1;
+        // *null_byte = '\0';
+        // if (copy_to_user(buf, null_byte, 1)) return -EFAULT;
+        return (ssize_t)0;
     }
 
     if (pos >= cipher_len || !count) return 0;

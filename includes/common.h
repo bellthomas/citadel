@@ -16,7 +16,7 @@
 
 #define TRM_DEBUG 1
 
-#define PFX "LSM/TRM: "
+#define PFX "LSM/Citadel: "
 #define PFX_W KERN_WARNING PFX
 #define PFX_E KERN_ERR PFX
 #define TRM_XATTR_PREFIX XATTR_SECURITY_PREFIX "citadel."
