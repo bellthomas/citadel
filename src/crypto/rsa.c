@@ -17,7 +17,7 @@ struct tcrypt_result {
 
 void tcrypt_complete(struct crypto_async_request *req, int err) {
     struct tcrypt_result *res = req->data;
-    printk(KERN_INFO "LSM/TRM: tcrypt_complete -> %d\n", err);
+    printk(KERN_INFO PFX "tcrypt_complete -> %d\n", err);
     if (err == -EINPROGRESS)
         return;
 
@@ -66,19 +66,19 @@ int uf_akcrypto(struct crypto_akcipher *tfm, void *data, int datalen, struct akc
     if (mode == RSA_ENCRYPT) {
         err = wait_async_op(&result, crypto_akcipher_encrypt(req));
         if (err) {
-            pr_err("LSM/TRM: Encryption failed -- err %d\n", err);
+            pr_err(PFX "Encryption failed -- err %d\n", err);
             goto free_all;
         }
 
     } else if (mode == RSA_DECRYPT) {
         err = wait_async_op(&result, crypto_akcipher_decrypt(req));
         if (err) {
-            pr_err("LSM/TRM: Decryption failed -- err %d\n", err);
+            pr_err(PFX "Decryption failed -- err %d\n", err);
             goto free_all;
         }
         
     } else {
-        printk(KERN_INFO "LSM/TRM: Invalid mode (%d)\n", mode);
+        printk(KERN_INFO PFX "Invalid mode (%d)\n", mode);
     }
 
     // Copy result out.
@@ -103,7 +103,7 @@ int trm_akcrypto(char* key, int key_len, void *data, int data_len, int mode, int
     // Create RSA object.
     tfm = crypto_alloc_akcipher("pkcs1pad(rsa,sha1)", CRYPTO_ALG_INTERNAL, 0);
     if (IS_ERR(tfm)) {
-        pr_err("LSM/TRM: akcipher: Failed to load tfm for rsa: %ld\n", PTR_ERR(tfm));
+        pr_err(PFX "akcipher: Failed to load TFM for RSA: %ld\n", PTR_ERR(tfm));
         return PTR_ERR(tfm);
     }
 
@@ -113,7 +113,7 @@ int trm_akcrypto(char* key, int key_len, void *data, int data_len, int mode, int
     else if (keytype == RSA_PRIV_KEY)
         key_err = crypto_akcipher_set_priv_key(tfm, key, key_len);
     else {
-        pr_err("LSM/TRM: Invalid keytype (%d).\n", keytype);
+        pr_err(PFX "Invalid keytype (%d).\n", keytype);
         err = -100;
         goto free_cipher;
     }
@@ -121,14 +121,14 @@ int trm_akcrypto(char* key, int key_len, void *data, int data_len, int mode, int
     // Initialise cipher request and call function.
     req = akcipher_request_alloc(tfm, GFP_KERNEL);
     if (!req) {
-        pr_err("LSM/TRM: Failed to allocate ak_cipher_request.\n");
+        pr_err(PFX "Failed to allocate ak_cipher_request.\n");
         err = -101;
         goto free_cipher;
     }
 
     err = uf_akcrypto(tfm, data, data_len, req, mode, res, res_len);
     if (err) {
-        printk(KERN_INFO "LSM/TRM: uf_akcrypto fail, err=%d\n", err);
+        printk(KERN_INFO PFX "uf_akcrypto fail, err=%d\n", err);
     }
 
     akcipher_request_free(req);
@@ -169,7 +169,7 @@ char* trm_rsa_encrypt(char* data, size_t data_len, int* return_size) {
     if (cipher_page) {
         res = trm_akcrypto_encrypt_pub((void*)data, data_len, cipher_page, return_size);
         if(res) {
-            printk(KERN_INFO "LSM/TRM: Failed to encrypt data (err %d)\n", res);
+            printk(KERN_INFO PFX "Failed to encrypt data (err %d)\n", res);
             kfree(cipher_page);
             goto fail;
         }
@@ -193,7 +193,7 @@ char* trm_rsa_decrypt(char* data, size_t data_len, int* return_size) {
     if (plain_page) {
         res = trm_akcrypto_decrypt_priv((void*)data, data_len, plain_page, return_size);
         if(res) {
-            printk(KERN_INFO "LSM/TRM: Failed to decrypt data (err %d)\n", res);
+            printk(KERN_INFO PFX "Failed to decrypt data (err %d)\n", res);
             kfree(plain_page);
             goto fail;
         }
@@ -227,10 +227,10 @@ int trm_rsa_self_test(void) {
             // printk(KERN_INFO "LSM/TRM: Encrypted using public key: (%d bytes) %s\n", cipher_len, hexmsg);
             kfree(hexmsg);
         } else {
-            printk(KERN_INFO "LSM/TRM: [FAIL] Encrypted using public key: %d\n", res);
+            printk(KERN_INFO PFX "[FAIL] Encrypted using public key: %d\n", res);
         }
     } else {
-        printk(KERN_INFO "LSM/TRM: [FAIL] Couldn't allocate page for result.\n");
+        printk(KERN_INFO PFX "[FAIL] Couldn't allocate page for result.\n");
         goto bail;
     }
 
@@ -244,12 +244,12 @@ int trm_rsa_self_test(void) {
             // printk(KERN_INFO "LSM/TRM: Decrypted using private key: (%d bytes) %s\n", result_len, hexmsg2);
             kfree(hexmsg2);
         } else {
-            printk(KERN_INFO "LSM/TRM: [FAIL] Decrypted using private key: %d\n", res);
+            printk(KERN_INFO PFX "[FAIL] Decrypted using private key: %d\n", res);
         }
         kfree(result);
         kfree(cipher);
     } else {
-        printk(KERN_INFO "LSM/TRM: [FAIL] Couldn't allocate page for result.\n");
+        printk(KERN_INFO PFX "[FAIL] Couldn't allocate page for result.\n");
         kfree(cipher);
         goto bail;
     }

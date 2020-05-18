@@ -7,7 +7,7 @@ Type=simple
 Restart=always
 RestartSec=1
 User=root
-ExecStart=/opt/citadel/start_citadel.sh /opt/citadel/trm.basic.signed.so
+ExecStart=/opt/citadel/start_citadel.sh /opt/citadel/citadel.basic.signed.so
 
 [Install]
 WantedBy=multi-user.target
