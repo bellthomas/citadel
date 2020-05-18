@@ -4,10 +4,13 @@
 #define _LIBCITADEL_H
 
 #include <stdint.h>
+#include <nng/nng.h>
 
 #include "_citadel_shared.h"
 #include "common.h"
 #include "init.h"
+#include "ipc.h"
+#include "file.h"
 
 #define _LIBCITADEL_PERF_METRICS false
 

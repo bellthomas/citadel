@@ -10,5 +10,12 @@ int main(void) {
 		exit(1);
 	}
 
+	// Init file.
+	const char path[] = "/opt/testing_dir/userspace_file.txt";
+	bool citadel_file_create_ret = citadel_file_create((char*)path, sizeof(path));
+	if (!citadel_file_create_ret) {
+		printf("Citadel failed to create file.\n");
+		exit(2);
+	}
 	return 0;
 }

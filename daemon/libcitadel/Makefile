@@ -1,5 +1,5 @@
 
-
+SOURCEDIR := src
 SOURCES := $(shell find $(SOURCEDIR) -name '*.c')
 OBJECTS := $(SOURCES:%.c=%.o)
 

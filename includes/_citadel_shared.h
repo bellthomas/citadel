@@ -46,6 +46,7 @@
 #define CITADEL_IPC_ADDRESS "ipc://" CITADEL_IPC_FILE
 #define CITADEL_ENV_ATTR_NAME "CITADEL_PTOKEN"
 #define CITADEL_SIGNED_ENV_ATTR_NAME "CITADEL_SIGNED_PTOKEN"
+#define CITADEL_MAX_METADATA_SIZE 4096  // Maximum Linux path length.
 
 
 static const unsigned char challenge_signature[_TRM_SIGNATURE_LENGTH] = { 0x80, 0x70, 0x60, 0x50, 0x40, 0x30, 0x20, 0x10 };
@@ -125,10 +126,6 @@ struct citadel_op_request {
     unsigned char signed_ptoken[_TRM_PROCESS_SIGNED_PTOKEN_LENGTH]; // Encrypted trm_ptoken_protected.
 };
 
-struct citadel_op_additional_metadata {
-    void *data[4096];
-};
-
 struct citadel_op_reply {
     unsigned char signature[_TRM_SIGNATURE_LENGTH];
     uint32_t operation;
@@ -136,6 +133,16 @@ struct citadel_op_reply {
     unsigned char ptoken[_TRM_PROCESS_PTOKEN_LENGTH];
     uint8_t result;
     uint8_t padding[_TRM_PTOKEN_LENGTH_DIFFERENCE];
+};
+
+struct citadel_op_extended_request {
+    struct citadel_op_request request;
+    unsigned char metadata[CITADEL_MAX_METADATA_SIZE];
+};
+
+struct citadel_op_extended_reply {
+    struct citadel_op_reply reply;
+    unsigned char metadata[CITADEL_MAX_METADATA_SIZE];
 };
 
 

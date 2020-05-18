@@ -14,3 +14,9 @@ char* to_hexstring(unsigned char *buf, unsigned int len) {
     out[len*2] = '\0';
     return out;
 }
+
+void print_hex(unsigned char *buf, size_t len) {
+    char *hex = to_hexstring(buf, len);
+    citadel_printf("%s\n", hex);
+    free(hex);
+}

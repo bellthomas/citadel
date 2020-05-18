@@ -2,14 +2,21 @@
 
 #include "../include/citadel/init.h"
 
-#include <time.h>
-
-static int ipc_timeout = 1 * 1000 * 1000; // microseconds
 static int32_t citadel_pid = 0;
-static nng_socket sock;
-static nng_aio *ap;
 static char *ptoken = NULL;
 static char *signed_ptoken = NULL;
+
+const char *get_ptoken(void) {
+	return ptoken;
+}
+
+const char *get_signed_ptoken(void) {
+	return signed_ptoken;
+}
+
+const int32_t get_citadel_pid(void) {
+	return citadel_pid;
+}
 
 static void* _hex_identifier_to_bytes(char* hexstring) {
 	size_t i, j;
@@ -27,194 +34,25 @@ static void* _hex_identifier_to_bytes(char* hexstring) {
 }
 
 
-static bool ipc_send(char *data, size_t len) {
-	int attempts = 0;
-	int rv;
-	nng_msg *msg;
-
-#if _LIBCITADEL_PERF_METRICS
-	uint64_t diff;
-	struct timespec start, end;
-	clock_gettime(CLOCK_MONOTONIC, &start);
-#endif
-
-	if ((rv = nng_msg_alloc(&msg, len)) != 0) {
-		return false;
-	}
-	memcpy(nng_msg_body(msg), data, len);
-
-
-	// TODO check that sock is still ok.
-	// if (!sock) return false;
-	while (attempts < ipc_timeout) {
-		nng_aio_set_msg(ap, msg);
-		nng_send_aio(sock, ap);
-		nng_aio_wait(ap);
-		rv = nng_aio_result(ap);
-
-		
-
-		// rv = nng_send(*sock, data, len, NNG_FLAG_NONBLOCK);
-		switch (rv) {
-		case NNG_EAGAIN:
-			usleep(1);
-			attempts++;
-			if(attempts >= ipc_timeout) {
-				citadel_perror("Timed out. Failed to send.\n");
-				return false;
-			}
-			break;
-		case 0:
-
-#if _LIBCITADEL_PERF_METRICS
-			clock_gettime(CLOCK_MONOTONIC, &end);
-			diff = 1000000000L * (end.tv_sec - start.tv_sec) + end.tv_nsec - start.tv_nsec;
-			citadel_perf("ipc_send, %lluμs\n", (long long unsigned int) diff / 1000);
-#endif
-			return true;
-		default:
-			citadel_perror("Error, %s\n", nng_strerror(rv));
-			return false;
-		}
-	}
-}
-
-static bool ipc_recv(nng_msg **msg) {
-	int attempts = 0;
-	int rv;
-
-#if _LIBCITADEL_PERF_METRICS
-	uint64_t diff;
-	struct timespec start, end;
-	clock_gettime(CLOCK_MONOTONIC, &start);
-#endif
-
-	// TODO check that sock is still ok.
-	// if (!sock) return false;
-	while (attempts < ipc_timeout) {
-		nng_recv_aio(sock, ap);
-		nng_aio_wait(ap);
-		rv = nng_aio_result(ap);
-		if(rv == 0) *msg = nng_aio_get_msg(ap);	
-		else if (rv == NNG_ETIMEDOUT) rv = NNG_EAGAIN;
-
-		switch (rv) {
-		case NNG_EAGAIN:
-			usleep(1);
-			attempts++;
-			if(attempts >= ipc_timeout) {
-				citadel_perror("Timed out. Nothing received.\n");
-				return false;
-			}
-			break;
-		case 0:
-
-#if _LIBCITADEL_PERF_METRICS
-			clock_gettime(CLOCK_MONOTONIC, &end);
-			diff = 1000000000L * (end.tv_sec - start.tv_sec) + end.tv_nsec - start.tv_nsec;
-			citadel_perf("ipc_recv, %lluμs (attempts %d)\n", (long long unsigned int) diff / 1000, attempts);
-#endif
-
-			return true;
-		default:
-			citadel_perror("Error, %s\n", nng_strerror(rv));
-			return false;
-		}
-	}
-}
-
 static bool ipc_declare_self(void) {
-	int rv;
-	size_t sz;
-	char *buf = NULL;
-	bool success = false;
-	bool received, sent;
-	uint64_t pid;
-	nng_msg *msg;
-
 	struct citadel_op_request request;
-	struct citadel_op_reply *reply;
-
 	memcpy(request.signature, challenge_signature, sizeof(challenge_signature));
 	request.operation = CITADEL_OP_REGISTER;
 	memcpy(request.signed_ptoken, signed_ptoken, sizeof(request.signed_ptoken));
+	bool registered = ipc_transaction((unsigned char*)&request, sizeof(struct citadel_op_request));
 
-	sent = ipc_send((char*)&request, sizeof(struct citadel_op_request));	
-	if (sent) {
-		received = ipc_recv(&msg);
-		if (received) {
-			// Get PID of sender.
-			nng_pipe p = nng_msg_get_pipe(msg);
-			nng_pipe_getopt_uint64(p, NNG_OPT_IPC_PEER_PID, &pid);
-			
-			if (pid == citadel_pid) {
-				reply = (struct citadel_op_reply *)nng_msg_body(msg);
-
-				// Check response ptoken.
-				if( memcmp(reply->ptoken, ptoken, sizeof(reply->ptoken)) && 
-					memcmp(reply->signature, challenge_signature, sizeof(challenge_signature)))
-				{
-					citadel_perror("Registration: response ptoken/signature incorrect.\n");
-					nng_msg_free(msg);
-					return false;
-				}
-
-				// Check result.
-				bool res = false;
-				switch (reply->result) {
-				case CITADEL_OP_APPROVED:
-					citadel_printf("Registered with Citadel (PID %d).\n", citadel_pid);
-					res = true;
-					break;
-				default:
-					citadel_perror("Registration failed: %s.\n", citadel_error(reply->result));
-				}
-
-				nng_msg_free(msg);
-				return res;
-			} else {
-				citadel_perror("Forged transaction from PID %lu (Citadel PID: %d).\n", pid, citadel_pid);
-			}
-
-			nng_msg_free(msg);
-
-		} else {
-			citadel_perror("Init call failed (receive timed out).\n");
-		}
-	} else {
-		citadel_perror("Init call failed (send timed out).\n");
+	if (registered) {
+		citadel_printf("Registered with Citadel (PID %d).\n", citadel_pid);
 	}
-
-    return false;
+	else {
+		citadel_perror("Failed to register with Citadel.\n");
+	}
+	
+	return registered;
 }
 
-static bool init_socket(void) {
-	int rv;
-	if ((rv = nng_req0_open(&sock)) != 0) {
-        citadel_perror("Failed to open local socket.\n");
-        return false;
-	}
 
-    if ((rv = nng_dial(sock, CITADEL_IPC_ADDRESS, NULL, 0)) != 0) {
-        citadel_perror("Failed to connect to %s: %s\n", CITADEL_IPC_ADDRESS, nng_strerror(rv));
-        return false;
-	}
-
-	if ((rv = nng_aio_alloc(&ap, NULL, NULL)) != 0) {
-		citadel_perror("Failed to init nng_aio: %s\n", nng_strerror(rv));
-        return false;
-	}
-
-    nng_aio_set_timeout(ap, NNG_DURATION_ZERO);
-	nng_setopt_ms(sock, NNG_OPT_RECONNMINT, 0);
-	nng_setopt_bool(sock, NNG_OPT_RAW, true);
-	nng_setopt_ms(sock, NNG_OPT_RECONNMAXT, 1);
-	nng_setopt_size(sock, NNG_OPT_RECVMAXSZ, 0);
-
-	return true;
-}
-
-static bool get_ptoken(void) {
+static bool fetch_kernel_ptoken(void) {
 	// Read challenge.
 	FILE *f_challenge;
 	unsigned char buffer[_TRM_PTOKEN_PAYLOAD_SIZE];
@@ -264,7 +102,7 @@ static void init_rand(void) {
 
 bool citadel_init(void) {
 	init_rand();
-	if (get_ptoken() && init_socket()) {
+	if (fetch_kernel_ptoken()) {
 		return ipc_declare_self();
 	}
 

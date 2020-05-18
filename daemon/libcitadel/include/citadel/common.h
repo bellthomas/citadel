@@ -8,6 +8,8 @@
 #include <linux/types.h>
 #include <stdint.h>
 
-extern char* to_hexstring(unsigned char *buf, unsigned int len);
+#include "citadel.h"
 
+extern char* to_hexstring(unsigned char *buf, unsigned int len);
+extern void print_hex(unsigned char *buf, size_t len);
 #endif

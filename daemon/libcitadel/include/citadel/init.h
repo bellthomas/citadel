@@ -12,14 +12,13 @@
 #include <string.h>
 #include <stdint.h>
 
-#include <nng/nng.h>
-#include <nng/protocol/reqrep0/rep.h>
-#include <nng/protocol/reqrep0/req.h>
-#include <nng/transport/ipc/ipc.h>
-
 #include "citadel.h"
 
 #define CITADEL_KEY_PID_MULTIPLIER 137
+
+extern const char *get_ptoken(void);
+extern const char *get_signed_ptoken(void);
+extern const int32_t get_citadel_pid(void);
 
 extern bool citadel_init(void);
 

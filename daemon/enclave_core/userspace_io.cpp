@@ -18,8 +18,17 @@ uint8_t handle_request(uint8_t* data, size_t length, int32_t pid, uint8_t* ptoke
     }
 
     // First, check that the payload size is correct.
-    struct citadel_op_request *request = (struct citadel_op_request*)data;
-    if (length != sizeof(struct citadel_op_request)) {
+    struct citadel_op_request *request;
+    struct citadel_op_extended_request *extended_request = NULL;
+    if (length == sizeof(struct citadel_op_request)) {
+        request = (struct citadel_op_request*)data;
+    }
+    else if (length == sizeof(struct citadel_op_extended_request)) {
+        ocall_print("extended_request");
+        extended_request = (struct citadel_op_extended_request*)data;
+        request = &extended_request->request;
+    }
+    else {
         ocall_print("Invalid request size.");
         return CITADEL_OP_INVALID;
     }
@@ -30,10 +39,12 @@ uint8_t handle_request(uint8_t* data, size_t length, int32_t pid, uint8_t* ptoke
         return CITADEL_OP_INVALID;
     }
 
+
     // Then, try to decrypt the ptoken.
     size_t signed_payload_len = sizeof(struct trm_ptoken_protected) + IV_LENGTH + TAG_LENGTH;
     unsigned char decrypted[signed_payload_len];
     size_t outlen = signed_payload_len;
+
     int aes_ret = aes_decrypt((unsigned char*)request->signed_ptoken, signed_payload_len, decrypted, &outlen, ptoken_aes_key, _TRM_AES_KEY_LENGTH);
     if(aes_ret) {
         ocall_print("Failed to decrypt ptoken.");
@@ -68,7 +79,9 @@ uint8_t handle_request(uint8_t* data, size_t length, int32_t pid, uint8_t* ptoke
 
     memcpy(ptoken, ptoken_payload->ptoken, ptoken_length);
 
-    uint8_t result = asm_handle_request(request);
+    void *metadata = NULL;
+    if(extended_request) metadata = extended_request->metadata;
+    uint8_t result = asm_handle_request(request, metadata);
 
     // Install tickets if required.
     // if (result == )
