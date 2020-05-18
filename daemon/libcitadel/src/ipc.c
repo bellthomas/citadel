@@ -155,7 +155,7 @@ bool ipc_transaction(unsigned char *request, size_t length) {
     if (!initialised_socket) initialised_socket = init_socket();
     if (!initialised_socket) return false;
 
-	if (length != sizeof(struct citadel_op_reply) && length != sizeof(struct citadel_op_extended_reply)) {
+	if (length != sizeof(struct citadel_op_request) && length != sizeof(struct citadel_op_extended_request)) {
 		citadel_perror("Unknown payload length.\n");
 		return false;
 	}

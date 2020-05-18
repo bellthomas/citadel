@@ -12,6 +12,6 @@
 
 extern sgx_status_t handle_kernel_challenge(uint8_t* challenge_data, size_t challenge_length, uint8_t* response_data, size_t response_length, int32_t pid);
 extern void generate_ticket(int num_records);
-extern void generate_xattr_ticket(void);
+extern bool generate_xattr_ticket(const char *path);
 
 #endif

@@ -87,6 +87,7 @@ struct trm_ptoken_protected {
 
 
 // Citadel operation (uint32_t).
+typedef uint8_t citadel_operation_t;
 #define CITADEL_OP_REGISTER    0
 #define CITADEL_OP_FILE_CREATE 1
 #define CITADEL_OP_FILE_OPEN   2
@@ -100,6 +101,7 @@ struct trm_ptoken_protected {
 //     CITADEL_OP_ERROR
 // } citadel_status_t;
 
+typedef uint8_t citadel_response_t;
 #define CITADEL_OP_INVALID   0
 #define CITADEL_OP_FORGED    1
 #define CITADEL_OP_APPROVED  2
@@ -114,24 +116,24 @@ static const char* citadel_status_names[] = {
     "An internal error occurred"
 };
 
-static inline const char* citadel_error (uint8_t errno) {
-    if(errno > sizeof(citadel_status_names)) return "Invalid error";
-    else return citadel_status_names[errno];
+static inline const char* citadel_error (uint8_t err_num) {
+    if(err_num > sizeof(citadel_status_names)) return "Invalid error";
+    else return citadel_status_names[err_num];
 }
 
 struct citadel_op_request {
     unsigned char signature[_TRM_SIGNATURE_LENGTH];
-    uint32_t operation;
+    citadel_operation_t operation;
     unsigned char subject[_TRM_IDENTIFIER_LENGTH];
     unsigned char signed_ptoken[_TRM_PROCESS_SIGNED_PTOKEN_LENGTH]; // Encrypted trm_ptoken_protected.
 };
 
 struct citadel_op_reply {
     unsigned char signature[_TRM_SIGNATURE_LENGTH];
-    uint32_t operation;
+    citadel_operation_t operation;
     unsigned char subject[_TRM_IDENTIFIER_LENGTH];
     unsigned char ptoken[_TRM_PROCESS_PTOKEN_LENGTH];
-    uint8_t result;
+    citadel_response_t result;
     uint8_t padding[_TRM_PTOKEN_LENGTH_DIFFERENCE];
 };
 

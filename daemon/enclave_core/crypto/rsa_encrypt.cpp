@@ -9,7 +9,7 @@ int rsa_encrypt(unsigned char *msg, size_t len, unsigned char *out, size_t *outl
 
     err = rsa_import(key, keylen, &pkey_encrypt);
     if (err != CRYPT_OK) {
-        ocall_print(error_to_string(err));
+        enclave_perror("%s", error_to_string(err));
         rsa_free(&pkey_encrypt);
         return err;
     }
@@ -39,7 +39,7 @@ int rsa_encrypt(unsigned char *msg, size_t len, unsigned char *out, size_t *outl
 
     err = rsa_encrypt_key_ex(msg, len, out, outlen, NULL, 0, NULL, prng_idx, hash_idx, padding, &pkey_encrypt);
     if (err != CRYPT_OK) {
-        ocall_print(error_to_string(err));
+        enclave_perror("%s", error_to_string(err));
     }
 
     rsa_free(&pkey_encrypt);

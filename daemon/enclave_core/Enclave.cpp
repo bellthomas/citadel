@@ -22,19 +22,20 @@ void reset_hex_buffer() {
 
 void print_hex(unsigned char *buf, unsigned int len) {
     load_hex_buffer(buf, len);
-    ocall_print((const char*)hex_buffer);
+    enclave_printf("%s", hex_buffer);
 }
 
 void timer_pulse(void) {
     for(int i=1; i<=5; i++) generate_ticket(i);
-
+    enclave_printf("Timer");
     // Install xattr record.
-    generate_xattr_ticket();
+    char path[22] = "/opt/testing_dir/test";
+    generate_xattr_ticket(path);
 }
 
 //
 int generate_random_number() {
-    ocall_print("Processing random number generation...");
+    enclave_printf("Processing random number generation...");
     return 0;
 }
 
