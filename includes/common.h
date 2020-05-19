@@ -25,9 +25,9 @@
 #define TRM_XATTR_INSTALL_NAME TRM_XATTR_PREFIX "install"
 
 
-struct task_trm {
+typedef struct citadel_task_data {
     uint8_t t_data;
-} __randomize_layout;
+} __randomize_layout citadel_task_data_t;
 
 typedef struct citadel_inode_data {
     // Status flags.
@@ -41,11 +41,11 @@ typedef struct citadel_inode_data {
     uint8_t data;
 } __randomize_layout citadel_inode_data_t;
 
-extern struct lsm_blob_sizes trm_blob_sizes;
+extern struct lsm_blob_sizes citadel_blob_sizes;
 
 static inline citadel_inode_data_t *trm_inode(const struct inode *inode) {
     if (unlikely(!inode) || unlikely(!inode->i_security)) return NULL;
-	return inode->i_security + trm_blob_sizes.lbs_inode;
+	return inode->i_security + citadel_blob_sizes.lbs_inode;
 }
 
 static inline citadel_inode_data_t *trm_dentry(const struct dentry *dentry) {
@@ -53,9 +53,9 @@ static inline citadel_inode_data_t *trm_dentry(const struct dentry *dentry) {
 	return trm_inode(d_real_inode(dentry));
 }
 
-static inline struct task_trm *trm_cred(const struct cred *cred) {
+static inline citadel_task_data_t *trm_cred(const struct cred *cred) {
     if (unlikely(!cred)) return NULL;
-	return cred->security + trm_blob_sizes.lbs_cred;
+	return cred->security + citadel_blob_sizes.lbs_cred;
 }
 
 extern char* to_hexstring(unsigned char *buf, unsigned int len);

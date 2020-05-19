@@ -53,25 +53,34 @@ bool ticket_insert(struct rb_root *root, struct ticket_reservation_node *data)
 
 
 void check_ticket_cache() {
-    int res;
-    struct ticket_reservation_node *reservation_node = ticket_search(&ticketing_reservations, task->pid);
-    if (reservation_node) {
-        // if (pid > 300) printk(PFX "PID %d is in the cache\n", pid);
+    // int res;
+    int count = 0;
+    citadel_ticket_t *current_ticket;
+    citadel_task_data_t *task_data = trm_cred(current_cred());
+    struct ticket_reservation_node *reservation_node = ticket_search(&ticketing_reservations, current->pid);
+    if (reservation_node && reservation_node->ticket_head) {
+        task_data->t_data = 4;
+
+        current_ticket = reservation_node->ticket_head;
+        while (current_ticket->timestamp < current_ticket->next->timestamp)
+            count++;
+
+        if (current->pid > 1) printk(PFX "PID %d has %d tickets in the cache\n", current->pid, count);
     } 
 }
 
-bool insert_ticket(void) {
+bool insert_ticket(citadel_update_record_t *record) {
     int res;
-    citadel_ticket_t *current, *tmp;
+    citadel_ticket_t *current_ticket, *tmp;
     citadel_ticket_t *ticket = kzalloc(sizeof(citadel_ticket_t), GFP_KERNEL);
-    struct ticket_reservation_node *reservation_node = ticket_search(&ticketing_reservations, task->pid);
+    struct ticket_reservation_node *reservation_node = ticket_search(&ticketing_reservations, current->pid);
     if (!reservation_node) {
         reservation_node = kzalloc(sizeof(struct ticket_reservation_node), GFP_KERNEL);
         if (!reservation_node) {
             if (ticket) kfree(ticket);
             return false;
         }
-        reservation_node->pid = pid;
+        reservation_node->pid = current->pid;
         reservation_node->ticket_head = NULL;
         res = ticket_insert(&ticketing_reservations, reservation_node);
         if(res) {
@@ -85,24 +94,26 @@ bool insert_ticket(void) {
     if (!ticket) return false;
 
     // Set ticket details.
+    // TODO finish
+    ticket->timestamp = ktime_get();
     ticket->detail.val = 2;
 
-    current = reservation_node->ticket_head;
-    if (!current) {
+    current_ticket = reservation_node->ticket_head;
+    if (!current_ticket) {
         // This is the first ticket.
         reservation_node->ticket_head = ticket;
         ticket->next = ticket;
         ticket->prev = ticket;
     } else {
         // Set head's prev to the new ticket and move to the terminal node.
-        tmp = current->prev;
-        current->prev = ticket;
-        current = tmp;
+        tmp = current_ticket->prev;
+        current_ticket->prev = ticket;
+        current_ticket = tmp;
 
         // Wire new ticket into the end of the list.
-        ticket->next = current->next;
-        ticket->prev = current;
-        current->next = ticket;
+        ticket->next = current_ticket->next;
+        ticket->prev = current_ticket;
+        current_ticket->next = ticket;
     }
 
 
@@ -120,4 +131,5 @@ bool insert_ticket(void) {
     //  // rb_erase_cached
     //  myfree(data);
     // }
+    return true;
 }

@@ -53,6 +53,9 @@
 #define CITADEL_SIGNED_ENV_ATTR_NAME "CITADEL_SIGNED_PTOKEN"
 #define CITADEL_MAX_METADATA_SIZE 4096  // Maximum Linux path length.
 
+typedef uint8_t citadel_operation_t;
+typedef uint8_t citadel_response_t;
+
 
 static const unsigned char challenge_signature[_TRM_SIGNATURE_LENGTH] = { 0x80, 0x70, 0x60, 0x50, 0x40, 0x30, 0x20, 0x10 };
 
@@ -72,10 +75,14 @@ struct trm_update_header {
     uint8_t records;
 };
 
-struct trm_update_record {
-    unsigned char subject[_TRM_UPDATE_SUBJECT_LENGTH];
-    unsigned char data[_TRM_UPDATE_DATA_LENGTH];
-};
+
+
+typedef struct citadel_update_record {
+    int32_t pid;
+    unsigned char identifier[_TRM_IDENTIFIER_LENGTH];
+    citadel_operation_t operation;
+} citadel_update_record_t;
+
 
 struct trm_ptoken {
     unsigned char signature[_TRM_SIGNATURE_LENGTH];
@@ -91,13 +98,12 @@ struct trm_ptoken_protected {
 };
 
 
-// Citadel operation (uint32_t).
-typedef uint8_t citadel_operation_t;
+// Citadel operation (citadel_operation_t).
 #define CITADEL_OP_REGISTER    0
 #define CITADEL_OP_FILE_CREATE 1
 #define CITADEL_OP_FILE_OPEN   2
 
-// Citadel request response (uint8_t).
+// Citadel request response (citadel_response_t).
 // enum citadel_status {
 //     CITADEL_OP_INVALID,
 //     CITADEL_OP_FORGED,
@@ -106,7 +112,6 @@ typedef uint8_t citadel_operation_t;
 //     CITADEL_OP_ERROR
 // } citadel_status_t;
 
-typedef uint8_t citadel_response_t;
 #define CITADEL_OP_INVALID   0
 #define CITADEL_OP_FORGED    1
 #define CITADEL_OP_APPROVED  2

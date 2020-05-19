@@ -79,28 +79,30 @@ void generate_ticket(int num_records)
 {
     // Build ticket structure.
 
-    char data[sizeof(trm_update_header) + num_records * sizeof(trm_update_record)];
+    char data[sizeof(trm_update_header) + num_records * sizeof(citadel_update_record_t)];
     struct trm_update_header *hdr;
-    struct trm_update_record *rcrd;
+    citadel_update_record_t *rcrd;
 
     hdr = (struct trm_update_header *)data;
     memcpy(hdr->signature, challenge_signature, sizeof(challenge_signature));
     sgx_read_rand(hdr->key_update, sizeof(hdr->key_update));
     hdr->records = (uint8_t)num_records;
 
-    rcrd = (struct trm_update_record *)(data + sizeof(struct trm_update_header));
+    rcrd = (citadel_update_record_t *)(data + sizeof(struct trm_update_header));
     for (int tmp = 1; tmp < 2 * num_records; tmp += 2)
     {
-        memset(rcrd->subject, tmp, sizeof(rcrd->subject));
-        memset(rcrd->data, tmp + 1, sizeof(rcrd->data));
-        rcrd = (struct trm_update_record *)(rcrd + 1);
+        memset(rcrd->identifier, tmp, sizeof(rcrd->identifier));
+        rcrd->pid = 13;
+        rcrd->operation = 0;
+        // memset(rcrd->data, tmp + 1, sizeof(rcrd->data));
+        rcrd = (citadel_update_record_t *)(rcrd + 1);
     }
 
     // Encrypt.
     unsigned char cipher[sizeof(data) + 16];
     // memset(cipher, 0, 4096+16);
     size_t outlen = sizeof(data) + 16;
-    int ret = aes_encrypt((unsigned char *)data, sizeof(data), cipher, &outlen, aes_key, sizeof(aes_key));
+    int ret = aes_encrypt((unsigned char *)&data, sizeof(data), cipher, &outlen, aes_key, sizeof(aes_key));
     // print_hex(cipher, outlen);
 
     // // Install.
@@ -123,7 +125,7 @@ int process_updates(uint8_t *update_data, size_t update_length)
     // ocall_print("\ndissecting records...");
 
     struct trm_update_header *hdr;
-    struct trm_update_record *rcrd;
+    citadel_update_record_t *rcrd;
     hdr = (struct trm_update_header *)plain;
 
     if (memcmp(hdr->signature, challenge_signature, sizeof(challenge_signature)))
@@ -142,18 +144,22 @@ int process_updates(uint8_t *update_data, size_t update_length)
 
 bool generate_xattr_ticket(const char *path)
 {
-    char data[sizeof(trm_update_header) + sizeof(trm_update_record)];
+    // The +11 is to mitigate a bug in the SGX runtime.
+    // Hypothesis: an illegal insturction is called if the stack frame isn't word-aligned (16 bytes).
+    char data[sizeof(trm_update_header) + sizeof(citadel_update_record_t)];
     struct trm_update_header *hdr;
-    struct trm_update_record *rcrd;
+    citadel_update_record_t *rcrd;
 
     hdr = (struct trm_update_header *)data;
     memcpy(hdr->signature, challenge_signature, sizeof(challenge_signature));
     sgx_read_rand(hdr->key_update, sizeof(hdr->key_update));
     hdr->records = (uint8_t)1;
 
-    rcrd = (struct trm_update_record *)(data + sizeof(struct trm_update_header));
-    sgx_read_rand(rcrd->subject, sizeof(rcrd->subject));
-    memset(rcrd->data, 2, sizeof(rcrd->data));
+    rcrd = (citadel_update_record_t *)(data + sizeof(struct trm_update_header));
+    rcrd->pid = 13;
+    rcrd->operation = 0;
+    sgx_read_rand(rcrd->identifier, sizeof(rcrd->identifier));
+    // memset(rcrd->data, 2, sizeof(rcrd->data));
 
     // print_hex((unsigned char*)rcrd->subject, sizeof(rcrd->subject));
     // print_hex((unsigned char*)data, sizeof(data));

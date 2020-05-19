@@ -115,9 +115,11 @@ void update_aes_key(void *key, size_t key_len) {
 
 void process_received_update(void *update, size_t update_len) {
     char *plain; //, *hex;
-    size_t outlen;
+    size_t outlen, iter;
+    bool success = true;
     int res;
     struct trm_update_header *hdr;
+    citadel_update_record_t *rcrd;
 
     if (!registered) {
         printk(PFX "Can't process update. Not registered.\n");
@@ -133,15 +135,20 @@ void process_received_update(void *update, size_t update_len) {
     outlen = update_len;
     res = trm_aes_decrypt(aes_key, update, update_len, plain, &outlen);
 
+    // TODO make more robust.
+
     hdr = (struct trm_update_header*)plain;
     if(memcmp(hdr->signature, challenge_signature, sizeof(challenge_signature))) {
         printk(PFX "Rejected updates. Signature mismatch.\n");
     }
 
     printk(PFX "Received %d records.\n", hdr->records);
-    // hex = to_hexstring(plain, outlen);
-    // printk(PFX "Received plain: %s\n", hex);
-    // kfree(hex);
+    rcrd = (citadel_update_record_t *)(plain + sizeof(struct trm_update_header));
+    for (iter = 0; iter < hdr->records; iter++) {
+        // success = insert_ticket(rcrd);
+        // if (!success) printk(PFX "Failed to install a ticket for PID %d\n", current->pid);
+        rcrd = (citadel_update_record_t *)(rcrd + 1);
+    }
 
     update_aes_key(hdr->key_update, sizeof(hdr->key_update));
     kfree(plain);
@@ -152,7 +159,7 @@ void* generate_update(size_t *len) {
 
     void *update;
     struct trm_update_header *hdr;
-    struct trm_update_record *rcrd;
+    citadel_update_record_t *rcrd;
     int num_records;
     int tmp;
     char *cipher; //, *hex;
@@ -161,7 +168,7 @@ void* generate_update(size_t *len) {
     size_t required_space;
     
     num_records = 5;
-    required_space = sizeof(struct trm_update_header) + num_records * sizeof(struct trm_update_record);
+    required_space = sizeof(struct trm_update_header) + num_records * sizeof(citadel_update_record_t);
 
     update = kzalloc(required_space, GFP_KERNEL);
     if (!update) return NULL;
@@ -171,11 +178,12 @@ void* generate_update(size_t *len) {
     memset(hdr->key_update, 6, sizeof(hdr->key_update));
     hdr->records = (uint8_t)num_records;
 
-    rcrd = (struct trm_update_record*)(update + sizeof(struct trm_update_header));
+    rcrd = (citadel_update_record_t *)(update + sizeof(struct trm_update_header));
     for(tmp = 1; tmp < 2*num_records; tmp += 2) {
-        memset(rcrd->subject, tmp, sizeof(rcrd->subject));
-        memset(rcrd->data, tmp + 1, sizeof(rcrd->data));
-        rcrd = (struct trm_update_record*)(rcrd + 1);
+        rcrd->pid = 13;
+        rcrd->operation = 0;
+        memset(rcrd->identifier, tmp, sizeof(rcrd->identifier));
+        rcrd = (citadel_update_record_t *)(rcrd + 1);
     }
     
     if (!registered) {
@@ -203,8 +211,8 @@ int xattr_enclave_installation(const void *value, size_t size, struct dentry *de
     size_t outlen;
     int res, xattr_success;
     struct trm_update_header *hdr;
-    struct trm_update_record *rcrd;
-    struct inode_trm *d_inode_trm = trm_inode(dentry->d_inode);
+    citadel_update_record_t *rcrd;
+    citadel_inode_data_t *d_inode_data = trm_inode(dentry->d_inode);
 
     if (!registered) {
         printk(PFX_W "Can't process update. Not registered.\n");
@@ -233,10 +241,10 @@ int xattr_enclave_installation(const void *value, size_t size, struct dentry *de
 
     // Only expecting a single record.
     if (hdr->records != 1) return -1;
-    rcrd = (struct trm_update_record*)(plain + sizeof(struct trm_update_header));
+    rcrd = (citadel_update_record_t *)(plain + sizeof(struct trm_update_header));
 
     // Set the xattr values.
-    identifier_hex = to_hexstring(rcrd->subject, _TRM_IDENTIFIER_LENGTH);
+    identifier_hex = to_hexstring(rcrd->identifier, _TRM_IDENTIFIER_LENGTH);
     // need to lock inode->i_rwsem
     // down_write(&(dentry->d_inode->i_rwsem));
     xattr_success = __vfs_setxattr_noperm(dentry, TRM_XATTR_ID_NAME, (const void*)identifier_hex, _TRM_IDENTIFIER_LENGTH * 2, 0);
@@ -246,10 +254,10 @@ int xattr_enclave_installation(const void *value, size_t size, struct dentry *de
 
     if(xattr_success == 0) {
         // Update internal kernel structure.
-        d_inode_trm->in_realm = true;
-        d_inode_trm->needs_xattr_update = false;
-        d_inode_trm->checked_disk_xattr = true;
-        memcpy(d_inode_trm->identifier, rcrd->subject, sizeof(d_inode_trm->identifier));
+        d_inode_data->in_realm = true;
+        d_inode_data->needs_xattr_update = false;
+        d_inode_data->checked_disk_xattr = true;
+        memcpy(d_inode_data->identifier, rcrd->identifier, sizeof(d_inode_data->identifier));
 
         update_aes_key(hdr->key_update, sizeof(hdr->key_update));
         kfree(plain);

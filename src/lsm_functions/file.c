@@ -24,13 +24,13 @@ int trm_file_permission(struct file *file, int mask) {
 
 	// char *path;
     struct dentry *f_dentry = file->f_path.dentry;
-    struct inode_trm *current_inode_trm = trm_dentry(f_dentry);
+    citadel_inode_data_t *current_inode_data = trm_dentry(f_dentry);
 
     task_housekeeping();
-    global_housekeeping(current_inode_trm, f_dentry);
+    global_housekeeping(current_inode_data, f_dentry);
     
     // Don't care if this file isn't under our protection.
-    if (!current_inode_trm->in_realm) return 0;
+    if (!current_inode_data->in_realm) return 0;
 
     // Log for debug.
     // path = get_path_for_dentry(f_dentry);

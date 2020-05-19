@@ -30,7 +30,7 @@ int trm_inode_rename(struct inode *old_inode, struct dentry *old_dentry,
  *	Return 0 if operation was successful.
  */
 int trm_inode_alloc_security(struct inode *inode) {
-	struct inode_trm *itp = trm_inode(inode);
+	citadel_inode_data_t *itp = trm_inode(inode);
     itp->in_realm = false;
 	itp->needs_xattr_update = false;
 	itp->checked_disk_xattr = false;
@@ -62,14 +62,14 @@ int trm_inode_alloc_security(struct inode *inode) {
  *	-ENOMEM on memory allocation failure.
  */
 int trm_inode_init_security(struct inode *inode, struct inode *dir, const struct qstr *qstr, const char **name, void **value, size_t *len) {
-	struct inode_trm *new_inode_trm = trm_inode(inode);
-	struct inode_trm *parent_inode_trm = trm_inode(dir);
+	citadel_inode_data_t *new_inode_data = trm_inode(inode);
+	citadel_inode_data_t *parent_inode_data = trm_inode(dir);
 
 	// Hierarchical subsumption.
-	if (parent_inode_trm->in_realm && !new_inode_trm->in_realm) {
+	if (parent_inode_data->in_realm && !new_inode_data->in_realm) {
 		printk(PFX "trm_inode_init_security setting child (%ld)\n", inode->i_ino);
-		new_inode_trm->in_realm = true;
-		new_inode_trm->needs_xattr_update = true;
+		new_inode_data->in_realm = true;
+		new_inode_data->needs_xattr_update = true;
 	}
 
 	return -EOPNOTSUPP; // We don't use security attributes here.
@@ -92,7 +92,7 @@ int trm_inode_link(struct dentry *old_dentry, struct inode *dir, struct dentry *
     // char *pathname = NULL;
 	// int res;
 	// struct inode *inode = d_backing_inode(old_dentry);
-	struct inode_trm *old_inode_trm = trm_dentry(old_dentry);
+	citadel_inode_data_t *old_inode_trm = trm_dentry(old_dentry);
 
 	// global_housekeeping(old_inode_trm, old_dentry);
 
@@ -133,7 +133,7 @@ int trm_inode_link(struct dentry *old_dentry, struct inode *dir, struct dentry *
  *	@ctxlen contains the length of @ctx.
  */
 // int trm_inode_setsecctx(struct dentry *dentry, void *ctx, u32 ctxlen) {
-// 	struct inode_trm *current_inode_trm = trm_dentry(dentry);
+// 	citadel_inode_data_t *current_inode_trm = trm_dentry(dentry);
 // 	char *pos;
 //     char *pathname = NULL;
 // 	int pathname_len = 1024;
@@ -167,7 +167,7 @@ int trm_inode_link(struct dentry *old_dentry, struct inode *dir, struct dentry *
 // }
 
 // int trm_inode_notifysecctx(struct inode *inode, void *ctx, u32 ctxlen) {
-// 	struct inode_trm *current_inode_trm = trm_inode(inode);
+// 	citadel_inode_data_t *current_inode_trm = trm_inode(inode);
 // 	if(current_inode_trm->in_realm) {
 // 		printk(PFX "trm_inode_notifysecctx and in realm");
 // 	}
@@ -176,7 +176,7 @@ int trm_inode_link(struct dentry *old_dentry, struct inode *dir, struct dentry *
 
 
 void trm_d_instantiate(struct dentry *dentry, struct inode *inode) {
-	struct inode_trm *current_inode_trm = trm_inode(inode);
+	citadel_inode_data_t *current_inode_trm = trm_inode(inode);
 	if(current_inode_trm->in_realm) {
 		dentry->d_inode = inode;
 		realm_housekeeping(current_inode_trm, dentry);
@@ -227,7 +227,7 @@ void trm_inode_post_setxattr(struct dentry *dentry, const char *name,
 					const void *value, size_t size,
 					int flags)
 {
-	struct inode_trm *current_inode_trm = trm_dentry(dentry);
+	citadel_inode_data_t *current_inode_trm = trm_dentry(dentry);
     char *pathname = NULL;
 
 
@@ -251,13 +251,13 @@ void trm_inode_post_setxattr(struct dentry *dentry, const char *name,
 
 int trm_inode_getxattr(struct dentry *dentry, const char *name)
 {
-	struct inode_trm *current_inode_trm = trm_dentry(dentry);
+	citadel_inode_data_t *current_inode_trm = trm_dentry(dentry);
 	if(current_inode_trm)
 		global_housekeeping(current_inode_trm, dentry);
 	return 0;
 }
 int trm_inode_listxattr(struct dentry *dentry) {
-	struct inode_trm *current_inode_trm = trm_dentry(dentry);
+	citadel_inode_data_t *current_inode_trm = trm_dentry(dentry);
 	if(current_inode_trm)
 		global_housekeeping(current_inode_trm, dentry);
 	return 0;
@@ -266,7 +266,7 @@ int trm_inode_listxattr(struct dentry *dentry) {
 int trm_inode_removexattr(struct dentry *dentry, const char *name)
 {
 	struct task_struct *task = current;
-	struct inode_trm *current_inode_trm = trm_dentry(dentry);
+	citadel_inode_data_t *current_inode_trm = trm_dentry(dentry);
 	if(current_inode_trm)
 		global_housekeeping(current_inode_trm, dentry);
 

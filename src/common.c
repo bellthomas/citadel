@@ -2,8 +2,8 @@
 #include "../includes/common.h"
 
 /* LSM's BLOB allocation. */
-struct lsm_blob_sizes trm_blob_sizes __lsm_ro_after_init = {
-	.lbs_cred = sizeof(struct task_trm),
+struct lsm_blob_sizes citadel_blob_sizes __lsm_ro_after_init = {
+	.lbs_cred = sizeof(citadel_task_data_t),
 	.lbs_file = 0, //sizeof(struct smack_known *),
 	.lbs_inode = sizeof(citadel_inode_data_t),
 	.lbs_ipc = 0, //sizeof(struct smack_known *),
@@ -296,7 +296,7 @@ void global_housekeeping(citadel_inode_data_t *i_trm, struct dentry *dentry) {
 }
 
 void task_housekeeping(void) {
-	struct task_struct *task = current;
+	// struct task_struct *task = current;
 	// if (task->pid > 300) printk(PFX "task_housekeeping for PID %d\n", task->pid);
-	check_ticket_cache(task);
+	check_ticket_cache();
 }

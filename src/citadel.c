@@ -187,7 +187,7 @@ late_initcall(crypto_init)
 /*
  * The hooks we wish to be installed.
  */
-static struct security_hook_list trm_hooks[] __lsm_ro_after_init = {
+static struct security_hook_list citadel_hooks[] __lsm_ro_after_init = {
     LSM_HOOK_INIT(bprm_check_security, trm_bprm_check_security),
     LSM_HOOK_INIT(inode_permission, trm_inode_permission),
     LSM_HOOK_INIT(task_prctl, trm_task_prctl),
@@ -211,18 +211,18 @@ static struct security_hook_list trm_hooks[] __lsm_ro_after_init = {
 };
 
 
-static int __init trm_init(void) {
+static int __init citadel_init(void) {
     // struct cred *cred = (struct cred *) current->cred;
-    security_add_hooks(trm_hooks, ARRAY_SIZE(trm_hooks), "trm");
-    printk(KERN_INFO PFX "(Trusted Reference Monitor) initialized.\n");
+    security_add_hooks(citadel_hooks, ARRAY_SIZE(citadel_hooks), "trm");
+    printk(KERN_INFO PFX "Citadel Reference Monitor initialized.\n");
     return 0;
 }
 
 /*
  * Ensure the initialization code is called.
  */
-DEFINE_LSM(trm_init) = {
-    .init = trm_init,
-    .blobs = &trm_blob_sizes,
+DEFINE_LSM(citadel_init) = {
+    .init = citadel_init,
+    .blobs = &citadel_blob_sizes,
     .name = "trm",
 };
