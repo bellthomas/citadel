@@ -173,6 +173,7 @@ bool ipc_transaction(unsigned char *request, size_t length) {
 
     sent = ipc_send(request, length);	
 	if (sent) {
+		usleep(10);
 		received = ipc_recv(&msg);
 		if (received) {
 			// Get PID of sender.

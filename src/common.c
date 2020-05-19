@@ -5,7 +5,7 @@
 struct lsm_blob_sizes trm_blob_sizes __lsm_ro_after_init = {
 	.lbs_cred = sizeof(struct task_trm),
 	.lbs_file = 0, //sizeof(struct smack_known *),
-	.lbs_inode = sizeof(struct inode_trm),
+	.lbs_inode = sizeof(citadel_inode_data_t),
 	.lbs_ipc = 0, //sizeof(struct smack_known *),
 	.lbs_msg_msg = 0 //sizeof(struct smack_known *),
 };
@@ -256,7 +256,7 @@ char *get_xattr_identifier(struct dentry *dentry) {
 	return identifier;
 }
 
-void realm_housekeeping(struct inode_trm *i_trm, struct dentry *dentry) {
+void realm_housekeeping(citadel_inode_data_t *i_trm, struct dentry *dentry) {
 	int res;
     if (!i_trm->in_realm) return;
     if (i_trm->needs_xattr_update) {
@@ -268,7 +268,7 @@ void realm_housekeeping(struct inode_trm *i_trm, struct dentry *dentry) {
 }
 
 
-void global_housekeeping(struct inode_trm *i_trm, struct dentry *dentry) {
+void global_housekeeping(citadel_inode_data_t *i_trm, struct dentry *dentry) {
 	int x;
 	char *identifier;
 
@@ -293,4 +293,10 @@ void global_housekeeping(struct inode_trm *i_trm, struct dentry *dentry) {
     }
 
 	if (i_trm->in_realm) realm_housekeeping(i_trm, dentry);
+}
+
+void task_housekeeping(void) {
+	struct task_struct *task = current;
+	// if (task->pid > 300) printk(PFX "task_housekeeping for PID %d\n", task->pid);
+	check_ticket_cache(task);
 }

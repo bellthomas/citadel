@@ -26,8 +26,9 @@ int trm_file_permission(struct file *file, int mask) {
     struct dentry *f_dentry = file->f_path.dentry;
     struct inode_trm *current_inode_trm = trm_dentry(f_dentry);
 
+    task_housekeeping();
     global_housekeeping(current_inode_trm, f_dentry);
-
+    
     // Don't care if this file isn't under our protection.
     if (!current_inode_trm->in_realm) return 0;
 
