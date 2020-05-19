@@ -24,5 +24,9 @@ int main(void) {
 		printf("Can't open file.\n");
 		exit(3);
 	}
+
+	FILE *fp;
+	fp = fopen(path, "r");
+	fclose(fp);
 	return 0;
 }

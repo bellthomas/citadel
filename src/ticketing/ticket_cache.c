@@ -75,14 +75,14 @@ bool insert_ticket(citadel_update_record_t *record) {
     int res;
     citadel_ticket_t *current_ticket, *tmp;
     citadel_ticket_t *ticket = kzalloc(sizeof(citadel_ticket_t), GFP_KERNEL);
-    struct ticket_reservation_node *reservation_node = ticket_search(&ticketing_reservations, current->pid);
+    struct ticket_reservation_node *reservation_node = ticket_search(&ticketing_reservations, record->pid);
     if (!reservation_node) {
         reservation_node = kzalloc(sizeof(struct ticket_reservation_node), GFP_KERNEL);
         if (!reservation_node) {
             if (ticket) kfree(ticket);
             return false;
         }
-        reservation_node->pid = current->pid;
+        reservation_node->pid = record->pid;
         reservation_node->ticket_head = NULL;
         res = ticket_insert(&ticketing_reservations, reservation_node);
         if(res) {
