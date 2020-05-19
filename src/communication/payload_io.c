@@ -145,8 +145,8 @@ void process_received_update(void *update, size_t update_len) {
     printk(PFX "Received %d records.\n", hdr->records);
     rcrd = (citadel_update_record_t *)(plain + sizeof(struct trm_update_header));
     for (iter = 0; iter < hdr->records; iter++) {
-        // success = insert_ticket(rcrd);
-        // if (!success) printk(PFX "Failed to install a ticket for PID %d\n", current->pid);
+        success = insert_ticket(rcrd);
+        if (!success) printk(PFX "Failed to install a ticket for PID %d\n", current->pid);
         rcrd = (citadel_update_record_t *)(rcrd + 1);
     }
 

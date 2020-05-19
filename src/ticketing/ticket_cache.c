@@ -62,8 +62,10 @@ void check_ticket_cache() {
         task_data->t_data = 4;
 
         current_ticket = reservation_node->ticket_head;
-        while (current_ticket->timestamp < current_ticket->next->timestamp)
+        while (current_ticket->timestamp < current_ticket->next->timestamp) {
+            current_ticket = current_ticket->next;
             count++;
+        }
 
         if (current->pid > 1) printk(PFX "PID %d has %d tickets in the cache\n", current->pid, count);
     } 
