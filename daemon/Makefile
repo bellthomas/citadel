@@ -62,7 +62,8 @@ endif
 App_Cpp_Files := $(App_Folder)/app.cpp \
 				 $(App_Folder)/sgx_utils/sgx_utils.cpp \
 				 $(App_Folder)/lsm_io.cpp \
-				 $(App_Folder)/socket.cpp 
+				 $(App_Folder)/socket.cpp \
+				 $(App_Folder)/identifier_cache.cpp
 
 App_Include_Paths := -I$(App_Folder) -I$(SGX_SDK)/include -I$(NNG_Include_Folder)
 App_C_Flags := $(SGX_COMMON_CFLAGS) -fPIC -Wno-attributes $(App_Include_Paths) 
@@ -79,7 +80,7 @@ else
 		App_C_Flags += -DNDEBUG -UEDEBUG -UDEBUG
 endif
 
-App_Cpp_Flags := $(App_C_Flags) -std=c++11 -I/opt/playground/nng/include
+App_Cpp_Flags := $(App_C_Flags) -std=c++11 -I/opt/playground/nng/include -I/opt/devel/sparsehash/src
 App_Link_Flags := $(SGX_COMMON_CFLAGS) -L$(SGX_LIBRARY_PATH) \
                   -Wl,--whole-archive  -lsgx_uswitchless -Wl,--no-whole-archive \
                   -l$(Urts_Library_Name) -lpthread -L/opt/devel/libnng -lnng -pthread

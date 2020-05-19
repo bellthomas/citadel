@@ -96,7 +96,7 @@ uint8_t handle_request(uint8_t* data, size_t length, int32_t pid, uint8_t* ptoke
 
     void *metadata = NULL;
     if(extended_request) metadata = extended_request->metadata;
-    uint8_t result = asm_handle_request(request, metadata);
+    uint8_t result = asm_handle_request(pid, request, metadata);
 
     // Install tickets if required.
     uint8_t internal_update = core_handle_request(request, metadata, result);

@@ -17,5 +17,12 @@ int main(void) {
 		printf("Citadel failed to create file.\n");
 		exit(2);
 	}
+
+	// Open file.
+	bool citadel_file_open_ret = citadel_file_open((char*)path, sizeof(path));
+	if (!citadel_file_open_ret) {
+		printf("Can't open file.\n");
+		exit(3);
+	}
 	return 0;
 }

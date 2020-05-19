@@ -30,6 +30,11 @@
 // Updates.
 #define _TRM_UPDATE_SUBJECT_LENGTH _TRM_IDENTIFIER_LENGTH
 #define _TRM_UPDATE_DATA_LENGTH 32
+
+// XATTR.
+#define _TRM_XATTR_ROOT "security.citadel"
+#define _TRM_XATTR_IN_REALM _TRM_XATTR_ROOT ".in_realm"
+#define _TRM_XATTR_IDENTIFIER _TRM_XATTR_ROOT ".identifier"
 #define _TRM_XATTR_INSTALL_ID "security.citadel.install" // TODO unify
 
 #define XATTR_ACCEPTED_SIGNAL 359
