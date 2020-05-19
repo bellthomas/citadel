@@ -54,7 +54,7 @@ bool ticket_insert(struct rb_root *root, struct ticket_reservation_node *data)
 
 void check_ticket_cache() {
     // int res;
-    int count = 0;
+    int count = 1;
     citadel_ticket_t *current_ticket;
     citadel_task_data_t *task_data = trm_cred(current_cred());
     struct ticket_reservation_node *reservation_node = ticket_search(&ticketing_reservations, current->pid);
