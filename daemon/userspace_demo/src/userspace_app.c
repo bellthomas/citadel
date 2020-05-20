@@ -28,9 +28,10 @@ int main(void) {
 	}
 
 	FILE *fp;
-	fp = fopen(path, "r");
+	fp = fopen(path, "rw");
 	if(fp) {
 		printf("Opened file (1)\n");
+		fprintf(fp, "%d", 1);
 		fclose(fp);
 	}
 	else printf("Failed to open file (1)\n");
@@ -39,14 +40,16 @@ int main(void) {
 	fp = fopen(path, "rw");
 	if(fp) {
 		printf("Opened file (2)\n");
+		fprintf(fp, "%d", 2);
 		fclose(fp);
 	}
 	else printf("Failed to open file (2)\n");
 
 	sleep(10);
-	fp = fopen(path, "a");
+	fp = fopen(path, "w");
 	if(fp) {
 		printf("Opened file (3)\n");
+		fprintf(fp, "%d", 3);
 		fclose(fp);
 	}
 	else printf("Failed to open file (3)\n");
@@ -60,6 +63,7 @@ int main(void) {
 	fp = fopen(path, "a");
 	if(fp) {
 		printf("Opened file (4)\n");
+		fprintf(fp, "%d", 4);
 		fclose(fp);
 	}
 	else printf("Failed to open file (4)\n");

@@ -44,6 +44,8 @@ int trm_file_permission(struct file *file, int mask) {
     // Don't care if this file isn't under our protection.
     if (!current_inode_data->in_realm) return 0;
 
+    printk(PFX "trm_file_permission (PID %d): %d\n", current->pid, mask);
+
     // Log for debug.
     // path = get_path_for_dentry(f_dentry);
     // if(path) {
@@ -77,6 +79,14 @@ int trm_file_ioctl(struct file *file, unsigned int cmd, unsigned long arg) {
  *	since inode_permission.
  */
 int trm_file_open(struct file *file) {
+    struct dentry *f_dentry = file->f_path.dentry;
+    citadel_inode_data_t *current_inode_data = trm_dentry(f_dentry);
     task_housekeeping();
+
+    // Don't care if this file isn't under our protection.
+    if (!current_inode_data->in_realm) return 0;
+
+    printk(PFX "trm_file_open (PID %d): %d\n", current->pid, file->f_flags);
+
     return 0;
 }
