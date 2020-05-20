@@ -11,6 +11,7 @@
 #define _TRM_RSA_KEY_LENGTH 256
 #define _TRM_SIGNATURE_LENGTH 8
 #define _TRM_PID_LENGTH 4
+#define _TRM_TICKET_EXPIRY 15  // seconds
 
 #define _TRM_SECURITYFS_ROOT "/sys/kernel/security/citadel/"
 #define _TRM_PROCESS_GET_PTOKEN_PATH _TRM_SECURITYFS_ROOT "get_ptoken"

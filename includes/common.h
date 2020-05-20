@@ -26,7 +26,8 @@
 
 
 typedef struct citadel_ticket_detail {
-    int val;
+    unsigned char identifier[_TRM_IDENTIFIER_LENGTH];
+    citadel_operation_t operation;
 } citadel_ticket_detail_t;
 
 typedef struct citadel_ticket {

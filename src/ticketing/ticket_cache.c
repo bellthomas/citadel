@@ -25,7 +25,7 @@ struct ticket_reservation_node *ticket_search(struct rb_root *root, pid_t pid)
 	return NULL;
 }
 
-bool ticket_insert(struct rb_root *root, struct ticket_reservation_node *data)
+bool insert_reservation(struct rb_root *root, struct ticket_reservation_node *data)
 {
   	struct rb_node **new = &(root->rb_node), *parent = NULL;
 
@@ -55,14 +55,16 @@ bool ticket_insert(struct rb_root *root, struct ticket_reservation_node *data)
 
 void check_ticket_cache() {
     // int res;
-    int count = 1;
+    int count = 1, tmp;
     ktime_t expiry_threshold, last_to_free;
     citadel_ticket_t *current_ticket, *initial_ticket;
     citadel_task_data_t *task_data = trm_cred(current_cred());
     struct ticket_reservation_node *reservation_node = ticket_search(&ticketing_reservations, current->pid);
-    if (reservation_node && reservation_node->ticket_head) {
-        task_data->t_data = 4;
 
+    // PID has pending tickets.
+    if (reservation_node && reservation_node->ticket_head) {
+
+        // Count tickets to install.
         current_ticket = reservation_node->ticket_head;
         while (current_ticket->timestamp < current_ticket->next->timestamp) {
             current_ticket = current_ticket->next;
@@ -77,9 +79,18 @@ void check_ticket_cache() {
             task_data->ticket_head = current_ticket;
         }
         else {
-            current_ticket = reservation_node->ticket_head->pre;
-            reservation_node->ticket_head->prev = task_data->ticket_head->prev;
-            current_ticket->next = task_data->ticket_head;
+            /*
+             *  Existing: (a) -> (b) -> (c) -> (a) ...
+             *       New: (d) -> (e) -> (d) ...
+             *     After: (a) -> (b) -> (c) -> (d) -> (e) -> (a) ...
+             * 
+             * NB: a <- reservation_node->ticket_head, d <- task_data->ticket_head.
+             */
+            current_ticket = reservation_node->ticket_head->prev; // current -> c
+            reservation_node->ticket_head->prev = task_data->ticket_head->prev; // a.prev = e
+            current_ticket->next = task_data->ticket_head; // c.next = d
+            task_data->ticket_head->prev->next = reservation_node->ticket_head; // e.next = a
+            task_data->ticket_head->prev = current_ticket; // d.prev = c
         }
 
         reservation_node->ticket_head = NULL;
@@ -87,47 +98,58 @@ void check_ticket_cache() {
 
     // Remove old tickets.
     if (task_data->ticket_head) {
-        expiry_threshold = ktime_get() + 15 * 1000 * 1000 * 1000; // 15 seconds.
+        expiry_threshold = ktime_get() + _TRM_TICKET_EXPIRY * 1000000000; // 15 seconds.
         initial_ticket = task_data->ticket_head;
         current_ticket = task_data->ticket_head;
+        count = 0;
         while(current_ticket->timestamp <= expiry_threshold && current_ticket->timestamp < current_ticket->next->timestamp) {
             last_to_free = current_ticket->timestamp;
             current_ticket = current_ticket->next;
+            count++;
         }
 
         if (current_ticket->timestamp <= expiry_threshold) {
             last_to_free = current_ticket->timestamp;
             task_data->ticket_head = NULL;
+            count++;
         }
         else {
-            current_ticket->prev = task_data->ticket_head->prev;
-            task_data->ticket_head->prev->next = current_ticket;
-            task_data->ticket_head = current_ticket;
+            if (count > 0) {
+                current_ticket->prev = task_data->ticket_head->prev;
+                task_data->ticket_head->prev->next = current_ticket;
+                task_data->ticket_head = current_ticket;
+            }
         }
         
-        // Free discarded tickets.
-        while (initial_ticket->timestamp <= last_to_free) {
-            current_ticket = initial_ticket;
-            initial_ticket = initial_ticket->next;
-            kfree(current_ticket);
+
+        if (count > 0) {
+            // Free discarded tickets.
+            while (tmp = 0; tmp < count; tmp++) {
+                current_ticket = initial_ticket;
+                initial_ticket = initial_ticket->next;
+                kfree(current_ticket);
+            }
+
+            printf(PFX "Removed %d expired tickets for PID %d\n", count, current->pid);
         }
+    }
+
+    if (!task_data->ticket_head) {
+        // Remove from rbtree.
     }
 }
 
 bool insert_ticket(citadel_update_record_t *record) {
     int res;
     citadel_ticket_t *current_ticket, *tmp;
-    citadel_ticket_t *ticket = kzalloc(sizeof(citadel_ticket_t), GFP_KERNEL);
+    citadel_ticket_t *ticket;
     struct ticket_reservation_node *reservation_node = ticket_search(&ticketing_reservations, record->pid);
     if (!reservation_node) {
         reservation_node = kzalloc(sizeof(struct ticket_reservation_node), GFP_KERNEL);
-        if (!reservation_node) {
-            if (ticket) kfree(ticket);
-            return false;
-        }
+        if (!reservation_node) return false;
         reservation_node->pid = record->pid;
         reservation_node->ticket_head = NULL;
-        res = ticket_insert(&ticketing_reservations, reservation_node);
+        res = insert_reservation(&ticketing_reservations, reservation_node);
         if(res) {
             kfree(reservation_node);
             return false;
@@ -139,9 +161,9 @@ bool insert_ticket(citadel_update_record_t *record) {
     if (!ticket) return false;
 
     // Set ticket details.
-    // TODO finish
     ticket->timestamp = ktime_get();
-    ticket->detail.val = 2;
+    memcpy(ticket->detail.identifier, record->identifier, sizeof(record->identifier));
+    ticket->detail.operation = record->operation;
 
     current_ticket = reservation_node->ticket_head;
     if (!current_ticket) {
