@@ -75,43 +75,47 @@ void update_aes_key(void *key, size_t key_len)
     // ocall_print("**");
 }
 
-void generate_ticket(int num_records)
+bool generate_ticket(int32_t pid, const char *metadata, citadel_operation_t operation)
 {
     // Build ticket structure.
 
-    char data[sizeof(trm_update_header) + num_records * sizeof(citadel_update_record_t)];
+    char data[sizeof(trm_update_header) + sizeof(citadel_update_record_t)];
     struct trm_update_header *hdr;
     citadel_update_record_t *rcrd;
 
+    // Build ticket header.
     hdr = (struct trm_update_header *)data;
     memcpy(hdr->signature, challenge_signature, sizeof(challenge_signature));
     sgx_read_rand(hdr->key_update, sizeof(hdr->key_update));
-    hdr->records = (uint8_t)num_records;
+    hdr->records = (uint8_t) 1;
 
+    // Set ticket bidy.
     rcrd = (citadel_update_record_t *)(data + sizeof(struct trm_update_header));
-    for (int tmp = 1; tmp < 2 * num_records; tmp += 2)
-    {
-        memset(rcrd->identifier, tmp, sizeof(rcrd->identifier));
-        rcrd->pid = 13;
-        rcrd->operation = 0;
-        // memset(rcrd->data, tmp + 1, sizeof(rcrd->data));
-        rcrd = (citadel_update_record_t *)(rcrd + 1);
-    }
+    memcpy(rcrd->identifier, metadata, sizeof(rcrd->identifier));
+    rcrd->pid = pid;
+    rcrd->operation = operation;
 
     // Encrypt.
     unsigned char cipher[sizeof(data) + 16];
-    // memset(cipher, 0, 4096+16);
     size_t outlen = sizeof(data) + 16;
     int ret = aes_encrypt((unsigned char *)&data, sizeof(data), cipher, &outlen, aes_key, sizeof(aes_key));
-    // print_hex(cipher, outlen);
+    if (ret) {
+        enclave_perror("Failed to encrypt ticket.");
+        return false;
+    }
 
     // // Install.
-    int install_ret;
+    int install_ret; // The number of bytes written.
     install_ticket(&install_ret, (uint8_t *)cipher, outlen);
+    if (!install_ret) {
+        enclave_perror("Failed to install ticket.");
+        return false;
+    }
 
-    // TODO if successful
     update_aes_key(hdr->key_update, sizeof(hdr->key_update));
+    return true;
 }
+
 
 int process_updates(uint8_t *update_data, size_t update_length)
 {

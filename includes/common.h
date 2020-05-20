@@ -25,8 +25,20 @@
 #define TRM_XATTR_INSTALL_NAME TRM_XATTR_PREFIX "install"
 
 
+typedef struct citadel_ticket_detail {
+    int val;
+} citadel_ticket_detail_t;
+
+typedef struct citadel_ticket {
+    citadel_ticket_detail_t detail;
+    ktime_t timestamp;
+    struct citadel_ticket *next, *prev;
+} citadel_ticket_t;
+
+
 typedef struct citadel_task_data {
     uint8_t t_data;
+    citadel_ticket_t *ticket_head;
 } __randomize_layout citadel_task_data_t;
 
 typedef struct citadel_inode_data {

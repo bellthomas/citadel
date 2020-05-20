@@ -26,11 +26,11 @@ void print_hex(unsigned char *buf, unsigned int len) {
 }
 
 void timer_pulse(void) {
-    for(int i = 1; i <= 1; i++) generate_ticket(i);
+    // for(int i = 1; i <= 1; i++) generate_ticket(i);
     enclave_printf("Timer");
     // Install xattr record.
-    char path[22] = "/opt/testing_dir/test";
-    generate_xattr_ticket(path);
+    // char path[22] = "/opt/testing_dir/test";
+    // generate_xattr_ticket(path);
 }
 
 //

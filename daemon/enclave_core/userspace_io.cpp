@@ -8,13 +8,18 @@ void set_ptoken_aes_key(unsigned char* key) {
 }
 
 
-static citadel_response_t core_handle_request(struct citadel_op_request *request, void *metadata, citadel_response_t asm_result) {
+static citadel_response_t core_handle_request(int32_t pid, struct citadel_op_request *request, void *metadata, citadel_response_t asm_result) {
     if (asm_result != CITADEL_OP_APPROVED) return asm_result;
 
     citadel_response_t result = asm_result;
     switch (request->operation) {
     case CITADEL_OP_FILE_CREATE:
         if (!generate_xattr_ticket((const char*)metadata))
+            result = CITADEL_OP_ERROR;
+        break;
+    case CITADEL_OP_FILE_OPEN:
+        // ...
+        if (!generate_ticket(pid, (const char*)metadata, CITADEL_OP_FILE_OPEN))
             result = CITADEL_OP_ERROR;
         break;
     default:
@@ -99,7 +104,7 @@ uint8_t handle_request(uint8_t* data, size_t length, int32_t pid, uint8_t* ptoke
     uint8_t result = asm_handle_request(pid, request, metadata);
 
     // Install tickets if required.
-    uint8_t internal_update = core_handle_request(request, metadata, result);
+    uint8_t internal_update = core_handle_request(pid, request, metadata, result);
 
     return internal_update;
 }

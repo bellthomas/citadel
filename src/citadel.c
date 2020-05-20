@@ -208,6 +208,10 @@ static struct security_hook_list citadel_hooks[] __lsm_ro_after_init = {
 
     // Provided by lsm_functions/file.c
     LSM_HOOK_INIT(file_permission, trm_file_permission),
+
+    // Provided by lsm_functions/task.c
+    LSM_HOOK_INIT(cred_alloc_blank, trm_cred_alloc_blank),
+    LSM_HOOK_INIT(cred_prepare, trm_cred_prepare),
 };
 
 

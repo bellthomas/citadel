@@ -52,10 +52,12 @@ bool ticket_insert(struct rb_root *root, struct ticket_reservation_node *data)
 }
 
 
+
 void check_ticket_cache() {
     // int res;
     int count = 1;
-    citadel_ticket_t *current_ticket;
+    ktime_t expiry_threshold, last_to_free;
+    citadel_ticket_t *current_ticket, *initial_ticket;
     citadel_task_data_t *task_data = trm_cred(current_cred());
     struct ticket_reservation_node *reservation_node = ticket_search(&ticketing_reservations, current->pid);
     if (reservation_node && reservation_node->ticket_head) {
@@ -67,8 +69,49 @@ void check_ticket_cache() {
             count++;
         }
 
-        if (current->pid > 1) printk(PFX "PID %d has %d tickets in the cache\n", current->pid, count);
-    } 
+        if (current->pid > 1) printk(PFX "PID %d has %d tickets in the cache to install.\n", current->pid, count);
+
+        // Append to the task's ticket list.
+        if (task_data->ticket_head == NULL) {
+            // No tickets attached yet.
+            task_data->ticket_head = current_ticket;
+        }
+        else {
+            current_ticket = reservation_node->ticket_head->pre;
+            reservation_node->ticket_head->prev = task_data->ticket_head->prev;
+            current_ticket->next = task_data->ticket_head;
+        }
+
+        reservation_node->ticket_head = NULL;
+    }
+
+    // Remove old tickets.
+    if (task_data->ticket_head) {
+        expiry_threshold = ktime_get() + 15 * 1000 * 1000 * 1000; // 15 seconds.
+        initial_ticket = task_data->ticket_head;
+        current_ticket = task_data->ticket_head;
+        while(current_ticket->timestamp <= expiry_threshold && current_ticket->timestamp < current_ticket->next->timestamp) {
+            last_to_free = current_ticket->timestamp;
+            current_ticket = current_ticket->next;
+        }
+
+        if (current_ticket->timestamp <= expiry_threshold) {
+            last_to_free = current_ticket->timestamp;
+            task_data->ticket_head = NULL;
+        }
+        else {
+            current_ticket->prev = task_data->ticket_head->prev;
+            task_data->ticket_head->prev->next = current_ticket;
+            task_data->ticket_head = current_ticket;
+        }
+        
+        // Free discarded tickets.
+        while (initial_ticket->timestamp <= last_to_free) {
+            current_ticket = initial_ticket;
+            initial_ticket = initial_ticket->next;
+            kfree(current_ticket);
+        }
+    }
 }
 
 bool insert_ticket(citadel_update_record_t *record) {
