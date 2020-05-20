@@ -2,8 +2,12 @@
 Description=Citadel Reference Monitor
 After=network.target
 StartLimitIntervalSec=0
+
 [Service]
 Type=simple
+CPUSchedulingPolicy=fifo
+CPUSchedulingPriority=20
+Nice=-10
 Restart=always
 RestartSec=1
 User=root

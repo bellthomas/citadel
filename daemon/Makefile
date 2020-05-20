@@ -239,7 +239,7 @@ install-daemon:
 
 install-app:
 	@mkdir -p $(Install_Folder)
-	@rm -rf $(Install_Folder)/*
+	@sudo rm -rf $(Install_Folder)/*
 	@cp -r $(Build_Folder)/* $(Install_Folder)/
 	@mv $(Install_Folder)/app $(Install_Folder)/citadel
 	@cp $(Scripts_Folder)/start_citadel.sh $(Install_Folder)/
