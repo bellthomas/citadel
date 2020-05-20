@@ -101,7 +101,11 @@ int trm_inode_init_security(struct inode *inode, struct inode *dir, const struct
  *	Return 0 if permission is granted.
  */
 int trm_inode_permission(struct inode *inode, int mask) {
+	citadel_inode_data_t *inode_data = trm_inode(inode);
 	task_housekeeping();
+	if (inode_data && inode_data->in_realm) {
+		return can_access(inode_data);
+	} 
 	return 0;
 }
 

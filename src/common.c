@@ -311,3 +311,41 @@ void inode_housekeeping(citadel_inode_data_t *i_trm, struct dentry *dentry) {
 
 	if (i_trm->in_realm) realm_housekeeping(i_trm, dentry);
 }
+
+
+int can_access(citadel_inode_data_t *inode_data) {
+	ktime_t tracker;
+	size_t tmp;
+	bool found = false;
+	citadel_ticket_t *current_ticket;
+	citadel_task_data_t *cred = trm_cred(current_cred());
+	if (!cred || !cred->ticket_head) return -EACCES;
+
+	current_ticket = cred->ticket_head;
+	tracker = 0;
+	while (current_ticket->timestamp > tracker && !found) {
+		// Check if this ticket allows access.
+		found = true;
+		for (tmp = 0; tmp < _TRM_IDENTIFIER_LENGTH; tmp++) {
+			if (current_ticket->detail.identifier[tmp] != inode_data->identifier[tmp]) {
+				found = false;
+				break;
+			}
+		}
+
+		if (!found) {
+			current_ticket = current_ticket->next;
+			tracker = current_ticket->timestamp;
+		}
+	}
+
+	if (found) {
+		// Found a ticket relating to this object.
+		// TODO check operation etc.
+		printk(PFX "Allowing PID %d access to file.\n", current->pid);
+		return 0;
+	}
+
+	printk(PFX "Rejecting PID %d access to file.\n", current->pid);
+	return -EACCES;
+}
