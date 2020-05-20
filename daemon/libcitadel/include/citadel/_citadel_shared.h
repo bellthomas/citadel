@@ -100,9 +100,11 @@ struct trm_ptoken_protected {
 
 
 // Citadel operation (citadel_operation_t).
-#define CITADEL_OP_REGISTER    0
-#define CITADEL_OP_FILE_CREATE 1
-#define CITADEL_OP_FILE_OPEN   2
+#define CITADEL_OP_NOP            0
+#define CITADEL_OP_REGISTER       1
+#define CITADEL_OP_FILE_CREATE    2
+#define CITADEL_OP_FILE_RECREATE  3
+#define CITADEL_OP_FILE_OPEN      4
 
 // Citadel request response (citadel_response_t).
 // enum citadel_status {

@@ -2,6 +2,7 @@
 #include <citadel/citadel.h>
 #include <time.h>
 
+
 int main(void) {
 
 	// On start.
@@ -28,14 +29,39 @@ int main(void) {
 
 	FILE *fp;
 	fp = fopen(path, "r");
-	fclose(fp);
+	if(fp) {
+		printf("Opened file (1)\n");
+		fclose(fp);
+	}
+	else printf("Failed to open file (1)\n");
 
 	sleep(10);
 	fp = fopen(path, "rw");
-	fclose(fp);
+	if(fp) {
+		printf("Opened file (2)\n");
+		fclose(fp);
+	}
+	else printf("Failed to open file (2)\n");
 
 	sleep(10);
 	fp = fopen(path, "a");
-	fclose(fp);
+	if(fp) {
+		printf("Opened file (3)\n");
+		fclose(fp);
+	}
+	else printf("Failed to open file (3)\n");
+
+	citadel_file_create_ret = citadel_file_open((char*)path, sizeof(path));
+	if (!citadel_file_create_ret) {
+		printf("Citadel failed to create file.\n");
+		exit(3);
+	}
+
+	fp = fopen(path, "a");
+	if(fp) {
+		printf("Opened file (4)\n");
+		fclose(fp);
+	}
+	else printf("Failed to open file (4)\n");
 	return 0;
 }
