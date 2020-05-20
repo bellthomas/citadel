@@ -6,7 +6,9 @@ obj-y := src/citadel.o \
          src/communication/payload_io.o \
 		 src/lsm_functions/inode.o \
 		 src/lsm_functions/file.o \
+		 src/lsm_functions/task.o \
 		 src/ticketing/ticket_cache.o
+		 
 
 
 # CFLAGS_trm.o := -msse2 -msse -march=native -maes

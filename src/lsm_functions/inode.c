@@ -1,5 +1,18 @@
+#include <linux/types.h>
+#include <linux/xattr.h>
+#include <linux/binfmts.h>
+#include <linux/lsm_hooks.h>
+#include <linux/cred.h>
+#include <linux/fs.h>
+#include <linux/uidgid.h>
+#include <linux/kobject.h>
+#include <linux/crypto.h>
+#include <linux/mutex.h>
+#include <linux/dcache.h>
 
+#include "../../includes/citadel.h"
 #include "../../includes/inode.h"
+#include "../../includes/payload_io.h"
 
 
 /**
@@ -76,6 +89,21 @@ int trm_inode_init_security(struct inode *inode, struct inode *dir, const struct
 }
 
 
+/*
+ *	Check permission before accessing an inode.  This hook is called by the
+ *	existing Linux permission function, so a security module can use it to
+ *	provide additional checking for existing Linux permission checks.
+ *	Notice that this hook is called when a file is opened (as well as many
+ *	other operations), whereas the file_security_ops permission hook is
+ *	called when the actual read/write operations are performed.
+ *	@inode contains the inode structure to check.
+ *	@mask contains the permission mask.
+ *	Return 0 if permission is granted.
+ */
+int trm_inode_permission(struct inode *inode, int mask) {
+	task_housekeeping();
+	return 0;
+}
 
 /*
  *	Check permission before creating a new hard link to a file.
@@ -94,7 +122,7 @@ int trm_inode_link(struct dentry *old_dentry, struct inode *dir, struct dentry *
 	// struct inode *inode = d_backing_inode(old_dentry);
 	citadel_inode_data_t *old_inode_trm = trm_dentry(old_dentry);
 
-	// global_housekeeping(old_inode_trm, old_dentry);
+	// inode_housekeeping(old_inode_trm, old_dentry);
 
 	// Copy metadata to the new inode link.
 	if (old_inode_trm) {
@@ -149,7 +177,7 @@ int trm_inode_link(struct dentry *old_dentry, struct inode *dir, struct dentry *
 // 			res = __set_xattr_in_realm(dentry);
 // 			printk(PFX "xattr setting success: %d\n", res);
 
-// #if TRM_DEBUG == 1
+// #if CITADEL_DEBUG == 1
 // 			// Log for debug.
 // 			pathname = kzalloc(pathname_len, GFP_KERNEL);
 // 			if(pathname) {
@@ -202,7 +230,7 @@ int trm_inode_setxattr(struct dentry *dentry, const char *name,
 		else
 			rc = -ECANCELED; // Can't process this operation yet.
 		
-#if TRM_DEBUG == 1
+#if CITADEL_DEBUG == 1
 		pathname = get_path_for_dentry(dentry);
 		if(pathname) {
 			printk(PFX "security.citadel.install for %s (err=%d)\n", pathname, rc);
@@ -234,7 +262,7 @@ void trm_inode_post_setxattr(struct dentry *dentry, const char *name,
 
 	if (current_inode_trm) {
 		// Do housekeeping.
-		global_housekeeping(current_inode_trm, dentry);
+		inode_housekeeping(current_inode_trm, dentry);
 
 		if (current_inode_trm->in_realm) {
 
@@ -253,13 +281,13 @@ int trm_inode_getxattr(struct dentry *dentry, const char *name)
 {
 	citadel_inode_data_t *current_inode_trm = trm_dentry(dentry);
 	if(current_inode_trm)
-		global_housekeeping(current_inode_trm, dentry);
+		inode_housekeeping(current_inode_trm, dentry);
 	return 0;
 }
 int trm_inode_listxattr(struct dentry *dentry) {
 	citadel_inode_data_t *current_inode_trm = trm_dentry(dentry);
 	if(current_inode_trm)
-		global_housekeeping(current_inode_trm, dentry);
+		inode_housekeeping(current_inode_trm, dentry);
 	return 0;
 }
 
@@ -268,7 +296,7 @@ int trm_inode_removexattr(struct dentry *dentry, const char *name)
 	struct task_struct *task = current;
 	citadel_inode_data_t *current_inode_trm = trm_dentry(dentry);
 	if(current_inode_trm)
-		global_housekeeping(current_inode_trm, dentry);
+		inode_housekeeping(current_inode_trm, dentry);
 
 	if (strncmp(name, TRM_XATTR_PREFIX, strlen(TRM_XATTR_PREFIX))) {
 		return cap_inode_removexattr(dentry, name);

@@ -2,22 +2,6 @@
 #ifndef _SECURITY_TRM_CRYPTO_H
 #define _SECURITY_TRM_CRYPTO_H
 
-#include <linux/module.h>
-#include <linux/kernel.h>
-#include <linux/crypto.h>
-#include <linux/scatterlist.h>
-#include <linux/gfp.h>
-#include <linux/err.h>
-#include <linux/syscalls.h>
-#include <linux/slab.h>
-#include <crypto/aead.h>
-#include <crypto/akcipher.h>
-#include <linux/random.h>
-#include <linux/delay.h>
-#include <linux/highmem.h>
-
-#include "citadel.h"
-
 #define RSA_PAYLOAD_SIZE 256
 
 #define AES_ENCRYPT 1

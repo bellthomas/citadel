@@ -1,5 +1,6 @@
 
 #include <citadel/citadel.h>
+#include <time.h>
 
 int main(void) {
 
@@ -27,6 +28,14 @@ int main(void) {
 
 	FILE *fp;
 	fp = fopen(path, "r");
+	fclose(fp);
+
+	sleep(10);
+	fp = fopen(path, "rw");
+	fclose(fp);
+
+	sleep(10);
+	fp = fopen(path, "a");
 	fclose(fp);
 	return 0;
 }

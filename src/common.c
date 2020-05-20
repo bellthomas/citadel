@@ -1,5 +1,16 @@
+#include <linux/kernel.h>
+#include <linux/types.h>
+#include <linux/xattr.h>
+#include <linux/binfmts.h>
+#include <linux/lsm_hooks.h>
+#include <linux/cred.h>
+#include <linux/fs.h>
+#include <linux/uidgid.h>
 
+#include "../includes/citadel.h"
 #include "../includes/common.h"
+#include "../includes/ticket_cache.h"
+
 
 /* LSM's BLOB allocation. */
 struct lsm_blob_sizes citadel_blob_sizes __lsm_ro_after_init = {
@@ -267,11 +278,17 @@ void realm_housekeeping(citadel_inode_data_t *i_trm, struct dentry *dentry) {
     }
 }
 
+void task_housekeeping(void) {
+	// struct task_struct *task = current;
+	// if (task->pid > 300) printk(PFX "task_housekeeping for PID %d\n", task->pid);
+	if(current->pid > 1) check_ticket_cache();
+}
 
-void global_housekeeping(citadel_inode_data_t *i_trm, struct dentry *dentry) {
+
+void inode_housekeeping(citadel_inode_data_t *i_trm, struct dentry *dentry) {
 	int x;
 	char *identifier;
-
+	task_housekeeping();
 	// Abort if invalid.
 	if (i_trm == NULL || dentry == NULL) return;
 
@@ -293,10 +310,4 @@ void global_housekeeping(citadel_inode_data_t *i_trm, struct dentry *dentry) {
     }
 
 	if (i_trm->in_realm) realm_housekeeping(i_trm, dentry);
-}
-
-void task_housekeeping(void) {
-	// struct task_struct *task = current;
-	// if (task->pid > 300) printk(PFX "task_housekeeping for PID %d\n", task->pid);
-	check_ticket_cache();
 }

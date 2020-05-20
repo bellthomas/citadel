@@ -3,18 +3,10 @@
 #ifndef _SECURITY_TRM_COMMON_H
 #define _SECURITY_TRM_COMMON_H
 
-#include <linux/kernel.h>
-#include <linux/types.h>
-#include <linux/xattr.h>
-#include <linux/binfmts.h>
 #include <linux/lsm_hooks.h>
-#include <linux/cred.h>
-#include <linux/fs.h>
-#include <linux/uidgid.h>
 
+#include "_citadel_shared.h"
 #include "citadel.h"
-
-#define TRM_DEBUG 1
 
 #define PFX "LSM/Citadel: "
 #define PFX_W KERN_WARNING PFX
@@ -54,6 +46,7 @@ typedef struct citadel_inode_data {
     uint8_t data;
 } __randomize_layout citadel_inode_data_t;
 
+
 extern struct lsm_blob_sizes citadel_blob_sizes;
 
 static inline citadel_inode_data_t *trm_inode(const struct inode *inode) {
@@ -71,13 +64,13 @@ static inline citadel_task_data_t *trm_cred(const struct cred *cred) {
 	return cred->security + citadel_blob_sizes.lbs_cred;
 }
 
-extern char* to_hexstring(unsigned char *buf, unsigned int len);
+extern char *to_hexstring(unsigned char *buf, unsigned int len);
 extern char *get_path_for_dentry(struct dentry *dentry);
-extern int set_xattr_in_realm(struct dentry *dentry);
-extern int set_xattr_identifier(struct dentry *dentry, char *value, size_t len);
+extern int   set_xattr_in_realm(struct dentry *dentry);
+extern int   set_xattr_identifier(struct dentry *dentry, char *value, size_t len);
 extern char *get_xattr_identifier(struct dentry *dentry);
-extern void realm_housekeeping(citadel_inode_data_t *i_trm, struct dentry *dentry);
-extern void global_housekeeping(citadel_inode_data_t *i_trm, struct dentry *dentry);
-extern void task_housekeeping(void);
+extern void  realm_housekeeping(citadel_inode_data_t *i_trm, struct dentry *dentry);
+extern void  inode_housekeeping(citadel_inode_data_t *i_trm, struct dentry *dentry);
+extern void  task_housekeeping(void);
 
 #endif  /* _SECURITY_TRM_CRYPTO_H */

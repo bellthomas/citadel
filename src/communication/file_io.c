@@ -1,5 +1,17 @@
+#include <linux/types.h>
+#include <linux/xattr.h>
+#include <linux/binfmts.h>
+#include <linux/lsm_hooks.h>
+#include <linux/cred.h>
+#include <linux/fs.h>
+#include <linux/uidgid.h>
+#include <linux/kobject.h>
+#include <linux/crypto.h>
 
+#include "../../includes/citadel.h"
 #include "../../includes/file_io.h"
+#include "../../includes/payload_io.h"
+#include "../../includes/crypto.h"
 
 ssize_t challenge_receive(struct file *file, const char __user *buf, size_t count, loff_t *ppos) {
     char *data;

@@ -1,7 +1,21 @@
 
-#include "../../includes/task.h"
+#include <linux/types.h>
+#include <linux/xattr.h>
+#include <linux/binfmts.h>
+#include <linux/lsm_hooks.h>
+#include <linux/cred.h>
+#include <linux/fs.h>
+#include <linux/uidgid.h>
+#include <linux/kobject.h>
+#include <linux/crypto.h>
+#include <linux/mutex.h>
+#include <linux/dcache.h>
 
-static void init_task_trm(struct task_trm *tt, struct task_trm *tt_old)
+#include "../../includes/citadel.h"
+#include "../../includes/task.h"
+#include "../../includes/payload_io.h"
+
+static void init_task_trm(citadel_task_data_t *tt, citadel_task_data_t *tt_old)
 {
     if (!tt_old) {
         tt->ticket_head = NULL;
@@ -35,7 +49,7 @@ int trm_cred_alloc_blank(struct cred *cred, gfp_t gfp)
 int trm_cred_prepare(struct cred *new, const struct cred *old, gfp_t gfp)
 {
     if (system_ready()) {
-        printk(PFX "cred_prepare called from PID %d\n", current->pid);
+        // printk(PFX "cred_prepare called from PID %d\n", current->pid);
     }
     // init_task_trm(trm_cred(cred), trm_cred(old));
     return 0;

@@ -1,4 +1,21 @@
+#include <linux/types.h>
+#include <linux/xattr.h>
+#include <linux/binfmts.h>
+#include <linux/lsm_hooks.h>
+#include <linux/cred.h>
+#include <linux/fs.h>
+#include <linux/uidgid.h>
+#include <linux/kobject.h>
+#include <linux/crypto.h>
+#include <linux/mutex.h>
+#include <linux/dcache.h>
+
+#include <linux/random.h>
+
+#include "../../includes/citadel.h"
 #include "../../includes/payload_io.h"
+#include "../../includes/crypto.h"
+#include "../../includes/ticket_cache.h"
 
 static unsigned char current_challenge[_TRM_CHALLENGE_LENGTH];
 static char registered_name[_TRM_NAME_LENGTH];

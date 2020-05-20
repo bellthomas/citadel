@@ -1,3 +1,18 @@
+#include <linux/module.h>
+#include <linux/kernel.h>
+#include <linux/crypto.h>
+#include <linux/scatterlist.h>
+#include <linux/gfp.h>
+#include <linux/err.h>
+#include <linux/syscalls.h>
+#include <linux/slab.h>
+#include <crypto/aead.h>
+#include <crypto/akcipher.h>
+#include <linux/random.h>
+#include <linux/delay.h>
+#include <linux/highmem.h>
+
+#include "../../includes/citadel.h"
 #include "../../includes/crypto.h"
 #include "../../includes/lsm_keys.h"
 

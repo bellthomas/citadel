@@ -1,3 +1,31 @@
+#include <linux/module.h>
+#include <linux/kernel.h>
+#include <linux/crypto.h>
+#include <linux/scatterlist.h>
+#include <linux/gfp.h>
+#include <linux/err.h>
+#include <linux/syscalls.h>
+#include <linux/slab.h>
+#include <crypto/aead.h>
+#include <crypto/akcipher.h>
+#include <linux/random.h>
+#include <linux/delay.h>
+#include <linux/highmem.h>
+#include <linux/types.h>
+#include <linux/xattr.h>
+#include <linux/binfmts.h>
+#include <linux/lsm_hooks.h>
+#include <linux/cred.h>
+#include <linux/fs.h>
+#include <linux/uidgid.h>
+#include <linux/kobject.h>
+#include <linux/crypto.h>
+#include <linux/mutex.h>
+#include <linux/dcache.h>
+
+
+#include "../../includes/_citadel_shared.h"
+#include "../../includes/citadel.h"
 #include "../../includes/crypto.h"
 
 

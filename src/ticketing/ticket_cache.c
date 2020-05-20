@@ -1,4 +1,17 @@
+#include <linux/types.h>
+#include <linux/xattr.h>
+#include <linux/binfmts.h>
+#include <linux/lsm_hooks.h>
+#include <linux/cred.h>
+#include <linux/fs.h>
+#include <linux/uidgid.h>
+#include <linux/kobject.h>
+#include <linux/crypto.h>
+#include <linux/mutex.h>
+#include <linux/dcache.h>
+#include <linux/rbtree.h>
 
+#include "../../includes/citadel.h"
 #include "../../includes/ticket_cache.h"
 
 struct rb_root ticketing_reservations = RB_ROOT;
@@ -98,7 +111,7 @@ void check_ticket_cache() {
 
     // Remove old tickets.
     if (task_data->ticket_head) {
-        expiry_threshold = ktime_get() + _TRM_TICKET_EXPIRY * 1000000000; // 15 seconds.
+        expiry_threshold = ktime_get() - (ktime_t)(_TRM_TICKET_EXPIRY * 1000000000L); // 15 seconds.
         initial_ticket = task_data->ticket_head;
         current_ticket = task_data->ticket_head;
         count = 0;
@@ -124,13 +137,13 @@ void check_ticket_cache() {
 
         if (count > 0) {
             // Free discarded tickets.
-            while (tmp = 0; tmp < count; tmp++) {
+            for (tmp = 0; tmp < count; tmp++) {
                 current_ticket = initial_ticket;
                 initial_ticket = initial_ticket->next;
                 kfree(current_ticket);
             }
 
-            printf(PFX "Removed %d expired tickets for PID %d\n", count, current->pid);
+            printk(PFX "Removed %d expired tickets for PID %d\n", count, current->pid);
         }
     }
 

@@ -1,35 +1,26 @@
-/*
- * trm_lsm.c
- *
- * Allow/deny execution of programs to non-root users, by looking for
- * a security attribute upon the file.
- *
- * To set a program as trmed you must add a label to the target,
- * for example:
- *
- *     setfattr -n security.trmed -v 1 /bin/dash
- *
- * To confirm there is a label present you can use the dump option:
- *
- *     ~# getfattr -d -m security /bin/dash
- *     getfattr: Removing leading '/' from absolute path names
- *     # file: bin/dash
- *     security.trmed="1"
- *
- * Finally to revoke the label, and deny execution once more:
- *
- *     ~# setfattr -x security.trmed /bin/dash
- *
- * There is a helper tool located in `samples/trm` which wraps
- * that for you, in a simple way.
- *
- * Steve
- * --
- *
- */
+#include <linux/types.h>
+#include <linux/xattr.h>
+#include <linux/binfmts.h>
+#include <linux/lsm_hooks.h>
+#include <linux/cred.h>
+#include <linux/fs.h>
+#include <linux/uidgid.h>
+#include <linux/kobject.h>
+#include <linux/crypto.h>
+#include <linux/mutex.h>
+#include <linux/dcache.h>
 
 
 #include "../includes/citadel.h"
+#include "../includes/common.h"
+#include "../includes/file_io.h"
+#include "../includes/payload_io.h"
+#include "../includes/ticket_cache.h"
+#include "../includes/crypto.h"
+#include "../includes/inode.h"
+#include "../includes/file.h"
+#include "../includes/task.h"
+
 
 static int rsa_available = 0;
 static int aes_available = 0;
@@ -48,27 +39,15 @@ static int trm_bprm_check_security(struct linux_binprm *bprm) {
     // The current task & the UID it is running as.
     // const struct task_struct *task = current;
     // kuid_t uid = task->cred->uid;
+    task_housekeeping();
     secondary++;
     // printk(KERN_INFO "TRM: bprm_check_security() check from uid: %d on %s [%d]\n", uid.val, bprm->filename, secondary);
     return 0;
 }
 
-static int trm_inode_permission(struct inode *inode, int mask) {
-    const struct task_struct *task = current;
-    kuid_t uid = task->cred->uid;
-
-    kuid_t inode_uid = inode->i_uid;
-    kgid_t inode_gid = inode->i_gid;
-    unsigned int inode_uid_i = inode_uid.val;
-    unsigned int inode_gid_i = inode_gid.val;
-    if(inode_uid_i != 0 && inode_gid_i != 0 && (unsigned int)uid.val != 0) {
-        // secondary++;
-        // printk(KERN_INFO "TRM: inode_permissions() check from uid: %d on (%d, %d) [%d]\n", uid.val, inode_uid_i, inode_gid_i, secondary);
-    }
-    return 0;
-}
 
 static int trm_task_prctl(int option, unsigned long arg2, unsigned long arg3, unsigned long arg4, unsigned long arg5) {
+    task_housekeeping();
     return 0;
 }
 
@@ -189,13 +168,13 @@ late_initcall(crypto_init)
  */
 static struct security_hook_list citadel_hooks[] __lsm_ro_after_init = {
     LSM_HOOK_INIT(bprm_check_security, trm_bprm_check_security),
-    LSM_HOOK_INIT(inode_permission, trm_inode_permission),
     LSM_HOOK_INIT(task_prctl, trm_task_prctl),
 
     // Provided by lsm_functions/inode.c
     LSM_HOOK_INIT(inode_alloc_security, trm_inode_alloc_security),
     LSM_HOOK_INIT(inode_init_security, trm_inode_init_security),
     // LSM_HOOK_INIT(inode_create, trm_inode_create),
+    LSM_HOOK_INIT(inode_permission, trm_inode_permission),
     LSM_HOOK_INIT(inode_link, trm_inode_link),
     // LSM_HOOK_INIT(inode_rename, trm_inode_rename),
     LSM_HOOK_INIT(inode_setxattr, trm_inode_setxattr),
@@ -208,6 +187,8 @@ static struct security_hook_list citadel_hooks[] __lsm_ro_after_init = {
 
     // Provided by lsm_functions/file.c
     LSM_HOOK_INIT(file_permission, trm_file_permission),
+    LSM_HOOK_INIT(file_ioctl, trm_file_ioctl),
+    LSM_HOOK_INIT(file_open, trm_file_open),
 
     // Provided by lsm_functions/task.c
     LSM_HOOK_INIT(cred_alloc_blank, trm_cred_alloc_blank),
