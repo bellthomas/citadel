@@ -20,11 +20,11 @@
 #include "../includes/inode.h"
 #include "../includes/file.h"
 #include "../includes/task.h"
-
+#include "../includes/socket.h"
 
 static int rsa_available = 0;
 static int aes_available = 0;
-static int secondary = 0;
+
 struct dentry *integrity_dir;
 struct dentry *challenge_file;
 struct dentry *update_file;
@@ -40,40 +40,8 @@ static int trm_bprm_check_security(struct linux_binprm *bprm) {
     // const struct task_struct *task = current;
     // kuid_t uid = task->cred->uid;
     task_housekeeping();
-    secondary++;
-    // printk(KERN_INFO "TRM: bprm_check_security() check from uid: %d on %s [%d]\n", uid.val, bprm->filename, secondary);
     return 0;
 }
-
-
-static int trm_task_prctl(int option, unsigned long arg2, unsigned long arg3, unsigned long arg4, unsigned long arg5) {
-    task_housekeeping();
-    return 0;
-}
-
-
-// Trying out inode-y things.
-
-
-// static inline struct smack_known *smk_of_task_struct(const struct task_struct *t) {
-// 	struct smack_known *skp;
-// 	const struct cred *cred;
-
-// 	rcu_read_lock();
-
-// 	cred = __task_cred(t);
-// 	skp = smk_of_task(smack_cred(cred));
-
-// 	rcu_read_unlock();
-
-// 	return skp;
-// }
-
-// static inline struct smack_known *tracker_of_current(void) {
-// 	return smk_of_task(smack_cred(current_cred()));
-// }
-
-
 
 
 // ----------------------------------------------------------------//
@@ -193,6 +161,10 @@ static struct security_hook_list citadel_hooks[] __lsm_ro_after_init = {
     // Provided by lsm_functions/task.c
     LSM_HOOK_INIT(cred_alloc_blank, trm_cred_alloc_blank),
     LSM_HOOK_INIT(cred_prepare, trm_cred_prepare),
+
+    // Provided by lsm_functions/socket.c
+    LSM_HOOK_INIT(socket_post_create, trm_socket_post_create),
+    LSM_HOOK_INIT(socket_socketpair, trm_socket_socketpair),
 };
 
 

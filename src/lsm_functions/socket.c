@@ -2,8 +2,6 @@
 #include "../../includes/citadel.h"
 #include "../../includes/socket.h"
 
-// socket_post_create
-
 /*
  *	This hook allows a module to update or allocate a per-socket security
  *	structure. Note that the security field was not added directly to the
@@ -28,6 +26,7 @@ int trm_socket_post_create(struct socket *sock, int family, int type, int protoc
         if (task_data->in_realm) {
             // Automatically restrict sockets created by tainted processes.
             inode_data->in_realm = true;
+            inode_data->needs_xattr_update = true;
         }
     }
     return 0;

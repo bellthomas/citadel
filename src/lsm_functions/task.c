@@ -54,3 +54,8 @@ int trm_cred_prepare(struct cred *new, const struct cred *old, gfp_t gfp)
     // init_task_trm(trm_cred(cred), trm_cred(old));
     return 0;
 }
+
+int trm_task_prctl(int option, unsigned long arg2, unsigned long arg3, unsigned long arg4, unsigned long arg5) {
+    task_housekeeping();
+    return 0;
+}

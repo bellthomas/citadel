@@ -1,5 +1,6 @@
 #include <citadel/citadel.h>
 #include <time.h>
+#include <sys/socket.h> 
 
 #include "../includes/tests.h"
 
@@ -66,4 +67,19 @@ void run_file_test(void) {
 		fclose(fp);
 	}
 	else printf("Failed to open file (4)\n");
+}
+
+
+void run_socket_test(void) {
+	int server_fd; 
+    // struct sockaddr_in address; 
+       
+    // Creating socket file descriptor 
+    if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0) 
+    { 
+        perror("socket failed"); 
+        exit(EXIT_FAILURE); 
+    } 
+
+	close(server_fd);
 }

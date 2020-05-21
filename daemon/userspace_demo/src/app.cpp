@@ -10,13 +10,15 @@
 
 enum Action {
 	A_BENCHMARK,
-	A_FILE_TEST
+	A_FILE_TEST,
+	A_SOCKET_TEST,
 };
 static std::map<std::string, Action> actions;
 
 void init_actions(void) {
 	actions["benchmark"] = A_BENCHMARK;
 	actions["file"] = A_FILE_TEST;
+	actions["socket"] = A_SOCKET_TEST;
 } 
 
 int to_action(std::string str) {
@@ -40,6 +42,9 @@ int main(int argc, char** argv) {
 			break;
 		case A_FILE_TEST:
 			run_file_test();
+			break;
+		case A_SOCKET_TEST:
+			run_socket_test();
 			break;
 		default:
 			printf("Invalid option: %s, %d\n", s_arg.c_str(), to_action(s_arg));

@@ -7,6 +7,7 @@ obj-y := src/citadel.o \
 		 src/lsm_functions/inode.o \
 		 src/lsm_functions/file.o \
 		 src/lsm_functions/task.o \
+		 src/lsm_functions/socket.o \
 		 src/ticketing/ticket_cache.o
 		 
 
