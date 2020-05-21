@@ -31,6 +31,7 @@ typedef struct citadel_ticket {
 
 typedef struct citadel_task_data {
     uint8_t t_data;
+    bool in_realm;
     citadel_ticket_t *ticket_head;
 } __randomize_layout citadel_task_data_t;
 
@@ -39,11 +40,10 @@ typedef struct citadel_inode_data {
     bool in_realm; // Boolean. TRUE if protected by Citadel.
     bool needs_xattr_update;
     bool checked_disk_xattr;
+    bool is_socket;
 
     unsigned char identifier[_TRM_IDENTIFIER_LENGTH];
     struct mutex lock;
-
-    uint8_t data;
 } __randomize_layout citadel_inode_data_t;
 
 

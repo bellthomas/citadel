@@ -343,6 +343,7 @@ int can_access(citadel_inode_data_t *inode_data) {
 		// Found a ticket relating to this object.
 		// TODO check operation etc.
 		printk(PFX "Allowing PID %d access to file.\n", current->pid);
+		cred->in_realm = true;
 		return 0;
 	}
 

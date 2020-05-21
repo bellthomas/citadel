@@ -47,7 +47,7 @@ int trm_inode_alloc_security(struct inode *inode) {
     itp->in_realm = false;
 	itp->needs_xattr_update = false;
 	itp->checked_disk_xattr = false;
-	itp->data = 234;
+	itp->is_socket = false;
 	mutex_init(&itp->lock);
 	return 0;
 }

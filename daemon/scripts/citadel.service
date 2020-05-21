@@ -6,8 +6,8 @@ StartLimitIntervalSec=0
 [Service]
 Type=simple
 CPUSchedulingPolicy=fifo
-CPUSchedulingPriority=20
-Nice=-10
+CPUSchedulingPriority=1
+Nice=-20
 Restart=always
 RestartSec=1
 User=root

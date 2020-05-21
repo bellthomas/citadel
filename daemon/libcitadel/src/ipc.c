@@ -122,7 +122,7 @@ bool ipc_recv(nng_msg **msg) {
 
 		switch (rv) {
 		case NNG_EAGAIN:
-			usleep(1);
+			usleep(20);
 			attempts++;
 			if(attempts >= ipc_timeout) {
 				citadel_perror("Timed out. Nothing received.\n");

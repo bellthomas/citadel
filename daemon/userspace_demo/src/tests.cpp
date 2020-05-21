@@ -1,11 +1,10 @@
-
 #include <citadel/citadel.h>
 #include <time.h>
 
+#include "../includes/tests.h"
 
-int main(void) {
-
-	// On start.
+void run_file_test(void) {
+    // On start.
 	bool citadel_ready = citadel_init();
 	if (!citadel_ready) {
 		printf("Citadel failed to init.\n");
@@ -37,10 +36,10 @@ int main(void) {
 	else printf("Failed to open file (1)\n");
 
 	sleep(10);
-	fp = fopen(path, "rw");
+	fp = fopen(path, "r");
 	if(fp) {
 		printf("Opened file (2)\n");
-		fprintf(fp, "%d", 2);
+		// fprintf(fp, "%d", 2);
 		fclose(fp);
 	}
 	else printf("Failed to open file (2)\n");
@@ -60,12 +59,11 @@ int main(void) {
 		exit(3);
 	}
 
-	fp = fopen(path, "a");
+	fp = fopen(path, "r");
 	if(fp) {
 		printf("Opened file (4)\n");
 		fprintf(fp, "%d", 4);
 		fclose(fp);
 	}
 	else printf("Failed to open file (4)\n");
-	return 0;
 }

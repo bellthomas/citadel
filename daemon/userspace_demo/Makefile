@@ -2,8 +2,8 @@
 App_Name := app
 
 SOURCEDIR := src
-SOURCES := $(shell find $(SOURCEDIR) -name '*.c')
-OBJECTS := $(SOURCES:%.c=%.o)
+SOURCES := $(shell find $(SOURCEDIR) -name '*.cpp')
+OBJECTS := $(SOURCES:%.cpp=%.o)
 
 LIBCITADEL_PATH := ../libcitadel
 
@@ -11,15 +11,15 @@ NNG_Include_Folder := /opt/playground/nng/include
 NNG_Library_Folder := /opt/devel/libnng
 
 C_Includes := -I$(LIBCITADEL_PATH)/include -I$(NNG_Include_Folder)
-C_Flags := -L$(LIBCITADEL_PATH) -lcitadel -L$(NNG_Library_Folder) -lnng -pthread
+C_Flags :=  -lcitadel -L$(LIBCITADEL_PATH) -lnng -L$(NNG_Library_Folder) -pthread
 
 all: %: $(OBJECTS)
-	@$(CC) -o $(App_Name) $(OBJECTS) $(C_Includes) $(C_Flags)
+	@$(CXX) -o $(App_Name) $(OBJECTS) $(C_Includes) $(C_Flags) 
 	@echo "   GEN     $(App_Name)"
 
-%.o: %.c
-	@$(CC) -c -o $@ $< $(C_Includes) $(C_Flags)
-	@echo "   CC      $@"
+%.o: %.cpp
+	@$(CXX) -c -o $@ $< $(C_Includes) $(C_Flags)
+	@echo "   CXX     $@"
 
 .PHONY: clean
 clean:
