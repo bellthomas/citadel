@@ -252,7 +252,7 @@ void* _hex_identifier_to_bytes(char* hexstring) {
 char *get_xattr_identifier(struct dentry *dentry) {
 	int x;
 	char *hex_identifier, *identifier;
-	size_t identifier_length = 2 * _CITADEL_IDENTIFIER_LENGTH + 1;
+	size_t identifier_length = _CITADEL_ENCODED_IDENTIFIER_LENGTH;
 	
 	hex_identifier = kzalloc(identifier_length, GFP_KERNEL);
 	x = __vfs_getxattr(dentry, d_backing_inode(dentry), TRM_XATTR_ID_NAME, hex_identifier, identifier_length);
@@ -314,7 +314,7 @@ void inode_housekeeping(citadel_inode_data_t *i_trm, struct dentry *dentry) {
 }
 
 
-int can_access(citadel_inode_data_t *inode_data) {
+int can_access(citadel_inode_data_t *inode_data, citadel_operation_t operation) {
 	ktime_t tracker;
 	size_t tmp;
 	bool found = false;
@@ -333,6 +333,10 @@ int can_access(citadel_inode_data_t *inode_data) {
 				break;
 			}
 		}
+
+		// Check if this enables the requested operation.
+		if ((current_ticket->detail.operation & operation) == 0)
+			found  = false;
 
 		if (!found) {
 			current_ticket = current_ticket->next;

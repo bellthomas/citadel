@@ -109,7 +109,7 @@ int trm_inode_permission(struct inode *inode, int mask) {
 	citadel_inode_data_t *inode_data = trm_inode(inode);
 	task_housekeeping();
 	if (inode_data && inode_data->in_realm) {
-		return can_access(inode_data);
+		return can_access(inode_data, CITADEL_OP_FILE_OPEN);
 	} 
 	return 0;
 }
@@ -179,7 +179,7 @@ int trm_inode_getsecurity(struct inode *inode, const char *name, void **buffer, 
 				if (*buffer == NULL)
 					return -ENOMEM;
 			}
-			return 2 * _CITADEL_IDENTIFIER_LENGTH + 1;
+			return _CITADEL_ENCODED_IDENTIFIER_LENGTH;
 		}
 	}
 	

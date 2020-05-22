@@ -8,6 +8,7 @@
 // Generic.
 #define _CITADEL_LSM_NAME "citadel"
 #define _CITADEL_IDENTIFIER_LENGTH 16
+#define _CITADEL_ENCODED_IDENTIFIER_LENGTH (2 * _CITADEL_IDENTIFIER_LENGTH + 1) 
 #define _CITADEL_SIGNATURE_LENGTH 8
 #define _CITADEL_PID_LENGTH 4
 #define _CITADEL_TICKET_EXPIRY 15  // seconds
@@ -116,11 +117,14 @@ typedef struct citadel_ptoken_protected {
 
 
 // Citadel operation (citadel_operation_t).
-#define CITADEL_OP_NOP            0
-#define CITADEL_OP_REGISTER       1
-#define CITADEL_OP_FILE_CREATE    2
-#define CITADEL_OP_FILE_RECREATE  3
-#define CITADEL_OP_FILE_OPEN      4
+#define CITADEL_OP_NOP              0x00
+#define CITADEL_OP_REGISTER         0x01
+#define CITADEL_OP_FILE_CREATE      0x02
+#define CITADEL_OP_FILE_RECREATE    0x04
+#define CITADEL_OP_FILE_OPEN        0x08
+#define CITADEL_OP_SOCKET_INTERNAL  0x10
+#define CITADEL_OP_SOCKET_EXTERNAL  0x20
+#define CITADEL_OP_SOCKET           0x30  // CITADEL_OP_SOCKET_INTERNAL & CITADEL_OP_SOCKET_EXTERNAL
 
 // Citadel request response (citadel_response_t).
 // enum citadel_status {
@@ -135,13 +139,15 @@ typedef struct citadel_ptoken_protected {
 #define CITADEL_OP_FORGED    1
 #define CITADEL_OP_APPROVED  2
 #define CITADEL_OP_REJECTED  3
-#define CITADEL_OP_ERROR     4
+#define CITADEL_OP_GRANTED   4
+#define CITADEL_OP_ERROR     5
 
 static const char* citadel_status_names[] = {
     "Invalid operation",
     "Forgery detected",
     "Approved",
     "Rejected",
+    "Ownership granted."
     "An internal error occurred",
 };
 

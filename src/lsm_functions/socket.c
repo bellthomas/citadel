@@ -64,8 +64,17 @@ int trm_socket_socketpair(struct socket *socka, struct socket *sockb) {
 int trm_socket_bind(struct socket *sock, struct sockaddr *address, int addrlen) {
     struct inode *s_inode = SOCK_INODE(sock);
     citadel_inode_data_t *inode_data = trm_inode(s_inode);
-    if (inode_data && inode_data->in_realm) {
-        printk(PFX "Tainted socket tried to bind. SA_FAMILY: %d\n", address->sa_family);
+    citadel_task_data_t *task_data = trm_cred(current_cred());
+    if (inode_data && (inode_data->in_realm || task_data->in_realm)) {
+        if (address->sa_family == AF_UNIX || address->sa_family == AF_LOCAL) {
+            // This is a local socket, and therefore governed by permission on the inode.
+            printk(PFX "Tainted socket/process tried to bind -- internal.\n");
+            return can_access(inode_data, CITADEL_OP_SOCKET_INTERNAL);
+        } else {
+            // This is external.
+            printk(PFX "Tainted socket/process tried to bind -- external.\n");
+            return can_access(inode_data, CITADEL_OP_SOCKET_EXTERNAL);
+        }
     }
     return 0;
 }

@@ -27,7 +27,7 @@
 static int rsa_available = 0;
 static int aes_available = 0;
 
-struct dentry *integrity_dir;
+struct dentry *citadel_dir;
 struct dentry *challenge_file;
 struct dentry *update_file;
 struct dentry *ptoken_file;
@@ -55,37 +55,37 @@ static const struct file_operations ptoken_file_ops = { .read = ptoken_read };
 
 static int __init integrity_fs_init(void)
 {
-	integrity_dir = securityfs_create_dir(_CITADEL_SECURITYFS_ROOT, NULL);
-	if (IS_ERR(integrity_dir)) {
-		int ret = PTR_ERR(integrity_dir);
+	citadel_dir = securityfs_create_dir(_CITADEL_SECURITYFS_NS, NULL);
+	if (IS_ERR(citadel_dir)) {
+		int ret = PTR_ERR(citadel_dir);
 
 		if (ret != -ENODEV)
-			pr_err("Unable to create integrity sysfs dir: %d\n", ret);
-		integrity_dir = NULL;
+			pr_err(PFX "Unable to create %s sysfs dir: %d\n", _CITADEL_SECURITYFS_NS, ret);
+		citadel_dir = NULL;
 		return ret;
 	}
 
     challenge_file = securityfs_create_file(
         _CITADEL_SECURITYFS_CHALLENGE, // name
         S_IRUSR | S_IRGRP | S_IWUSR | S_IWGRP,
-        integrity_dir,
-        (void*)"test",
+        citadel_dir,
+        NULL,
         &challenge_file_ops
     );
 
     update_file = securityfs_create_file(
         _CITADEL_SECURITYFS_UPDATE, // name
         S_IRUSR | S_IRGRP | S_IWUSR | S_IWGRP,
-        integrity_dir,
-        (void*)"test",
+        citadel_dir,
+        NULL,
         &update_file_ops
     );
 
     ptoken_file = securityfs_create_file(
         _CITADEL_SECURITYFS_PTOKEN, // name
         S_IRUSR | S_IRGRP | S_IROTH,
-        integrity_dir,
-        (void*)"test",
+        citadel_dir,
+        NULL,
         &ptoken_file_ops
     );
 

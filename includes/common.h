@@ -72,6 +72,6 @@ extern char *get_xattr_identifier(struct dentry *dentry);
 extern void  realm_housekeeping(citadel_inode_data_t *i_trm, struct dentry *dentry);
 extern void  inode_housekeeping(citadel_inode_data_t *i_trm, struct dentry *dentry);
 extern void  task_housekeeping(void);
-extern int   can_access(citadel_inode_data_t *inode_data);
+extern int   can_access(citadel_inode_data_t *inode_data, citadel_operation_t operation);
 
 #endif  /* _SECURITY_TRM_CRYPTO_H */

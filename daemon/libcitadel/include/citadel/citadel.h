@@ -15,6 +15,7 @@ extern "C" {
 #include "init.h"
 #include "ipc.h"
 #include "file.h"
+#include "socket.h"
 
 #define _LIBCITADEL_PERF_METRICS true
 

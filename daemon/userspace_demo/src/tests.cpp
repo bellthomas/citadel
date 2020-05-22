@@ -111,20 +111,8 @@ void run_socket_test(void) {
         exit(EXIT_FAILURE); 
     } 
 
-	printf("Socket FD: %d\n", server_fd);
-	size_t len = 2 * 16 + 1;
-	void *id = malloc(len);
-	ssize_t x = fgetxattr(server_fd, "security.citadel.identifier", id, len);
 	
-	if (x == len) {
-		printf("Socket identifier: %s\n", (char*)id);
-	} else {
-		printf("Fail. Got %ld bytes for identifier\n", x);
-	}
-	free(id);
-
-
-	// Forcefully attaching socket to the port 8080 
+	// Set options.
     if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt))) 
     { 
         perror("setsockopt"); 
@@ -134,13 +122,16 @@ void run_socket_test(void) {
     address.sin_addr.s_addr = INADDR_ANY; 
     address.sin_port = htons(13756); 
        
-    // Forcefully attaching socket to the port 8080 
-    if (bind(server_fd, (struct sockaddr *)&address,  
-                                 sizeof(address))<0) 
-    { 
+	bool socket_allowed = citadel_socket(server_fd, (struct sockaddr *)&address);
+
+    // Bind to address. 
+    if (bind(server_fd, (struct sockaddr *)&address, sizeof(address)) < 0) { 
         perror("bind failed"); 
-        exit(EXIT_FAILURE); 
+        // exit(EXIT_FAILURE); 
     }
+	else {
+		printf("Successfully bound to socket\n");
+	}
 
 
 
