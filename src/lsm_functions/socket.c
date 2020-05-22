@@ -34,6 +34,8 @@ int trm_socket_post_create(struct socket *sock, int family, int type, int protoc
     struct inode *s_inode = SOCK_INODE(sock);
     citadel_inode_data_t *inode_data = trm_inode(s_inode);
     citadel_task_data_t *task_data = trm_cred(current_cred());
+
+    task_housekeeping();
     if (inode_data) {
         inode_data->is_socket = true;
         inode_data->checked_disk_xattr = true;
@@ -65,6 +67,9 @@ int trm_socket_bind(struct socket *sock, struct sockaddr *address, int addrlen) 
     struct inode *s_inode = SOCK_INODE(sock);
     citadel_inode_data_t *inode_data = trm_inode(s_inode);
     citadel_task_data_t *task_data = trm_cred(current_cred());
+
+    task_housekeeping();
+
     if (inode_data && (inode_data->in_realm || task_data->in_realm)) {
         if (address->sa_family == AF_UNIX || address->sa_family == AF_LOCAL) {
             // This is a local socket, and therefore governed by permission on the inode.
