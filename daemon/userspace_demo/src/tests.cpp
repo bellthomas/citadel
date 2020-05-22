@@ -4,6 +4,29 @@
 
 #include "../includes/tests.h"
 
+const char path[] = "/opt/testing_dir/userspace_file.txt";
+
+void run_taint(void) {
+	// On start.
+	bool citadel_ready = citadel_init();
+	if (!citadel_ready) {
+		printf("Citadel failed to init.\n");
+		exit(1);
+	}
+
+	// Open file.
+	bool citadel_file_open_ret = citadel_file_open((char*)path, sizeof(path));
+	if (!citadel_file_open_ret) {
+		printf("Can't open file.\n");
+		exit(3);
+	}
+
+	FILE *fp;
+	fp = fopen(path, "rw");
+	if(fp) fclose(fp);
+	else printf("Failed to taint\n");
+}
+
 void run_file_test(void) {
     // On start.
 	bool citadel_ready = citadel_init();
@@ -13,7 +36,6 @@ void run_file_test(void) {
 	}
 
 	// Init file.
-	const char path[] = "/opt/testing_dir/userspace_file.txt";
 	bool citadel_file_create_ret = citadel_file_create((char*)path, sizeof(path));
 	if (!citadel_file_create_ret) {
 		printf("Citadel failed to create file.\n");
@@ -81,5 +103,7 @@ void run_socket_test(void) {
         exit(EXIT_FAILURE); 
     } 
 
+	printf("Socket FD: %d\n", server_fd);
+	while(1) {}
 	close(server_fd);
 }

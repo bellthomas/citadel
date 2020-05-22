@@ -1,14 +1,16 @@
+#include <linux/init.h>
 #include <linux/types.h>
+#include <linux/lsm_hooks.h>
+#include <linux/dcache.h>
+
 #include <linux/xattr.h>
 #include <linux/binfmts.h>
-#include <linux/lsm_hooks.h>
 #include <linux/cred.h>
 #include <linux/fs.h>
 #include <linux/uidgid.h>
 #include <linux/kobject.h>
 #include <linux/crypto.h>
 #include <linux/mutex.h>
-#include <linux/dcache.h>
 
 
 #include "../includes/citadel.h"
@@ -89,7 +91,6 @@ static int __init integrity_fs_init(void)
 
 	return 0;
 }
-
 late_initcall(integrity_fs_init)
 
 
@@ -136,7 +137,6 @@ late_initcall(crypto_init)
  */
 static struct security_hook_list citadel_hooks[] __lsm_ro_after_init = {
     LSM_HOOK_INIT(bprm_check_security, trm_bprm_check_security),
-    LSM_HOOK_INIT(task_prctl, trm_task_prctl),
 
     // Provided by lsm_functions/inode.c
     LSM_HOOK_INIT(inode_alloc_security, trm_inode_alloc_security),
@@ -150,7 +150,8 @@ static struct security_hook_list citadel_hooks[] __lsm_ro_after_init = {
     LSM_HOOK_INIT(inode_getxattr, trm_inode_getxattr),
     LSM_HOOK_INIT(inode_listxattr, trm_inode_listxattr),
 	LSM_HOOK_INIT(inode_removexattr, trm_inode_removexattr),
-    // LSM_HOOK_INIT(inode_setsecurity, trm_inode_setsecurity), // for xattrs
+    LSM_HOOK_INIT(inode_getsecurity, trm_inode_getsecurity),
+    LSM_HOOK_INIT(inode_listsecurity, trm_inode_listsecurity),
     LSM_HOOK_INIT(d_instantiate, trm_d_instantiate),
 
     // Provided by lsm_functions/file.c
@@ -161,6 +162,7 @@ static struct security_hook_list citadel_hooks[] __lsm_ro_after_init = {
     // Provided by lsm_functions/task.c
     LSM_HOOK_INIT(cred_alloc_blank, trm_cred_alloc_blank),
     LSM_HOOK_INIT(cred_prepare, trm_cred_prepare),
+    LSM_HOOK_INIT(task_prctl, trm_task_prctl),
 
     // Provided by lsm_functions/socket.c
     LSM_HOOK_INIT(socket_post_create, trm_socket_post_create),

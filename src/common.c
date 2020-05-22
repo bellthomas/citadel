@@ -270,10 +270,11 @@ char *get_xattr_identifier(struct dentry *dentry) {
 void realm_housekeeping(citadel_inode_data_t *i_trm, struct dentry *dentry) {
 	int res;
     if (!i_trm->in_realm) return;
-    if (i_trm->needs_xattr_update) {
+
+    if (i_trm->needs_xattr_update && !i_trm->is_socket) {
 		i_trm->needs_xattr_update = false;
 		res = set_xattr_in_realm(dentry);
-		// printk(PFX "realm_housekeeping -> set xattr (%d)\n", res);
+		printk(PFX "realm_housekeeping -> set xattr (%d)\n", res);
 		// TODO support setting identifier
     }
 }
@@ -292,7 +293,7 @@ void inode_housekeeping(citadel_inode_data_t *i_trm, struct dentry *dentry) {
 	// Abort if invalid.
 	if (i_trm == NULL || dentry == NULL) return;
 
-	if (!i_trm->checked_disk_xattr) {
+	if (!i_trm->checked_disk_xattr && !i_trm->is_socket) {
 		i_trm->checked_disk_xattr = true;
 
 		// Fetch identifier.

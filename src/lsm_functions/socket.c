@@ -1,3 +1,16 @@
+#include <linux/types.h>
+#include <linux/xattr.h>
+#include <linux/binfmts.h>
+#include <linux/lsm_hooks.h>
+#include <linux/cred.h>
+#include <linux/fs.h>
+#include <linux/uidgid.h>
+#include <linux/kobject.h>
+#include <linux/crypto.h>
+#include <linux/mutex.h>
+#include <linux/dcache.h>
+#include <net/sock.h>
+#include <linux/random.h>
 
 #include "../../includes/citadel.h"
 #include "../../includes/socket.h"
@@ -20,13 +33,15 @@
 int trm_socket_post_create(struct socket *sock, int family, int type, int protocol, int kern) {
     struct inode *s_inode = SOCK_INODE(sock);
     citadel_inode_data_t *inode_data = trm_inode(s_inode);
-    citadel_task_data_t *task_data = trm_task(current_cred());
+    citadel_task_data_t *task_data = trm_cred(current_cred());
     if (inode_data) {
         inode_data->is_socket = true;
+        inode_data->checked_disk_xattr = true;
         if (task_data->in_realm) {
             // Automatically restrict sockets created by tainted processes.
             inode_data->in_realm = true;
-            inode_data->needs_xattr_update = true;
+            get_random_bytes(inode_data->identifier, _TRM_IDENTIFIER_LENGTH);
+            printk(PFX "Socket created by tainted process, set in_realm (%d)\n", s_inode->i_ino);
         }
     }
     return 0;

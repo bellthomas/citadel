@@ -12,6 +12,7 @@ enum Action {
 	A_BENCHMARK,
 	A_FILE_TEST,
 	A_SOCKET_TEST,
+	A_TAINT,
 };
 static std::map<std::string, Action> actions;
 
@@ -19,6 +20,7 @@ void init_actions(void) {
 	actions["benchmark"] = A_BENCHMARK;
 	actions["file"] = A_FILE_TEST;
 	actions["socket"] = A_SOCKET_TEST;
+	actions["taint"] = A_TAINT;
 } 
 
 int to_action(std::string str) {
@@ -33,12 +35,16 @@ int main(int argc, char** argv) {
 		return 0;
 	}
 
+	printf("PID: %d\n", getpid());
 	init_actions();
 	for (int i = 1; i < argc; i++) {
 		std::string s_arg(argv[i]);
 		switch (to_action(s_arg)) {
 		case A_BENCHMARK:
 			run_benchmarks();
+			break;
+		case A_TAINT:
+			run_taint();
 			break;
 		case A_FILE_TEST:
 			run_file_test();

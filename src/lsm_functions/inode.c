@@ -9,6 +9,7 @@
 #include <linux/crypto.h>
 #include <linux/mutex.h>
 #include <linux/dcache.h>
+#include <net/sock.h>
 
 #include "../../includes/citadel.h"
 #include "../../includes/inode.h"
@@ -43,7 +44,11 @@ int trm_inode_rename(struct inode *old_inode, struct dentry *old_dentry,
  *	Return 0 if operation was successful.
  */
 int trm_inode_alloc_security(struct inode *inode) {
-	citadel_inode_data_t *itp = trm_inode(inode);
+	citadel_inode_data_t *itp;
+	if (inode->i_ino < 2) return 0;  
+
+	itp = trm_inode(inode);
+	// printk(PFX "trm_inode_alloc_security for %ld\n", inode->i_ino);
     itp->in_realm = false;
 	itp->needs_xattr_update = false;
 	itp->checked_disk_xattr = false;
@@ -151,69 +156,53 @@ int trm_inode_link(struct dentry *old_dentry, struct inode *dir, struct dentry *
 }
 
 
-/*
- *	Change the security context of an inode.  Updates the
- *	incore security context managed by the security module and invokes the
- *	fs code as needed (via __vfs_setxattr_noperm) to update any backing
- *	xattrs that represent the context.  Example usage:  NFS server invokes
- *	this hook to change the security context in its incore inode and on the
- *	backing filesystem to a value provided by the client on a SETATTR
- *	operation.
- *	Must be called with inode->i_mutex locked.
- *	@dentry contains the inode we wish to set the security context of.
- *	@ctx contains the string which we wish to set in the inode.
- *	@ctxlen contains the length of @ctx.
- */
-// int trm_inode_setsecctx(struct dentry *dentry, void *ctx, u32 ctxlen) {
-// 	citadel_inode_data_t *current_inode_trm = trm_dentry(dentry);
-// 	char *pos;
-//     char *pathname = NULL;
-// 	int pathname_len = 1024;
-// 	int res;
-// 	size_t xattr_size;
+int trm_inode_getsecurity(struct inode *inode, const char *name, void **buffer, bool alloc) {
+	citadel_inode_data_t *inode_data = trm_inode(inode);
+	struct socket *sock;
+	struct inode *ip = (struct inode *)inode;
 
-// 	if (current_inode_trm->in_realm) {
-// 		printk(PFX "trm_inode_setsecctx and in realm\n");
-// 		// Check if the xattr is set.
-// 		xattr_size = __vfs_getxattr(dentry, d_backing_inode(dentry), TRM_XATTR_REALM_NAME, NULL, 0);
-//        	if (xattr_size == 0) {
-// 			// context is initialised by xattr is blank; update.
-// 			res = __set_xattr_in_realm(dentry);
-// 			printk(PFX "xattr setting success: %d\n", res);
+	// Verify that inode belongs to SockFS.
+	if (ip->i_sb->s_magic != SOCKFS_MAGIC)
+		return -EOPNOTSUPP;
 
-// #if CITADEL_DEBUG == 1
-// 			// Log for debug.
-// 			pathname = kzalloc(pathname_len, GFP_KERNEL);
-// 			if(pathname) {
-// 				pos = get_dentry_path(dentry, pathname, pathname_len);
-// 				if (!IS_ERR(pos)) {
-// 					printk(PFX "[HIER_SUB] Setting in_realm for %s\n", pos);
-// 				}
-// 				kfree(pathname);
-// 			}
-// #endif
-// 		}
-// 	}
+	// Only use for sockets, files' xattrs are served from VFS.
+	if (inode_data && inode_data->in_realm && inode_data->is_socket) {
+		// This is a protected socket.
 
-// 	return -EOPNOTSUPP; // We don't use security attributes here.
-// }
+		if (strncmp(name, _CITADEL_XATTR_NS_TAG_IN_REALM, sizeof(_CITADEL_XATTR_NS_TAG_IN_REALM)) == 0) {
+			return 0;
+		}
 
-// int trm_inode_notifysecctx(struct inode *inode, void *ctx, u32 ctxlen) {
-// 	citadel_inode_data_t *current_inode_trm = trm_inode(inode);
-// 	if(current_inode_trm->in_realm) {
-// 		printk(PFX "trm_inode_notifysecctx and in realm");
-// 	}
-// 	return -EOPNOTSUPP;
-// }
+		if (strncmp(name, _CITADEL_XATTR_NS_TAG_IDENTIFIER, sizeof(_CITADEL_XATTR_NS_TAG_IDENTIFIER)) == 0) {
+			// This is security.citadel.identifier
+			if (alloc) {
+				*buffer = to_hexstring(inode_data->identifier, _TRM_IDENTIFIER_LENGTH);
+				if (*buffer == NULL)
+					return -ENOMEM;
+			}
+			return 2 * _TRM_IDENTIFIER_LENGTH + 1;
+		}
+	}
+	
+	return -EOPNOTSUPP;
+}
 
+int trm_inode_listsecurity(struct inode *inode, char *buffer, size_t buffer_size) {
+	const int len = sizeof(_TRM_XATTR_IN_REALM);
+	if (buffer && len <= buffer_size)
+		memcpy(buffer, _TRM_XATTR_IN_REALM, len);
+	return 0;
+}
 
 void trm_d_instantiate(struct dentry *dentry, struct inode *inode) {
-	citadel_inode_data_t *current_inode_trm = trm_inode(inode);
-	if(current_inode_trm->in_realm) {
-		dentry->d_inode = inode;
-		realm_housekeeping(current_inode_trm, dentry);
-		dentry->d_inode = NULL;
-		printk(PFX "trm_d_instantiate (in_realm, %ld)\n", inode->i_ino);
+	citadel_inode_data_t *inode_data = trm_inode(inode);
+	if(inode_data->in_realm) {
+		if (!inode_data->is_socket) {
+			dentry->d_inode = inode;
+			realm_housekeeping(inode_data, dentry);
+			dentry->d_inode = NULL;
+		}
+		printk(PFX "trm_d_instantiate (in_realm: %d, %ld, socket: %d)\n", inode_data->in_realm, inode->i_ino, inode_data->is_socket);
 	}
 }
 
@@ -225,7 +214,6 @@ int trm_inode_setxattr(struct dentry *dentry, const char *name,
 				       const void *value, size_t size, int flags)
 {
 	int rc = 0;
-    char *pathname = NULL;
 
 	// Check for security.citadel.install
 	if (!strcmp(name, TRM_XATTR_INSTALL_NAME)) {
@@ -233,15 +221,7 @@ int trm_inode_setxattr(struct dentry *dentry, const char *name,
 			rc = xattr_enclave_installation(value, size, dentry) ? -XATTR_REJECTED_SIGNAL : -XATTR_ACCEPTED_SIGNAL;
 		else
 			rc = -ECANCELED; // Can't process this operation yet.
-		
-#if CITADEL_DEBUG == 1
-		pathname = get_path_for_dentry(dentry);
-		if(pathname) {
-			printk(PFX "security.citadel.install for %s (err=%d)\n", pathname, rc);
-			kfree(pathname);
-		}
-#endif
-
+	
 		return rc;
 	}
 
@@ -255,27 +235,17 @@ int trm_inode_setxattr(struct dentry *dentry, const char *name,
     return -EPERM; //(inode_owner_or_capable(inode) ? 0 : -EPERM);
 }
 
-void trm_inode_post_setxattr(struct dentry *dentry, const char *name,
-					const void *value, size_t size,
-					int flags)
+void trm_inode_post_setxattr(struct dentry *dentry, const char *name, const void *value, size_t size, int flags)
 {
-	citadel_inode_data_t *current_inode_trm = trm_dentry(dentry);
-    char *pathname = NULL;
+	citadel_inode_data_t *inode_data = trm_dentry(dentry);
 
-
-
-	if (current_inode_trm) {
+	if (inode_data) {
 		// Do housekeeping.
-		inode_housekeeping(current_inode_trm, dentry);
+		inode_housekeeping(inode_data, dentry);
 
-		if (current_inode_trm->in_realm) {
-
+		if (inode_data->in_realm) {
 			// Log for debug.
-			pathname = get_path_for_dentry(dentry);
-			if(pathname) {
-				printk(PFX "trm_inode_post_setxattr for %s\n", pathname);
-				kfree(pathname);
-			}
+			printk(PFX "trm_inode_post_setxattr for PID %d (in_realm)\n", current->pid);
 		}
 	}
 	return;
@@ -283,9 +253,9 @@ void trm_inode_post_setxattr(struct dentry *dentry, const char *name,
 
 int trm_inode_getxattr(struct dentry *dentry, const char *name)
 {
-	citadel_inode_data_t *current_inode_trm = trm_dentry(dentry);
-	if(current_inode_trm)
-		inode_housekeeping(current_inode_trm, dentry);
+	citadel_inode_data_t *inode_data = trm_dentry(dentry);
+	if(inode_data)
+		inode_housekeeping(inode_data, dentry);
 	return 0;
 }
 int trm_inode_listxattr(struct dentry *dentry) {
