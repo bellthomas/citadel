@@ -1,8 +1,8 @@
 
 #include "includes/lsm_communication.h"
 
-#ifndef __TRM_ENCLAVE_KEYS
-#define __TRM_ENCLAVE_KEYS
+#ifndef __CITADEL_ENCLAVE_KEYS
+#define __CITADEL_ENCLAVE_KEYS
 #include "enclave_keys.h"
 #endif
 
@@ -14,9 +14,9 @@ sgx_status_t handle_kernel_challenge(uint8_t *challenge_data, size_t challenge_l
 
     // ocall_print("-- Challenge read");
     // print_hex(challenge_data, challenge_length);
-    unsigned char decrypted[RSA_BLOCK_SIZE];
-    struct trm_challenge *challenge;
-    size_t decrypted_len = RSA_BLOCK_SIZE;
+    unsigned char decrypted[_CITADEL_RSA_KEY_LENGTH];
+    citadel_challenge_t *challenge;
+    size_t decrypted_len = _CITADEL_RSA_KEY_LENGTH;
     int result;
 
     // print_hex((unsigned char *)challenge_data, challenge_length);
@@ -25,14 +25,14 @@ sgx_status_t handle_kernel_challenge(uint8_t *challenge_data, size_t challenge_l
         return (sgx_status_t)err;
     // print_hex(decrypted, decrypted_len);
 
-    // Check if its a trm_challenge.
-    if (decrypted_len != sizeof(trm_challenge))
+    // Check if its a citadel_challenge.
+    if (decrypted_len != sizeof(citadel_challenge_t))
     {
         enclave_perror("Size of decrypted payload wrong.");
         return (sgx_status_t)decrypted_len;
     }
 
-    challenge = (struct trm_challenge *)decrypted;
+    challenge = (citadel_challenge_t *)decrypted;
     if (memcmp(challenge->signature, challenge_signature, sizeof(challenge_signature)))
     {
         enclave_perror("Signatures don't match...");
@@ -48,10 +48,10 @@ sgx_status_t handle_kernel_challenge(uint8_t *challenge_data, size_t challenge_l
     challenge->pid = pid;
 
     // ocall_print("-- Response write");
-    // print_hex((unsigned char*)challenge, sizeof(trm_challenge));
-    unsigned char cipher[RSA_BLOCK_SIZE];
-    size_t outlen = RSA_BLOCK_SIZE;
-    err = rsa_encrypt((unsigned char *)challenge, sizeof(trm_challenge), cipher, &outlen, lsm_key_padded_pub, lsm_key_padded_pub_len);
+    // print_hex((unsigned char*)challenge, sizeof(citadel_challenge_t));
+    unsigned char cipher[_CITADEL_RSA_KEY_LENGTH];
+    size_t outlen = _CITADEL_RSA_KEY_LENGTH;
+    err = rsa_encrypt((unsigned char *)challenge, sizeof(citadel_challenge_t), cipher, &outlen, lsm_key_padded_pub, lsm_key_padded_pub_len);
     if (err != 0)
         return (sgx_status_t)err;
     // print_hex(cipher, outlen);
@@ -79,18 +79,18 @@ bool generate_ticket(int32_t pid, const char *metadata, citadel_operation_t oper
 {
     // Build ticket structure.
 
-    char data[sizeof(trm_update_header) + sizeof(citadel_update_record_t)];
-    struct trm_update_header *hdr;
+    char data[sizeof(citadel_update_header_t) + sizeof(citadel_update_record_t)];
+    citadel_update_header_t *hdr;
     citadel_update_record_t *rcrd;
 
     // Build ticket header.
-    hdr = (struct trm_update_header *)data;
+    hdr = (citadel_update_header_t *)data;
     memcpy(hdr->signature, challenge_signature, sizeof(challenge_signature));
     sgx_read_rand(hdr->key_update, sizeof(hdr->key_update));
     hdr->records = (uint8_t) 1;
 
     // Set ticket bidy.
-    rcrd = (citadel_update_record_t *)(data + sizeof(struct trm_update_header));
+    rcrd = (citadel_update_record_t *)(data + sizeof(citadel_update_header_t));
     memcpy(rcrd->identifier, metadata, sizeof(rcrd->identifier));
     rcrd->pid = pid;
     rcrd->operation = operation;
@@ -128,9 +128,9 @@ int process_updates(uint8_t *update_data, size_t update_length)
     // print_hex((unsigned char*)plain, outlen);
     // ocall_print("\ndissecting records...");
 
-    struct trm_update_header *hdr;
+    citadel_update_header_t *hdr;
     citadel_update_record_t *rcrd;
-    hdr = (struct trm_update_header *)plain;
+    hdr = (citadel_update_header_t *)plain;
 
     if (memcmp(hdr->signature, challenge_signature, sizeof(challenge_signature)))
     {
@@ -150,16 +150,16 @@ bool generate_xattr_ticket(const char *path)
 {
     // The +11 is to mitigate a bug in the SGX runtime.
     // Hypothesis: an illegal insturction is called if the stack frame isn't word-aligned (16 bytes).
-    char data[sizeof(trm_update_header) + sizeof(citadel_update_record_t)];
-    struct trm_update_header *hdr;
+    char data[sizeof(citadel_update_header_t) + sizeof(citadel_update_record_t)];
+    citadel_update_header_t *hdr;
     citadel_update_record_t *rcrd;
 
-    hdr = (struct trm_update_header *)data;
+    hdr = (citadel_update_header_t *)data;
     memcpy(hdr->signature, challenge_signature, sizeof(challenge_signature));
     sgx_read_rand(hdr->key_update, sizeof(hdr->key_update));
     hdr->records = (uint8_t)1;
 
-    rcrd = (citadel_update_record_t *)(data + sizeof(struct trm_update_header));
+    rcrd = (citadel_update_record_t *)(data + sizeof(citadel_update_header_t));
     rcrd->pid = 13;
     rcrd->operation = 0;
     sgx_read_rand(rcrd->identifier, sizeof(rcrd->identifier));
@@ -177,7 +177,7 @@ bool generate_xattr_ticket(const char *path)
     size_t pathname_len = strlen(path) + 1;
     install_xattr(&install_ret, (char*)path, pathname_len, (uint8_t*)cipher, outlen);
 
-    if (install_ret == XATTR_ACCEPTED_SIGNAL)
+    if (install_ret == _CITADEL_XATTR_ACCEPTED_SIGNAL)
     {
         update_aes_key(hdr->key_update, sizeof(hdr->key_update));
         return true;

@@ -2,11 +2,8 @@
 #ifndef _SECURITY_TRM_CRYPTO_H
 #define _SECURITY_TRM_CRYPTO_H
 
-#define RSA_PAYLOAD_SIZE 256
-
 #define AES_ENCRYPT 1
 #define AES_DECRYPT 2
-#define AES_KEY_SIZE 16
 
 extern int trm_rsa_self_test(void);
 extern char* trm_rsa_encrypt(char* data, size_t data_len, int* return_size);

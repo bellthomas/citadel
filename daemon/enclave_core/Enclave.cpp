@@ -2,12 +2,12 @@
 #include "includes/enclave.h"
 
 // Hex printing facility.
-static unsigned char hex_buffer[2*CITADEL_MAX_METADATA_SIZE+1] = {'\0'};
+static unsigned char hex_buffer[2*_CITADEL_MAX_METADATA_SIZE+1] = {'\0'};
 
 void load_hex_buffer(unsigned char *buf, unsigned int len) {
     size_t  i;
     if (buf == NULL || len == 0) return;
-    for (i=0; i<len && i<CITADEL_MAX_METADATA_SIZE; i++) {
+    for (i=0; i<len && i<_CITADEL_MAX_METADATA_SIZE; i++) {
         hex_buffer[i*2]   = "0123456789ABCDEF"[buf[i] >> 4];
         hex_buffer[i*2+1] = "0123456789ABCDEF"[buf[i] & 0x0F];
     }

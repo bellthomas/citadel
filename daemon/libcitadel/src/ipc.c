@@ -13,8 +13,8 @@ static bool init_socket(void) {
         return false;
 	}
 
-    if ((rv = nng_dial(sock, CITADEL_IPC_ADDRESS, NULL, 0)) != 0) {
-        citadel_perror("Failed to connect to %s: %s\n", CITADEL_IPC_ADDRESS, nng_strerror(rv));
+    if ((rv = nng_dial(sock, _CITADEL_IPC_ADDRESS, NULL, 0)) != 0) {
+        citadel_perror("Failed to connect to %s: %s\n", _CITADEL_IPC_ADDRESS, nng_strerror(rv));
         return false;
 	}
 

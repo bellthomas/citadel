@@ -62,7 +62,7 @@ static int trm_aes_operation(struct crypto_aead *tfm, struct aead_request *req,
     unsigned char *plaindata = NULL;
     unsigned char *cipherdata = NULL;
     struct tcrypt_result result;
-    u8 iv[IV_LENGTH];
+    u8 iv[_CITADEL_IV_LENGTH];
     int err;
     *outlen = 0;
      
@@ -77,21 +77,21 @@ static int trm_aes_operation(struct crypto_aead *tfm, struct aead_request *req,
     /* Initialize the IV */
     if (mode == AES_ENCRYPT) get_random_bytes(iv, sizeof(iv));
     else {
-        memcpy(iv, data + (datasize - IV_LENGTH), IV_LENGTH);
-        datasize -= IV_LENGTH;
+        memcpy(iv, data + (datasize - _CITADEL_IV_LENGTH), _CITADEL_IV_LENGTH);
+        datasize -= _CITADEL_IV_LENGTH;
     }
     // memset(iv, 0, sizeof(iv));
     // get_random_bytes(iv, sizeof(iv));
 
     /* Set authentication tag length */
-    if(crypto_aead_setauthsize(tfm, TAG_LENGTH)) {
+    if(crypto_aead_setauthsize(tfm, _CITADEL_TAG_LENGTH)) {
         pr_info(PFX "Tag size could not be authenticated\n");
         err = -EAGAIN;
         goto bail;
     }
 
-    plaindata  = kmalloc(datasize + TAG_LENGTH + IV_LENGTH, GFP_KERNEL);
-    cipherdata = kmalloc(datasize + TAG_LENGTH + IV_LENGTH, GFP_KERNEL);
+    plaindata  = kmalloc(datasize + _CITADEL_TAG_LENGTH + _CITADEL_IV_LENGTH, GFP_KERNEL);
+    cipherdata = kmalloc(datasize + _CITADEL_TAG_LENGTH + _CITADEL_IV_LENGTH, GFP_KERNEL);
     if(!plaindata || !cipherdata) {
         printk("Memory not available\n");
         err = -ENOMEM;
@@ -100,18 +100,18 @@ static int trm_aes_operation(struct crypto_aead *tfm, struct aead_request *req,
 
 
     memcpy(plaindata, data, datasize);
-    memset(plaindata + datasize, 0, TAG_LENGTH + IV_LENGTH);
-    memset(cipherdata, 0, datasize + TAG_LENGTH + IV_LENGTH);
+    memset(plaindata + datasize, 0, _CITADEL_TAG_LENGTH + _CITADEL_IV_LENGTH);
+    memset(cipherdata, 0, datasize + _CITADEL_TAG_LENGTH + _CITADEL_IV_LENGTH);
 
-    sg_init_one(&plaintext[0], plaindata, datasize + TAG_LENGTH + IV_LENGTH);
-    sg_init_one(&ciphertext[0], cipherdata, datasize + TAG_LENGTH + IV_LENGTH);
+    sg_init_one(&plaintext[0], plaindata, datasize + _CITADEL_TAG_LENGTH + _CITADEL_IV_LENGTH);
+    sg_init_one(&ciphertext[0], cipherdata, datasize + _CITADEL_TAG_LENGTH + _CITADEL_IV_LENGTH);
 
     aead_request_set_callback(req, CRYPTO_TFM_REQ_MAY_BACKLOG, aead_work_done, &result);
     crypto_aead_clear_flags(tfm, ~0);
 
     aead_request_set_crypt(req, &plaintext[0], &ciphertext[0], datasize, iv);
     aead_request_set_ad(req, 0);
-    crypto_aead_setauthsize(tfm, TAG_LENGTH);
+    crypto_aead_setauthsize(tfm, _CITADEL_TAG_LENGTH);
 
 
     if (mode == AES_ENCRYPT) err = aead_wait_async_op(&result, crypto_aead_encrypt(req));
@@ -123,19 +123,19 @@ static int trm_aes_operation(struct crypto_aead *tfm, struct aead_request *req,
 
 
     // How big is it?
-        // outsize = (mode == AES_ENCRYPT) ? datasize + TAG_LENGTH : datasize - TAG_LENGTH;
+        // outsize = (mode == AES_ENCRYPT) ? datasize + _CITADEL_TAG_LENGTH : datasize - _CITADEL_TAG_LENGTH;
     // if (mode == AES_ENCRYPT) printk(PFX "AES Encrypting: %ld -> %ld", datasize, outsize);
     // else printk(PFX "AES Decrypting: %ld -> %ld", datasize, outsize);
 
     if (mode == AES_ENCRYPT) {
-        memcpy(out, cipherdata, datasize + TAG_LENGTH);
-        memcpy(out + (datasize + TAG_LENGTH), iv, IV_LENGTH);
-        *outlen = datasize + TAG_LENGTH + IV_LENGTH;
+        memcpy(out, cipherdata, datasize + _CITADEL_TAG_LENGTH);
+        memcpy(out + (datasize + _CITADEL_TAG_LENGTH), iv, _CITADEL_IV_LENGTH);
+        *outlen = datasize + _CITADEL_TAG_LENGTH + _CITADEL_IV_LENGTH;
     }
     else {
         // NB. IV size already removed from datasize.
-        memcpy(out, cipherdata, datasize - TAG_LENGTH);
-        *outlen = datasize - TAG_LENGTH;
+        memcpy(out, cipherdata, datasize - _CITADEL_TAG_LENGTH);
+        *outlen = datasize - _CITADEL_TAG_LENGTH;
     }
 
 bail:
@@ -174,7 +174,7 @@ int prepare_aead(uint8_t *key, void *data, size_t datasize, int mode, void *out,
         goto free_tfm;
     }
 
-    res = trm_aes_operation(tfm, req, key, AES_KEY_SIZE, data, datasize, mode, out, outlen);
+    res = trm_aes_operation(tfm, req, key, _CITADEL_AES_KEY_LENGTH, data, datasize, mode, out, outlen);
 
     aead_request_free(req);
 free_tfm:
@@ -205,25 +205,25 @@ int trm_aes_self_test(void) {
     // printk(KERN_INFO PFX "Raw data -- %s\n", h1);
     // kfree(h1);
     
-    key = kzalloc(AES_KEY_SIZE, GFP_KERNEL);
+    key = kzalloc(_CITADEL_AES_KEY_LENGTH, GFP_KERNEL);
     if (!key) {
         err = -ENOMEM;
         goto free_data;
     }
-    random_bytes(key, AES_KEY_SIZE);
-    // h2 = to_hexstring(key, AES_KEY_SIZE);
+    random_bytes(key, _CITADEL_AES_KEY_LENGTH);
+    // h2 = to_hexstring(key, _CITADEL_AES_KEY_LENGTH);
     // printk(KERN_INFO PFX "Key -- %s\n", h2);
     // kfree(h2);
 
     // Do encryption.
     
-    cipher = kzalloc(datasize + TAG_LENGTH + IV_LENGTH, GFP_KERNEL);
+    cipher = kzalloc(datasize + _CITADEL_TAG_LENGTH + _CITADEL_IV_LENGTH, GFP_KERNEL);
     err = trm_aes_encrypt(key, data, datasize, cipher, &cipher_len);
     // h3 = to_hexstring(cipher, cipher_len);
     // printk(KERN_INFO PFX "Cipher(%d) -- %s\n", err, h3);
     // kfree(h3);
 
-    plain = kzalloc(datasize + TAG_LENGTH + IV_LENGTH, GFP_KERNEL);
+    plain = kzalloc(datasize + _CITADEL_TAG_LENGTH + _CITADEL_IV_LENGTH, GFP_KERNEL);
     err = trm_aes_decrypt(key, cipher, cipher_len, plain, &plainlen);
     // h4 = to_hexstring(plain, plainlen);
     // printk(KERN_INFO PFX "Plain(%d) -- %s\n", err, h4);

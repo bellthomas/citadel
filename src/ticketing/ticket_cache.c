@@ -111,7 +111,7 @@ void check_ticket_cache() {
 
     // Remove old tickets.
     if (task_data->ticket_head) {
-        expiry_threshold = ktime_get() - (ktime_t)(_TRM_TICKET_EXPIRY * 1000000000L); // 15 seconds.
+        expiry_threshold = ktime_get() - (ktime_t)(_CITADEL_TICKET_EXPIRY * 1000000000L); // 15 seconds.
         initial_ticket = task_data->ticket_head;
         current_ticket = task_data->ticket_head;
         count = 0;

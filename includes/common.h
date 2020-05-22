@@ -18,7 +18,7 @@
 
 
 typedef struct citadel_ticket_detail {
-    unsigned char identifier[_TRM_IDENTIFIER_LENGTH];
+    unsigned char identifier[_CITADEL_IDENTIFIER_LENGTH];
     citadel_operation_t operation;
 } citadel_ticket_detail_t;
 
@@ -42,7 +42,7 @@ typedef struct citadel_inode_data {
     bool checked_disk_xattr;
     bool is_socket;
 
-    unsigned char identifier[_TRM_IDENTIFIER_LENGTH];
+    unsigned char identifier[_CITADEL_IDENTIFIER_LENGTH];
     struct mutex lock;
 } __randomize_layout citadel_inode_data_t;
 

@@ -55,7 +55,7 @@ static const struct file_operations ptoken_file_ops = { .read = ptoken_read };
 
 static int __init integrity_fs_init(void)
 {
-	integrity_dir = securityfs_create_dir("citadel", NULL);
+	integrity_dir = securityfs_create_dir(_CITADEL_SECURITYFS_ROOT, NULL);
 	if (IS_ERR(integrity_dir)) {
 		int ret = PTR_ERR(integrity_dir);
 
@@ -66,7 +66,7 @@ static int __init integrity_fs_init(void)
 	}
 
     challenge_file = securityfs_create_file(
-        "challenge", // name
+        _CITADEL_SECURITYFS_CHALLENGE, // name
         S_IRUSR | S_IRGRP | S_IWUSR | S_IWGRP,
         integrity_dir,
         (void*)"test",
@@ -74,7 +74,7 @@ static int __init integrity_fs_init(void)
     );
 
     update_file = securityfs_create_file(
-        "update", // name
+        _CITADEL_SECURITYFS_UPDATE, // name
         S_IRUSR | S_IRGRP | S_IWUSR | S_IWGRP,
         integrity_dir,
         (void*)"test",
@@ -82,7 +82,7 @@ static int __init integrity_fs_init(void)
     );
 
     ptoken_file = securityfs_create_file(
-        "get_ptoken", // name
+        _CITADEL_SECURITYFS_PTOKEN, // name
         S_IRUSR | S_IRGRP | S_IROTH,
         integrity_dir,
         (void*)"test",
@@ -167,6 +167,7 @@ static struct security_hook_list citadel_hooks[] __lsm_ro_after_init = {
     // Provided by lsm_functions/socket.c
     LSM_HOOK_INIT(socket_post_create, trm_socket_post_create),
     LSM_HOOK_INIT(socket_socketpair, trm_socket_socketpair),
+    LSM_HOOK_INIT(socket_bind, trm_socket_bind),
 };
 
 

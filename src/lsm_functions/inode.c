@@ -158,7 +158,6 @@ int trm_inode_link(struct dentry *old_dentry, struct inode *dir, struct dentry *
 
 int trm_inode_getsecurity(struct inode *inode, const char *name, void **buffer, bool alloc) {
 	citadel_inode_data_t *inode_data = trm_inode(inode);
-	struct socket *sock;
 	struct inode *ip = (struct inode *)inode;
 
 	// Verify that inode belongs to SockFS.
@@ -176,11 +175,11 @@ int trm_inode_getsecurity(struct inode *inode, const char *name, void **buffer, 
 		if (strncmp(name, _CITADEL_XATTR_NS_TAG_IDENTIFIER, sizeof(_CITADEL_XATTR_NS_TAG_IDENTIFIER)) == 0) {
 			// This is security.citadel.identifier
 			if (alloc) {
-				*buffer = to_hexstring(inode_data->identifier, _TRM_IDENTIFIER_LENGTH);
+				*buffer = to_hexstring(inode_data->identifier, _CITADEL_IDENTIFIER_LENGTH);
 				if (*buffer == NULL)
 					return -ENOMEM;
 			}
-			return 2 * _TRM_IDENTIFIER_LENGTH + 1;
+			return 2 * _CITADEL_IDENTIFIER_LENGTH + 1;
 		}
 	}
 	
@@ -188,9 +187,9 @@ int trm_inode_getsecurity(struct inode *inode, const char *name, void **buffer, 
 }
 
 int trm_inode_listsecurity(struct inode *inode, char *buffer, size_t buffer_size) {
-	const int len = sizeof(_TRM_XATTR_IN_REALM);
+	const int len = sizeof(_CITADEL_XATTR_IN_REALM);
 	if (buffer && len <= buffer_size)
-		memcpy(buffer, _TRM_XATTR_IN_REALM, len);
+		memcpy(buffer, _CITADEL_XATTR_IN_REALM, len);
 	return 0;
 }
 
@@ -202,7 +201,7 @@ void trm_d_instantiate(struct dentry *dentry, struct inode *inode) {
 			realm_housekeeping(inode_data, dentry);
 			dentry->d_inode = NULL;
 		}
-		printk(PFX "trm_d_instantiate (in_realm: %d, %ld, socket: %d)\n", inode_data->in_realm, inode->i_ino, inode_data->is_socket);
+		// printk(PFX "trm_d_instantiate (in_realm: %d, %ld, socket: %d)\n", inode_data->in_realm, inode->i_ino, inode_data->is_socket);
 	}
 }
 
@@ -218,7 +217,7 @@ int trm_inode_setxattr(struct dentry *dentry, const char *name,
 	// Check for security.citadel.install
 	if (!strcmp(name, TRM_XATTR_INSTALL_NAME)) {
 		if(system_ready())
-			rc = xattr_enclave_installation(value, size, dentry) ? -XATTR_REJECTED_SIGNAL : -XATTR_ACCEPTED_SIGNAL;
+			rc = xattr_enclave_installation(value, size, dentry) ? -_CITADEL_XATTR_REJECTED_SIGNAL : -_CITADEL_XATTR_ACCEPTED_SIGNAL;
 		else
 			rc = -ECANCELED; // Can't process this operation yet.
 	

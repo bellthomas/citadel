@@ -55,36 +55,36 @@ static bool ipc_declare_self(void) {
 static bool fetch_kernel_ptoken(void) {
 	// Read challenge.
 	FILE *f_challenge;
-	unsigned char buffer[_TRM_PTOKEN_PAYLOAD_SIZE];
-    f_challenge = fopen(_TRM_PROCESS_GET_PTOKEN_PATH, "rb");
+	unsigned char buffer[_CITADEL_PTOKEN_PAYLOAD_SIZE];
+    f_challenge = fopen(_CITADEL_PROCESS_GET_PTOKEN_PATH, "rb");
 	if (!f_challenge) {
-		citadel_perror("Failed to open %s\n", _TRM_PROCESS_GET_PTOKEN_PATH);
+		citadel_perror("Failed to open %s\n", _CITADEL_PROCESS_GET_PTOKEN_PATH);
 		return false;
 	}
     size_t challenge_read = fread(buffer, sizeof(buffer), 1, f_challenge);
     fclose(f_challenge);
 
-	struct trm_ptoken *ptoken_payload = (struct trm_ptoken *)buffer;
+	citadel_ptoken_t *ptoken_payload = (citadel_ptoken_t *)buffer;
 	if(memcmp(ptoken_payload->signature, challenge_signature, sizeof(challenge_signature))) {
 		citadel_perror("Payload signature doesn't match\n");
 		return false;
 	}
 
 	// Save results locally.
-	ptoken = malloc(_TRM_PROCESS_PTOKEN_LENGTH);
-	memcpy(ptoken, ptoken_payload->ptoken, _TRM_PROCESS_PTOKEN_LENGTH);
-	signed_ptoken = malloc(_TRM_PROCESS_SIGNED_PTOKEN_LENGTH);
-	memcpy(signed_ptoken, ptoken_payload->signed_ptoken, _TRM_PROCESS_SIGNED_PTOKEN_LENGTH);
+	ptoken = malloc(_CITADEL_PROCESS_PTOKEN_LENGTH);
+	memcpy(ptoken, ptoken_payload->ptoken, _CITADEL_PROCESS_PTOKEN_LENGTH);
+	signed_ptoken = malloc(_CITADEL_PROCESS_SIGNED_PTOKEN_LENGTH);
+	memcpy(signed_ptoken, ptoken_payload->signed_ptoken, _CITADEL_PROCESS_SIGNED_PTOKEN_LENGTH);
 	citadel_pid = ptoken_payload->citadel_pid;
 
 #if CITADEL_DEBUG
-	char *hex_ptoken = to_hexstring(ptoken_payload->ptoken, _TRM_PROCESS_PTOKEN_LENGTH);
+	char *hex_ptoken = to_hexstring(ptoken_payload->ptoken, _CITADEL_PROCESS_PTOKEN_LENGTH);
 	citadel_printf("ptoken: %s\n", hex_ptoken);
-	// int set_env = setenv(CITADEL_ENV_ATTR_NAME, hex_ptoken, 1);
+	// int set_env = setenv(_CITADEL_ENV_ATTR_NAME, hex_ptoken, 1);
 	free(hex_ptoken);
 
-	// char *hex_signed_ptoken = to_hexstring(ptoken_payload->signed_ptoken, _TRM_PROCESS_SIGNED_PTOKEN_LENGTH);
-	// set_env += setenv(CITADEL_SIGNED_ENV_ATTR_NAME, hex_signed_ptoken, 1);
+	// char *hex_signed_ptoken = to_hexstring(ptoken_payload->signed_ptoken, _CITADEL_PROCESS_SIGNED_PTOKEN_LENGTH);
+	// set_env += setenv(_CITADEL_SIGNED_ENV_ATTR_NAME, hex_signed_ptoken, 1);
 	// free(hex_signed_ptoken);
 #endif
 

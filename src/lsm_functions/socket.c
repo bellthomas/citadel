@@ -40,13 +40,32 @@ int trm_socket_post_create(struct socket *sock, int family, int type, int protoc
         if (task_data->in_realm) {
             // Automatically restrict sockets created by tainted processes.
             inode_data->in_realm = true;
-            get_random_bytes(inode_data->identifier, _TRM_IDENTIFIER_LENGTH);
-            printk(PFX "Socket created by tainted process, set in_realm (%d)\n", s_inode->i_ino);
+            get_random_bytes(inode_data->identifier, _CITADEL_IDENTIFIER_LENGTH);
+            printk(PFX "Socket created by tainted process, set in_realm (%ld)\n", s_inode->i_ino);
         }
     }
     return 0;
 }
 
 int trm_socket_socketpair(struct socket *socka, struct socket *sockb) {
+    return 0;
+}
+
+
+/*
+ *	Check permission before socket protocol layer bind operation is
+ *	performed and the socket @sock is bound to the address specified in the
+ *	@address parameter.
+ *	@sock contains the socket structure.
+ *	@address contains the address to bind to.
+ *	@addrlen contains the length of address.
+ *	Return 0 if permission is granted.
+ */
+int trm_socket_bind(struct socket *sock, struct sockaddr *address, int addrlen) {
+    struct inode *s_inode = SOCK_INODE(sock);
+    citadel_inode_data_t *inode_data = trm_inode(s_inode);
+    if (inode_data && inode_data->in_realm) {
+        printk(PFX "Tainted socket tried to bind. SA_FAMILY: %d\n", address->sa_family);
+    }
     return 0;
 }

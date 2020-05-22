@@ -5,7 +5,7 @@
 #include <sys/xattr.h>
 
 static bool _citadel_file_create(char *path, size_t length) {
-	if (length > CITADEL_MAX_METADATA_SIZE || length < 2) return false;
+	if (length > _CITADEL_MAX_METADATA_SIZE || length < 2) return false;
 
 	struct citadel_op_extended_request payload;
 	memcpy(payload.request.signature, challenge_signature, sizeof(challenge_signature));
@@ -23,19 +23,19 @@ static bool _citadel_file_create(char *path, size_t length) {
 }
 
 bool citadel_file_create(char *path, size_t length) {
-	size_t xattr_len = getxattr(path, _TRM_XATTR_IDENTIFIER, NULL, 0);
+	size_t xattr_len = getxattr(path, _CITADEL_XATTR_IDENTIFIER, NULL, 0);
 	return xattr_len ? true : _citadel_file_create(path, length);
 }
 
 bool citadel_file_recreate(char *path, size_t length) {
-	size_t xattr_len = getxattr(path, _TRM_XATTR_IDENTIFIER, NULL, 0);
+	size_t xattr_len = getxattr(path, _CITADEL_XATTR_IDENTIFIER, NULL, 0);
 	if (xattr_len) citadel_printf("Overriding identifier for %s\n", path);
 	return _citadel_file_create(path, length);
 }
 
 
 bool citadel_file_open(char *path, size_t length) {
-	if (length > CITADEL_MAX_METADATA_SIZE || length < 2) return false;
+	if (length > _CITADEL_MAX_METADATA_SIZE || length < 2) return false;
 
 	struct citadel_op_extended_request payload;
 	memcpy(payload.request.signature, challenge_signature, sizeof(challenge_signature));

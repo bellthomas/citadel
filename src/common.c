@@ -212,7 +212,7 @@ int __internal_set_identifier(struct dentry *dentry, char *value, size_t len) {
 
 	hex = to_hexstring(value, len);
 	if (!hex) return -ENOMEM;
-	res = __internal_set_xattr(dentry, TRM_XATTR_ID_NAME, hex, _TRM_IDENTIFIER_LENGTH * 2 + 1);
+	res = __internal_set_xattr(dentry, TRM_XATTR_ID_NAME, hex, _CITADEL_IDENTIFIER_LENGTH * 2 + 1);
 	kfree(hex);
 	return res;
 }
@@ -252,7 +252,7 @@ void* _hex_identifier_to_bytes(char* hexstring) {
 char *get_xattr_identifier(struct dentry *dentry) {
 	int x;
 	char *hex_identifier, *identifier;
-	size_t identifier_length = 2 * _TRM_IDENTIFIER_LENGTH + 1;
+	size_t identifier_length = 2 * _CITADEL_IDENTIFIER_LENGTH + 1;
 	
 	hex_identifier = kzalloc(identifier_length, GFP_KERNEL);
 	x = __vfs_getxattr(dentry, d_backing_inode(dentry), TRM_XATTR_ID_NAME, hex_identifier, identifier_length);
@@ -299,7 +299,7 @@ void inode_housekeeping(citadel_inode_data_t *i_trm, struct dentry *dentry) {
 		// Fetch identifier.
 		identifier = get_xattr_identifier(dentry);
 		if (identifier) {
-			memcpy(i_trm->identifier, identifier, _TRM_IDENTIFIER_LENGTH);
+			memcpy(i_trm->identifier, identifier, _CITADEL_IDENTIFIER_LENGTH);
 			i_trm->in_realm = true;
 			kfree(identifier);
 		}
@@ -327,7 +327,7 @@ int can_access(citadel_inode_data_t *inode_data) {
 	while (current_ticket->timestamp > tracker && !found) {
 		// Check if this ticket allows access.
 		found = true;
-		for (tmp = 0; tmp < _TRM_IDENTIFIER_LENGTH; tmp++) {
+		for (tmp = 0; tmp < _CITADEL_IDENTIFIER_LENGTH; tmp++) {
 			if (current_ticket->detail.identifier[tmp] != inode_data->identifier[tmp]) {
 				found = false;
 				break;

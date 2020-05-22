@@ -1,6 +1,9 @@
 #include <citadel/citadel.h>
 #include <time.h>
 #include <sys/socket.h> 
+#include <sys/types.h>
+#include <sys/xattr.h>
+#include <netinet/in.h> 
 
 #include "../includes/tests.h"
 
@@ -93,8 +96,13 @@ void run_file_test(void) {
 
 
 void run_socket_test(void) {
-	int server_fd; 
-    // struct sockaddr_in address; 
+	int server_fd, new_socket, valread; 
+    struct sockaddr_in address; 
+    int opt = 1; 
+    int addrlen = sizeof(address); 
+    // char buffer[1024] = {0}; 
+    // char *hello = "Hello from server"; 
+       
        
     // Creating socket file descriptor 
     if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0) 
@@ -104,6 +112,45 @@ void run_socket_test(void) {
     } 
 
 	printf("Socket FD: %d\n", server_fd);
+	size_t len = 2 * 16 + 1;
+	void *id = malloc(len);
+	ssize_t x = fgetxattr(server_fd, "security.citadel.identifier", id, len);
+	
+	if (x == len) {
+		printf("Socket identifier: %s\n", (char*)id);
+	} else {
+		printf("Fail. Got %ld bytes for identifier\n", x);
+	}
+	free(id);
+
+
+	// Forcefully attaching socket to the port 8080 
+    if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt))) 
+    { 
+        perror("setsockopt"); 
+        exit(EXIT_FAILURE); 
+    } 
+    address.sin_family = AF_INET; 
+    address.sin_addr.s_addr = INADDR_ANY; 
+    address.sin_port = htons(13756); 
+       
+    // Forcefully attaching socket to the port 8080 
+    if (bind(server_fd, (struct sockaddr *)&address,  
+                                 sizeof(address))<0) 
+    { 
+        perror("bind failed"); 
+        exit(EXIT_FAILURE); 
+    }
+
+
+
+
+	// struct sockaddr_un addr;
+	// memset(&addr, 0, sizeof(addr));
+	// addr.sun_family = AF_UNIX;
+	// strncpy(addr.sun_path, "socket", sizeof(addr.sun_path)-1);
+	// bind(fd, (struct sockaddr*)&addr, sizeof(addr));
+
 	while(1) {}
 	close(server_fd);
 }
