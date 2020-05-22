@@ -325,6 +325,7 @@ int can_access(citadel_inode_data_t *inode_data, citadel_operation_t operation) 
 	current_ticket = cred->ticket_head;
 	tracker = 0;
 	while (current_ticket->timestamp > tracker && !found) {
+		printk(PFX "-");
 		// Check if this ticket allows access.
 		found = true;
 		for (tmp = 0; tmp < _CITADEL_IDENTIFIER_LENGTH; tmp++) {
@@ -335,23 +336,23 @@ int can_access(citadel_inode_data_t *inode_data, citadel_operation_t operation) 
 		}
 
 		// Check if this enables the requested operation.
-		if ((current_ticket->detail.operation & operation) == 0)
-			found  = false;
+		if (found && (current_ticket->detail.operation & operation) == 0)
+			found = false;
 
 		if (!found) {
-			current_ticket = current_ticket->next;
 			tracker = current_ticket->timestamp;
+			current_ticket = current_ticket->next;
 		}
 	}
 
 	if (found) {
 		// Found a ticket relating to this object.
 		// TODO check operation etc.
-		printk(PFX "Allowing PID %d access to file.\n", current->pid);
+		printk(PFX "Allowing PID %d access to object.\n", current->pid);
 		cred->in_realm = true;
 		return 0;
 	}
 
-	printk(PFX "Rejecting PID %d access to file.\n", current->pid);
+	printk(PFX "Rejecting PID %d access to object.\n", current->pid);
 	return -EACCES;
 }

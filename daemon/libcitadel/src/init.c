@@ -64,6 +64,12 @@ static bool fetch_kernel_ptoken(void) {
     size_t challenge_read = fread(buffer, sizeof(buffer), 1, f_challenge);
     fclose(f_challenge);
 
+	if (challenge_read == 0) {
+		citadel_perror("Failed to retrieve ptoken.\n");
+		citadel_perror("Please check that the kernel supports Citadel and that the daemon is running.\n");
+		return false;
+	}
+
 	citadel_ptoken_t *ptoken_payload = (citadel_ptoken_t *)buffer;
 	if(memcmp(ptoken_payload->signature, challenge_signature, sizeof(challenge_signature))) {
 		citadel_perror("Payload signature doesn't match\n");
