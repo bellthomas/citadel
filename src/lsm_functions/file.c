@@ -33,25 +33,17 @@
  *	Return 0 if permission is granted.
  */
 int trm_file_permission(struct file *file, int mask) {
-
-	// char *path;
     struct dentry *f_dentry = file->f_path.dentry;
-    citadel_inode_data_t *current_inode_data = trm_dentry(f_dentry);
+    citadel_inode_data_t *inode_data = trm_dentry(f_dentry);
+    citadel_task_data_t *task_data = trm_cred(current_cred());
 
     task_housekeeping();
-    inode_housekeeping(current_inode_data, f_dentry);
+    inode_housekeeping(inode_data, f_dentry);
     
     // Don't care if this file isn't under our protection.
-    if (!current_inode_data->in_realm) return 0;
-
-    printk(PFX "trm_file_permission (PID %d): %d\n", current->pid, mask);
-
-    // Log for debug.
-    // path = get_path_for_dentry(f_dentry);
-    // if(path) {
-    //     printk(PFX "trm_file_permission for %s (mask:%d)\n", path, mask);
-    //     kfree(path);
-    // }
+    if (inode_data && (inode_data->in_realm || task_data->in_realm)) {
+        return can_access(inode_data, CITADEL_OP_FILE_OPEN);
+    }
 
     return 0;
 }
@@ -80,13 +72,15 @@ int trm_file_ioctl(struct file *file, unsigned int cmd, unsigned long arg) {
  */
 int trm_file_open(struct file *file) {
     struct dentry *f_dentry = file->f_path.dentry;
-    citadel_inode_data_t *current_inode_data = trm_dentry(f_dentry);
+    citadel_inode_data_t *inode_data = trm_dentry(f_dentry);
+    citadel_task_data_t *task_data = trm_cred(current_cred());
+
     task_housekeeping();
 
     // Don't care if this file isn't under our protection.
-    if (!current_inode_data->in_realm) return 0;
-
-    printk(PFX "trm_file_open (PID %d): %d\n", current->pid, file->f_flags);
+    if (inode_data && (inode_data->in_realm || task_data->in_realm)) {
+        return can_access(inode_data, CITADEL_OP_FILE_OPEN);
+    }
 
     return 0;
 }

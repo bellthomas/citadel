@@ -320,8 +320,22 @@ int can_access(citadel_inode_data_t *inode_data, citadel_operation_t operation) 
 	bool found = false;
 	citadel_ticket_t *current_ticket;
 	citadel_task_data_t *cred = trm_cred(current_cred());
+
+	// All processes can access public Citadel resources.
+	// Key: 0xFFFF_FFFF_FFFF_FFFF_FFFF_FFFF_FFFF_FFFF
+	found = true;
+	for (tmp = 0; tmp < _CITADEL_IDENTIFIER_LENGTH; tmp++) {
+		if (inode_data->identifier[tmp] != 0xFF) {
+			found = false;
+			break;
+		}
+	}
+	if (found) return 0;
+
+	// No tickets, no access.
 	if (!cred || !cred->ticket_head) return -EACCES;
 
+	// Let's see if the process has the correct ticket.
 	current_ticket = cred->ticket_head;
 	tracker = 0;
 	while (current_ticket->timestamp > tracker && !found) {
@@ -347,7 +361,6 @@ int can_access(citadel_inode_data_t *inode_data, citadel_operation_t operation) 
 
 	if (found) {
 		// Found a ticket relating to this object.
-		// TODO check operation etc.
 		printk(PFX "Allowing PID %d access to object.\n", current->pid);
 		cred->in_realm = true;
 		return 0;

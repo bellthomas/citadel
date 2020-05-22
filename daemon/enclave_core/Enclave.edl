@@ -25,6 +25,7 @@ enclave {
             [out, size=ptoken_length] uint8_t* ptoken,
             size_t ptoken_length
         ) transition_using_threads;
+        public void protect_socket(void) transition_using_threads;
     };
 
     untrusted {

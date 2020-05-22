@@ -24,16 +24,20 @@ void run_taint(void) {
 		exit(3);
 	}
 
+	printf("- 1\n");
 	FILE *fp;
 	fp = fopen(path, "rw");
+	printf("- 2\n");
 	if(fp) {
 		printf("Tainted.\n\n");
 		fclose(fp);
 	}
 	else printf("Failed to taint\n");
+	printf("- 3\n");
 }
 
 void run_file_test(void) {
+	printf("Running file test...\n");
     // On start.
 	bool citadel_ready = citadel_init();
 	if (!citadel_ready) {
@@ -99,6 +103,7 @@ void run_file_test(void) {
 
 
 void run_socket_test(void) {
+	printf("running socket test...\n");
 	int server_fd, new_socket, valread; 
     struct sockaddr_in address; 
     int opt = 1; 

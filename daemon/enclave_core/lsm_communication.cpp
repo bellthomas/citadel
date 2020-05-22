@@ -146,7 +146,8 @@ int process_updates(uint8_t *update_data, size_t update_length)
     return 0;
 }
 
-bool generate_xattr_ticket(const char *path)
+
+static bool _generate_xattr_ticket(const char* path, bool internal)
 {
     // The +11 is to mitigate a bug in the SGX runtime.
     // Hypothesis: an illegal insturction is called if the stack frame isn't word-aligned (16 bytes).
@@ -162,7 +163,10 @@ bool generate_xattr_ticket(const char *path)
     rcrd = (citadel_update_record_t *)(data + sizeof(citadel_update_header_t));
     rcrd->pid = 13;
     rcrd->operation = 0;
-    sgx_read_rand(rcrd->identifier, sizeof(rcrd->identifier));
+    if (internal)
+        memset(rcrd->identifier, 0xFF, sizeof(rcrd->identifier));
+    else
+        sgx_read_rand(rcrd->identifier, sizeof(rcrd->identifier));
     // memset(rcrd->data, 2, sizeof(rcrd->data));
 
     // print_hex((unsigned char*)rcrd->subject, sizeof(rcrd->subject));
@@ -184,4 +188,14 @@ bool generate_xattr_ticket(const char *path)
     }
 
     return false;
+}
+
+bool generate_xattr_ticket(const char *path)
+{
+    return _generate_xattr_ticket(path, false);
+}
+
+bool generate_xattr_ticket_internal(const char *path)
+{
+    return _generate_xattr_ticket(path, true);
 }

@@ -115,3 +115,9 @@ uint8_t handle_request(uint8_t* data, size_t length, int32_t pid, uint8_t* ptoke
 
     return internal_update;
 }
+
+
+void protect_socket(void) {
+    enclave_printf("Protecting %s\n", _CITADEL_IPC_FILE);
+    generate_xattr_ticket_internal(_CITADEL_IPC_FILE);
+}
