@@ -19,7 +19,14 @@ static citadel_response_t core_handle_request(int32_t pid, struct citadel_op_req
         break;
     case CITADEL_OP_FILE_OPEN:
         // ...
-        if (!generate_ticket(pid, (const char*)metadata, CITADEL_OP_FILE_OPEN))
+        if (!generate_ticket(pid, (const char*)metadata, request->operation))
+            result = CITADEL_OP_ERROR;
+        break;
+    case CITADEL_OP_SOCKET_EXTERNAL:
+    case CITADEL_OP_SOCKET_INTERNAL:
+    case CITADEL_OP_SOCKET:
+        // ...
+        if (!generate_ticket(pid, (const char*)request->subject, request->operation))
             result = CITADEL_OP_ERROR;
         break;
     default:

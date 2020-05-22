@@ -26,7 +26,10 @@ void run_taint(void) {
 
 	FILE *fp;
 	fp = fopen(path, "rw");
-	if(fp) fclose(fp);
+	if(fp) {
+		printf("Tainted.\n\n");
+		fclose(fp);
+	}
 	else printf("Failed to taint\n");
 }
 
@@ -99,7 +102,6 @@ void run_socket_test(void) {
 	int server_fd, new_socket, valread; 
     struct sockaddr_in address; 
     int opt = 1; 
-    int addrlen = sizeof(address); 
     // char buffer[1024] = {0}; 
     // char *hello = "Hello from server"; 
        

@@ -18,7 +18,7 @@ const int32_t get_citadel_pid(void) {
 	return citadel_pid;
 }
 
-static void* _hex_identifier_to_bytes(char* hexstring) {
+void* _hex_identifier_to_bytes(char* hexstring) {
 	size_t i, j;
 	size_t len = strlen(hexstring);
 	size_t final_len = len / 2;
