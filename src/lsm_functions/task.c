@@ -59,3 +59,11 @@ int trm_task_prctl(int option, unsigned long arg2, unsigned long arg3, unsigned 
     task_housekeeping();
     return 0;
 }
+
+int trm_task_kill(struct task_struct *p, struct kernel_siginfo *info, int sig, const struct cred *cred) {
+    citadel_task_data_t *task_data = trm_cred(cred);
+    if (task_data && task_data->in_realm) {
+        printk(PFX "Tainted process, PID %d, being killed (sig: %d)\n", p->pid, sig);
+    }
+    return 0;
+}

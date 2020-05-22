@@ -163,6 +163,7 @@ static struct security_hook_list citadel_hooks[] __lsm_ro_after_init = {
     LSM_HOOK_INIT(cred_alloc_blank, trm_cred_alloc_blank),
     LSM_HOOK_INIT(cred_prepare, trm_cred_prepare),
     LSM_HOOK_INIT(task_prctl, trm_task_prctl),
+    LSM_HOOK_INIT(task_kill, trm_task_kill),
 
     // Provided by lsm_functions/socket.c
     LSM_HOOK_INIT(socket_post_create, trm_socket_post_create),

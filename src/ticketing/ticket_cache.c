@@ -147,8 +147,10 @@ void check_ticket_cache() {
         }
     }
 
-    if (!task_data->ticket_head) {
+    if (!reservation_node->ticket_head) {
         // Remove from rbtree.
+        rb_erase(&reservation_node->node, &ticketing_reservations);
+        free(reservation_node);
     }
 }
 
