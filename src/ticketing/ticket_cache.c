@@ -71,7 +71,7 @@ void check_ticket_cache() {
     int count = 1, tmp;
     ktime_t expiry_threshold, last_to_free;
     citadel_ticket_t *current_ticket, *initial_ticket;
-    citadel_task_data_t *task_data = trm_cred(current_cred());
+    citadel_task_data_t *task_data = citadel_cred(current_cred());
     struct ticket_reservation_node *reservation_node = ticket_search(&ticketing_reservations, current->pid);
 
     // Claim PTY right if pending.

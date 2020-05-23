@@ -282,9 +282,12 @@ void realm_housekeeping(citadel_inode_data_t *i_trm, struct dentry *dentry) {
 }
 
 void task_housekeeping(void) {
-	// struct task_struct *task = current;
-	// if (task->pid > 300) printk(PFX "task_housekeeping for PID %d\n", task->pid);
-	if(current->pid > 1) check_ticket_cache();
+	citadel_task_data_t *cred = citadel_cred(current_cred());	
+	if (current->pid > 1) {
+		if (cred->pid == 1) cred->pid = current->pid;
+		if (current->pid != cred->pid) printk(PFX "PID forging detected (task_housekeeping)\n"); 
+		check_ticket_cache();
+	}
 }
 
 
@@ -316,7 +319,7 @@ void inode_housekeeping(citadel_inode_data_t *i_trm, struct dentry *dentry) {
 }
 
 bool pty_check(struct inode *inode) {
-	citadel_task_data_t *cred = trm_cred(current_cred());
+	citadel_task_data_t *cred = citadel_cred(current_cred());
 	return ((inode->i_sb->s_magic == DEVPTS_SUPER_MAGIC) && cred->granted_pty);
 }
 
@@ -337,11 +340,16 @@ int can_access(struct inode *inode, citadel_operation_t operation) {
 	bool found = false;
 	citadel_ticket_t *current_ticket;
 	citadel_inode_data_t *inode_data = trm_inode(inode);
-	citadel_task_data_t *cred = trm_cred(current_cred());
+	citadel_task_data_t *cred = citadel_cred(current_cred());
 
 	// Invalid, allow.
 	if (!inode_data) return 0;
 	if (inode->i_ino < 2) return 0;
+
+	// Check for forged PID.
+	if (current->pid != cred->pid) {
+		printk(PFX "forged PID! %d vs %d\n", current->pid, cred->pid);
+	}
 
 	// Allow directory traversing, SockFS, SysFS, PipeFS.
 	if (S_ISDIR(inode->i_mode)) return 0;

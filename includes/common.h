@@ -30,10 +30,11 @@ typedef struct citadel_ticket {
 
 
 typedef struct citadel_task_data {
-    uint8_t t_data;
     bool in_realm;
     bool granted_pty;
     citadel_ticket_t *ticket_head;
+    pid_t pid;
+    struct mutex lock;
 } __randomize_layout citadel_task_data_t;
 
 typedef struct citadel_inode_data {
@@ -60,7 +61,7 @@ static inline citadel_inode_data_t *trm_dentry(const struct dentry *dentry) {
 	return trm_inode(d_real_inode(dentry));
 }
 
-static inline citadel_task_data_t *trm_cred(const struct cred *cred) {
+static inline citadel_task_data_t *citadel_cred(const struct cred *cred) {
     if (unlikely(!cred)) return NULL;
 	return cred->security + citadel_blob_sizes.lbs_cred;
 }

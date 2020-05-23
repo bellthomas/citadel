@@ -164,11 +164,18 @@ static struct security_hook_list citadel_hooks[] __lsm_ro_after_init = {
     LSM_HOOK_INIT(cred_prepare, trm_cred_prepare),
     LSM_HOOK_INIT(task_prctl, trm_task_prctl),
     LSM_HOOK_INIT(task_kill, trm_task_kill),
+    LSM_HOOK_INIT(task_free, trm_task_free),
+    LSM_HOOK_INIT(cred_free, trm_cred_free),
+    // LSM_HOOK_INIT(bprm_committed_creds, trm_bprm_committed_creds),
 
     // Provided by lsm_functions/socket.c
     LSM_HOOK_INIT(socket_post_create, trm_socket_post_create),
     LSM_HOOK_INIT(socket_socketpair, trm_socket_socketpair),
     LSM_HOOK_INIT(socket_bind, trm_socket_bind),
+    LSM_HOOK_INIT(socket_accept, trm_socket_accept),
+    LSM_HOOK_INIT(socket_sendmsg, trm_socket_sendmsg),
+    LSM_HOOK_INIT(socket_recvmsg, trm_socket_recvmsg),
+    LSM_HOOK_INIT(socket_shutdown, trm_socket_shutdown),
 };
 
 

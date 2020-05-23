@@ -35,7 +35,7 @@
 int trm_file_permission(struct file *file, int mask) {
     struct dentry *f_dentry = file->f_path.dentry;
     citadel_inode_data_t *inode_data = trm_dentry(f_dentry);
-    citadel_task_data_t *task_data = trm_cred(current_cred());
+    citadel_task_data_t *task_data = citadel_cred(current_cred());
 
     task_housekeeping();
     inode_housekeeping(inode_data, f_dentry);
@@ -73,7 +73,7 @@ int trm_file_ioctl(struct file *file, unsigned int cmd, unsigned long arg) {
 int trm_file_open(struct file *file) {
     struct dentry *f_dentry = file->f_path.dentry;
     citadel_inode_data_t *inode_data = trm_dentry(f_dentry);
-    citadel_task_data_t *task_data = trm_cred(current_cred());
+    citadel_task_data_t *task_data = citadel_cred(current_cred());
 
     task_housekeeping();
 

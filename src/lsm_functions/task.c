@@ -15,18 +15,22 @@
 #include "../../includes/task.h"
 #include "../../includes/payload_io.h"
 
-static void init_task_trm(citadel_task_data_t *tt, citadel_task_data_t *tt_old)
+static void init_task_trm(citadel_task_data_t *data, citadel_task_data_t *previous)
 {
-    if (!tt_old) {
-        tt->ticket_head = NULL;
-        tt->granted_pty = false;
+    if (!previous) {
+        data->ticket_head = NULL;
+        data->granted_pty = false;
+        data->pid = 1;
+    }
+    else {
+        data->ticket_head = previous->ticket_head;
+        previous->ticket_head = NULL;
+        data->pid = previous->pid;
+        data->granted_pty = previous->granted_pty;
     }
     
-	// tsp->smk_task = task;
-	// tsp->smk_forked = forked;
-	// INIT_LIST_HEAD(&tsp->smk_rules);
-	// INIT_LIST_HEAD(&tsp->smk_relabel);
-	// mutex_init(&tsp->smk_rules_lock);
+    mutex_init(&data->lock);
+    mutex_destroy(&previous->lock);
 }
 
 /*
@@ -37,7 +41,7 @@ static void init_task_trm(citadel_task_data_t *tt, citadel_task_data_t *tt_old)
  */
 int trm_cred_alloc_blank(struct cred *cred, gfp_t gfp)
 {
-	init_task_trm(trm_cred(cred), NULL);
+	init_task_trm(citadel_cred(cred), NULL);
 	return 0;
 }
 
@@ -50,9 +54,9 @@ int trm_cred_alloc_blank(struct cred *cred, gfp_t gfp)
 int trm_cred_prepare(struct cred *new, const struct cred *old, gfp_t gfp)
 {
     if (system_ready()) {
-        // printk(PFX "cred_prepare called from PID %d\n", current->pid);
+        printk(PFX "cred_prepare called from PID %d\n", current->pid);
     }
-    // init_task_trm(trm_cred(cred), trm_cred(old));
+    init_task_trm(citadel_cred(new), citadel_cred(old));
     return 0;
 }
 
@@ -62,9 +66,38 @@ int trm_task_prctl(int option, unsigned long arg2, unsigned long arg3, unsigned 
 }
 
 int trm_task_kill(struct task_struct *p, struct kernel_siginfo *info, int sig, const struct cred *cred) {
-    citadel_task_data_t *task_data = trm_cred(cred);
+    citadel_task_data_t *task_data = citadel_cred(cred);
     if (task_data && task_data->in_realm) {
         printk(PFX "Tainted process, PID %d, being killed (sig: %d)\n", p->pid, sig);
     }
     return 0;
 }
+
+
+void trm_task_free(struct task_struct *task) {
+    printk(PFX "PID %d freed.\n", task->pid);
+    // Remove entries from the ticket cache.
+}
+
+void trm_cred_free(struct cred *cred) {
+    citadel_task_data_t *task_data = citadel_cred(cred);
+    if (task_data && task_data->ticket_head) printk(PFX "Need to free tickets for PID %d\n", task_data->pid);
+    // Free tickets held by the task.
+}
+
+
+// int task_alloc(struct task_struct *task, unsigned long clone_flags) {
+
+// }
+
+// void trm_bprm_committed_creds(struct linux_binprm *bprm) {
+//     citadel_task_data_t *task_data = citadel_cred(bprm->cred);
+
+//     // PID 0: swapper & scheduler.
+//     // PID 1: Init process.
+//     // PID 2: kthread root process.
+//     if (task_data && current->pid > 2) {
+//         printk(PFX "Assigned PID\n")
+//         task_data->pid = current->pid;
+//     }
+// }
