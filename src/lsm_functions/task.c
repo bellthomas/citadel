@@ -18,11 +18,13 @@
 static void init_task_trm(citadel_task_data_t *data, citadel_task_data_t *previous)
 {
     if (!previous) {
+        data->in_realm = false;
         data->ticket_head = NULL;
         data->granted_pty = false;
         data->pid = 1;
     }
     else {
+        data->in_realm = previous->in_realm;
         data->ticket_head = previous->ticket_head;
         previous->ticket_head = NULL;
         data->pid = (previous->pid == 0) ? 1 : previous->pid;
@@ -59,6 +61,8 @@ int trm_cred_prepare(struct cred *new, const struct cred *old, gfp_t gfp)
     init_task_trm(citadel_cred(new), citadel_cred(old));
     return 0;
 }
+
+// TODO cred_transfer
 
 int trm_task_prctl(int option, unsigned long arg2, unsigned long arg3, unsigned long arg4, unsigned long arg5) {
     task_housekeeping();
