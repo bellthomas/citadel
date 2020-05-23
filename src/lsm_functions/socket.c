@@ -43,7 +43,7 @@ int trm_socket_post_create(struct socket *sock, int family, int type, int protoc
             // Automatically restrict sockets created by tainted processes.
             inode_data->in_realm = true;
             get_random_bytes(inode_data->identifier, _CITADEL_IDENTIFIER_LENGTH);
-            printk(PFX "Socket created by tainted process, set in_realm (%ld)\n", s_inode->i_ino);
+            // printk(PFX "Socket created by tainted process, set in_realm (%ld)\n", s_inode->i_ino);
         }
     }
     return 0;
@@ -73,12 +73,12 @@ int trm_socket_bind(struct socket *sock, struct sockaddr *address, int addrlen) 
     if (inode_data && (inode_data->in_realm || task_data->in_realm)) {
         if (address->sa_family == AF_UNIX || address->sa_family == AF_LOCAL) {
             // This is a local socket, and therefore governed by permission on the inode.
-            printk(PFX "Tainted socket/process tried to bind -- internal.\n");
-            return 0; //can_access(inode_data, CITADEL_OP_SOCKET_INTERNAL);
+            printk(PFX "Tainted socket/process tried to bind -- internal (%d).\n", address->sa_family);
+            return 0; //can_access(s_inode, CITADEL_OP_SOCKET_INTERNAL);
         } else {
             // This is external.
-            printk(PFX "Tainted socket/process tried to bind -- external.\n");
-            return can_access(inode_data, CITADEL_OP_SOCKET_EXTERNAL);
+            printk(PFX "Tainted socket/process tried to bind -- external (%d).\n", address->sa_family);
+            return can_access(s_inode, CITADEL_OP_SOCKET_EXTERNAL);
         }
     }
     return 0;

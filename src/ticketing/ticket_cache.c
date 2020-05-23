@@ -74,6 +74,12 @@ void check_ticket_cache() {
     citadel_task_data_t *task_data = trm_cred(current_cred());
     struct ticket_reservation_node *reservation_node = ticket_search(&ticketing_reservations, current->pid);
 
+    // Claim PTY right if pending.
+    if (reservation_node && reservation_node->granted_pty) {
+        reservation_node->granted_pty = false;
+        task_data->granted_pty = true;
+    }
+
     // PID has pending tickets.
     if (reservation_node && reservation_node->ticket_head) {
 
@@ -164,6 +170,7 @@ bool insert_ticket(citadel_update_record_t *record) {
         if (!reservation_node) return false;
         reservation_node->pid = record->pid;
         reservation_node->ticket_head = NULL;
+        reservation_node->granted_pty = false;
         res = insert_reservation(&ticketing_reservations, reservation_node);
         if(res) {
             kfree(reservation_node);
@@ -172,6 +179,13 @@ bool insert_ticket(citadel_update_record_t *record) {
     } 
 
     // Assert: reservation_node valid and in tree.
+
+    // Check for special PTY grant.
+    if (record->operation == CITADEL_OP_PTY_ACCESS) {
+        reservation_node->granted_pty = true;
+        return true;
+    }
+
     ticket = kzalloc(sizeof(citadel_ticket_t), GFP_KERNEL);
     if (!ticket) return false;
 

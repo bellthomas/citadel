@@ -3,7 +3,7 @@
 
 static nng_socket sock;
 static nng_aio *ap;
-static int ipc_timeout = 1 * 1000 * 1000; // microseconds
+static int ipc_timeout = 100 * 1000;
 static bool initialised_socket = false;
 
 static bool init_socket(void) {

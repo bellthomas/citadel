@@ -22,6 +22,7 @@ static citadel_response_t core_handle_request(int32_t pid, struct citadel_op_req
         if (!generate_ticket(pid, (const char*)metadata, request->operation))
             result = CITADEL_OP_ERROR;
         break;
+    case CITADEL_OP_PTY_ACCESS:
     case CITADEL_OP_SOCKET_EXTERNAL:
     case CITADEL_OP_SOCKET_INTERNAL:
     case CITADEL_OP_SOCKET:

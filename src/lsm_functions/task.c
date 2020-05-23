@@ -19,6 +19,7 @@ static void init_task_trm(citadel_task_data_t *tt, citadel_task_data_t *tt_old)
 {
     if (!tt_old) {
         tt->ticket_head = NULL;
+        tt->granted_pty = false;
     }
     
 	// tsp->smk_task = task;

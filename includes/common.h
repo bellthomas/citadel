@@ -32,6 +32,7 @@ typedef struct citadel_ticket {
 typedef struct citadel_task_data {
     uint8_t t_data;
     bool in_realm;
+    bool granted_pty;
     citadel_ticket_t *ticket_head;
 } __randomize_layout citadel_task_data_t;
 
@@ -72,6 +73,7 @@ extern char *get_xattr_identifier(struct dentry *dentry);
 extern void  realm_housekeeping(citadel_inode_data_t *i_trm, struct dentry *dentry);
 extern void  inode_housekeeping(citadel_inode_data_t *i_trm, struct dentry *dentry);
 extern void  task_housekeeping(void);
-extern int   can_access(citadel_inode_data_t *inode_data, citadel_operation_t operation);
+extern int   can_access(struct inode *inode, citadel_operation_t operation);
+extern bool  pty_check(struct inode *inode);
 
 #endif  /* _SECURITY_TRM_CRYPTO_H */

@@ -17,6 +17,7 @@
 #include "citadel.h"
 
 extern int system_ready(void);
+extern int citadel_pid(void);
 extern void* generate_challenge(size_t *len);
 extern void process_challenge_response(void *response, size_t response_len);
 extern void* generate_update(size_t *len);

@@ -13,6 +13,7 @@ enum Action {
 	A_FILE_TEST,
 	A_SOCKET_TEST,
 	A_TAINT,
+	A_PTY,
 };
 static std::map<std::string, Action> actions;
 
@@ -21,6 +22,7 @@ void init_actions(void) {
 	actions["file"] = A_FILE_TEST;
 	actions["socket"] = A_SOCKET_TEST;
 	actions["taint"] = A_TAINT;
+	actions["pty"] = A_PTY;
 } 
 
 int to_action(std::string str) {
@@ -37,6 +39,7 @@ int main(int argc, char** argv) {
 
 	printf("PID: %d\n", getpid());
 	init_actions();
+	run_init();
 	for (int i = 1; i < argc; i++) {
 		std::string s_arg(argv[i]);
 		switch (to_action(s_arg)) {
@@ -51,6 +54,9 @@ int main(int argc, char** argv) {
 			break;
 		case A_SOCKET_TEST:
 			run_socket_test();
+			break;
+		case A_PTY:
+			run_pty();
 			break;
 		default:
 			printf("Invalid option: %s, %d\n", s_arg.c_str(), to_action(s_arg));

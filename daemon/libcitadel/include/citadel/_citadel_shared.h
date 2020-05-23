@@ -118,13 +118,14 @@ typedef struct citadel_ptoken_protected {
 
 // Citadel operation (citadel_operation_t).
 #define CITADEL_OP_NOP              0x00
-#define CITADEL_OP_REGISTER         0x01
-#define CITADEL_OP_FILE_CREATE      0x02
-#define CITADEL_OP_FILE_RECREATE    0x04
-#define CITADEL_OP_FILE_OPEN        0x08
-#define CITADEL_OP_SOCKET_INTERNAL  0x10
-#define CITADEL_OP_SOCKET_EXTERNAL  0x20
-#define CITADEL_OP_SOCKET           0x30  // CITADEL_OP_SOCKET_INTERNAL & CITADEL_OP_SOCKET_EXTERNAL
+#define CITADEL_OP_PTY_ACCESS       0x01  // Special, will persist indefinitely.
+#define CITADEL_OP_REGISTER         0x02
+#define CITADEL_OP_FILE_CREATE      0x04
+#define CITADEL_OP_FILE_RECREATE    0x08
+#define CITADEL_OP_FILE_OPEN        0x10
+#define CITADEL_OP_SOCKET_INTERNAL  0x20
+#define CITADEL_OP_SOCKET_EXTERNAL  0x40
+#define CITADEL_OP_SOCKET           0x60  // CITADEL_OP_SOCKET_INTERNAL & CITADEL_OP_SOCKET_EXTERNAL
 
 // Citadel request response (citadel_response_t).
 // enum citadel_status {

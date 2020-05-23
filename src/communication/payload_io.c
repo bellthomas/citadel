@@ -28,6 +28,10 @@ int system_ready() {
     return registered;
 }
 
+int citadel_pid() {
+    return (int)enclave_pid;
+}
+
 void* generate_challenge(size_t *len) {
     citadel_challenge_t *challenge;
     char *encrypted, *challenge_hex; //, *hexstring, *hexstring2;

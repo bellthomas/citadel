@@ -6,10 +6,12 @@
 #include <linux/cred.h>
 #include <linux/fs.h>
 #include <linux/uidgid.h>
+#include <linux/magic.h>
 
 #include "../includes/citadel.h"
 #include "../includes/common.h"
 #include "../includes/ticket_cache.h"
+#include "../includes/payload_io.h"
 
 
 /* LSM's BLOB allocation. */
@@ -313,13 +315,39 @@ void inode_housekeeping(citadel_inode_data_t *i_trm, struct dentry *dentry) {
 	if (i_trm->in_realm) realm_housekeeping(i_trm, dentry);
 }
 
+bool pty_check(struct inode *inode) {
+	citadel_task_data_t *cred = trm_cred(current_cred());
+	return ((inode->i_sb->s_magic == DEVPTS_SUPER_MAGIC) && cred->granted_pty);
+}
 
-int can_access(citadel_inode_data_t *inode_data, citadel_operation_t operation) {
+
+/*
+   The following POSIX macros are defined to check the file type using the st_mode field:	
+       S_ISREG(m)  is it a regular file?
+       S_ISDIR(m)  directory?
+       S_ISCHR(m)  character device?
+       S_ISBLK(m)  block device?
+       S_ISFIFO(m) FIFO (named pipe)?
+       S_ISLNK(m)  symbolic link? (Not in POSIX.1-1996.)
+       S_ISSOCK(m) socket? (Not in POSIX.1-1996.)
+*/
+int can_access(struct inode *inode, citadel_operation_t operation) {
 	ktime_t tracker;
 	size_t tmp;
 	bool found = false;
 	citadel_ticket_t *current_ticket;
+	citadel_inode_data_t *inode_data = trm_inode(inode);
 	citadel_task_data_t *cred = trm_cred(current_cred());
+
+	// Invalid, allow.
+	if (!inode_data) return 0;
+	if (inode->i_ino < 2) return 0;
+
+	// Allow directory traversing, SockFS, SysFS, PipeFS.
+	if (S_ISDIR(inode->i_mode)) return 0;
+	if (inode->i_sb->s_magic == SOCKFS_MAGIC) return 0;
+	else if (inode->i_sb->s_magic == SYSFS_MAGIC) return 0;
+	else if (inode->i_sb->s_magic == PIPEFS_MAGIC) return 0;
 
 	// All processes can access public Citadel resources.
 	// Key: 0xFFFF_FFFF_FFFF_FFFF_FFFF_FFFF_FFFF_FFFF
@@ -330,16 +358,25 @@ int can_access(citadel_inode_data_t *inode_data, citadel_operation_t operation) 
 			break;
 		}
 	}
-	if (found) return 0;
+	if (unlikely(found)) return 0;
+
+	// ... and Citadel can access all objects.
+	if (current->pid == citadel_pid()) return 0;
+
+	// Check for exceptional PTY access.
+	if (pty_check(inode)) return 0;
 
 	// No tickets, no access.
-	if (!cred || !cred->ticket_head) return -EACCES;
+	if (!cred || !cred->ticket_head) {
+		printk(PFX "Rejecting PID %d access to object (magic: %ld, ino: %ld).\n", current->pid, inode->i_sb->s_magic, inode->i_ino);
+		return -EACCES;
+	}
 
 	// Let's see if the process has the correct ticket.
 	current_ticket = cred->ticket_head;
 	tracker = 0;
 	while (current_ticket->timestamp > tracker && !found) {
-		printk(PFX "-");
+
 		// Check if this ticket allows access.
 		found = true;
 		for (tmp = 0; tmp < _CITADEL_IDENTIFIER_LENGTH; tmp++) {
@@ -361,11 +398,11 @@ int can_access(citadel_inode_data_t *inode_data, citadel_operation_t operation) 
 
 	if (found) {
 		// Found a ticket relating to this object.
-		printk(PFX "Allowing PID %d access to object.\n", current->pid);
+		printk(PFX "Allowing PID %d access to object (ino: %ld).\n", current->pid, inode->i_ino);
 		cred->in_realm = true;
 		return 0;
 	}
 
-	printk(PFX "Rejecting PID %d access to object.\n", current->pid);
+	printk(PFX "Rejecting PID %d access to object (magic: %ld, ino: %ld).\n", current->pid, inode->i_sb->s_magic, inode->i_ino);
 	return -EACCES;
 }

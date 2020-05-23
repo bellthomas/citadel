@@ -110,7 +110,7 @@ int trm_inode_permission(struct inode *inode, int mask) {
 	citadel_task_data_t *task_data = trm_cred(current_cred());
 	task_housekeeping();
 	if (inode_data && (inode_data->in_realm || task_data->in_realm)) {
-		return can_access(inode_data, CITADEL_OP_FILE_OPEN);
+		return can_access(inode, CITADEL_OP_FILE_OPEN);
 	} 
 	return 0;
 }

@@ -22,5 +22,6 @@ extern const char *get_signed_ptoken(void);
 extern const int32_t get_citadel_pid(void);
 
 extern bool citadel_init(void);
+extern bool citadel_pty(void);
 
 #endif

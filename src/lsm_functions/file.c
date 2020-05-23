@@ -42,7 +42,7 @@ int trm_file_permission(struct file *file, int mask) {
     
     // Don't care if this file isn't under our protection.
     if (inode_data && (inode_data->in_realm || task_data->in_realm)) {
-        return can_access(inode_data, CITADEL_OP_FILE_OPEN);
+        return can_access(f_dentry->d_inode, CITADEL_OP_FILE_OPEN);
     }
 
     return 0;
@@ -79,7 +79,7 @@ int trm_file_open(struct file *file) {
 
     // Don't care if this file isn't under our protection.
     if (inode_data && (inode_data->in_realm || task_data->in_realm)) {
-        return can_access(inode_data, CITADEL_OP_FILE_OPEN);
+        return can_access(f_dentry->d_inode, CITADEL_OP_FILE_OPEN);
     }
 
     return 0;

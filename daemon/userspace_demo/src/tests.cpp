@@ -9,14 +9,15 @@
 
 const char path[] = "/opt/testing_dir/userspace_file.txt";
 
-void run_taint(void) {
-	// On start.
+void run_init(void) {
 	bool citadel_ready = citadel_init();
 	if (!citadel_ready) {
 		printf("Citadel failed to init.\n");
 		exit(1);
 	}
+}
 
+void run_taint(void) {
 	// Open file.
 	bool citadel_file_open_ret = citadel_file_open((char*)path, sizeof(path));
 	if (!citadel_file_open_ret) {
@@ -24,26 +25,25 @@ void run_taint(void) {
 		exit(3);
 	}
 
-	printf("- 1\n");
 	FILE *fp;
 	fp = fopen(path, "rw");
-	printf("- 2\n");
 	if(fp) {
 		printf("Tainted.\n\n");
 		fclose(fp);
 	}
 	else printf("Failed to taint\n");
-	printf("- 3\n");
+}
+
+void run_pty(void) {
+	bool citadel_pty_access = citadel_pty();
+	if (!citadel_pty_access) {
+		printf("Citadel failed to get PTY access.\n");
+		exit(1);
+	}
 }
 
 void run_file_test(void) {
 	printf("Running file test...\n");
-    // On start.
-	bool citadel_ready = citadel_init();
-	if (!citadel_ready) {
-		printf("Citadel failed to init.\n");
-		exit(1);
-	}
 
 	// Init file.
 	bool citadel_file_create_ret = citadel_file_create((char*)path, sizeof(path));
