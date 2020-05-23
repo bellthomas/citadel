@@ -25,12 +25,12 @@ static void init_task_trm(citadel_task_data_t *data, citadel_task_data_t *previo
     else {
         data->ticket_head = previous->ticket_head;
         previous->ticket_head = NULL;
-        data->pid = previous->pid;
+        data->pid = (previous->pid == 0) ? 1 : previous->pid;
         data->granted_pty = previous->granted_pty;
+        mutex_destroy(&previous->lock);
     }
     
     mutex_init(&data->lock);
-    mutex_destroy(&previous->lock);
 }
 
 /*
@@ -53,9 +53,9 @@ int trm_cred_alloc_blank(struct cred *cred, gfp_t gfp)
  */
 int trm_cred_prepare(struct cred *new, const struct cred *old, gfp_t gfp)
 {
-    if (system_ready()) {
-        printk(PFX "cred_prepare called from PID %d\n", current->pid);
-    }
+    // if (system_ready()) {
+    //     printk(PFX "cred_prepare called from PID %d\n", current->pid);
+    // }
     init_task_trm(citadel_cred(new), citadel_cred(old));
     return 0;
 }
@@ -75,7 +75,7 @@ int trm_task_kill(struct task_struct *p, struct kernel_siginfo *info, int sig, c
 
 
 void trm_task_free(struct task_struct *task) {
-    printk(PFX "PID %d freed.\n", task->pid);
+    // printk(PFX "PID %d freed.\n", task->pid);
     // Remove entries from the ticket cache.
 }
 

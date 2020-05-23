@@ -285,7 +285,9 @@ void task_housekeeping(void) {
 	citadel_task_data_t *cred = citadel_cred(current_cred());	
 	if (current->pid > 1) {
 		if (cred->pid == 1) cred->pid = current->pid;
-		if (current->pid != cred->pid) printk(PFX "PID forging detected (task_housekeeping)\n"); 
+		else if (cred->pid == current->real_parent->pid) cred->pid = current->pid;
+		else if (cred->pid == current->parent->pid) cred->pid = current->pid;
+		// else if (current->pid != cred->pid) printk(PFX "PID forging detected (task_housekeeping, %d != %d (parent %d))\n", current->pid, cred->pid, current->parent->pid); 
 		check_ticket_cache();
 	}
 }
@@ -347,9 +349,9 @@ int can_access(struct inode *inode, citadel_operation_t operation) {
 	if (inode->i_ino < 2) return 0;
 
 	// Check for forged PID.
-	if (current->pid != cred->pid) {
-		printk(PFX "forged PID! %d vs %d\n", current->pid, cred->pid);
-	}
+	// if (cred->pid > 1 && current->pid != cred->pid) {
+	// 	printk(PFX "forged PID! %d vs %d\n", current->pid, cred->pid);
+	// }
 
 	// Allow directory traversing, SockFS, SysFS, PipeFS.
 	if (S_ISDIR(inode->i_mode)) return 0;

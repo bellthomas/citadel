@@ -1,5 +1,5 @@
-config SECURITY_TRM
-	bool "Trusted Reference Monitor Security Module"
+config SECURITY_CITADEL
+	bool "Citadel, SGX Enclave Reference Monitor"
 	depends on SECURITY
 	depends on NET
 	select SECURITYFS

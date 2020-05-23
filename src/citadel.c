@@ -181,7 +181,7 @@ static struct security_hook_list citadel_hooks[] __lsm_ro_after_init = {
 
 static int __init citadel_init(void) {
     // struct cred *cred = (struct cred *) current->cred;
-    security_add_hooks(citadel_hooks, ARRAY_SIZE(citadel_hooks), "trm");
+    security_add_hooks(citadel_hooks, ARRAY_SIZE(citadel_hooks), _CITADEL_LSM_NAME);
     printk(KERN_INFO PFX "Citadel Reference Monitor initialized.\n");
     return 0;
 }
@@ -192,5 +192,5 @@ static int __init citadel_init(void) {
 DEFINE_LSM(citadel_init) = {
     .init = citadel_init,
     .blobs = &citadel_blob_sizes,
-    .name = "trm",
+    .name = _CITADEL_LSM_NAME,
 };
