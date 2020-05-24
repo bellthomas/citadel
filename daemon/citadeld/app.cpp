@@ -41,6 +41,7 @@ int main(int argc, char const *argv[]) {
     interrupt_handler.sa_flags = 0;
     sigaction(SIGINT, &interrupt_handler, NULL);
     sigaction(SIGTERM, &interrupt_handler, NULL);
+    signal(SIGPIPE, SIG_IGN);
     
     // Start receiving socket.
     if (!SUCCESS(initialise_socket())) {

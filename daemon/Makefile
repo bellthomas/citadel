@@ -50,7 +50,7 @@ endif
 
 ######## App Settings ########
 
-App_Folder := citadel.d
+App_Folder := citadeld
 App_Name := $(Build_Folder)/app
 
 ifneq ($(SGX_MODE), HW)

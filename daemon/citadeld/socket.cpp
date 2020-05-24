@@ -10,12 +10,13 @@
 #include <time.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <sys/uio.h>
 
 static pthread_t thid;
-static int socket_fd;
+static int socket_fd = -1;
 static bool running = true;
 static long long int num_requests = 0;
-
+static int ipc_timeout = 100 * 1000;
 
 char* to_hexstring(unsigned char *buf, unsigned int len) {
     char   *out;
@@ -32,8 +33,105 @@ char* to_hexstring(unsigned char *buf, unsigned int len) {
     return out;
 }
 
+void send_response(int client_fd, char *message, size_t message_len) {
+	uint8_t ecall_ret;
+	uint8_t ptoken[_CITADEL_PROCESS_PTOKEN_LENGTH];
+	bool cache_stage, valid_size;
+	struct citadel_op_reply *reply;
+	uint64_t pid = 0;
+	int rv = 0;
+	size_t sent = 0;
+	int attempts = 0;
+
+	// Check length;
+	valid_size = (message_len == sizeof(struct citadel_op_request)) || (message_len == sizeof(struct citadel_op_extended_request));
+
+	// Process request.
+	ecall_ret = valid_size ? CITADEL_OP_ERROR : CITADEL_OP_INVALID; // Default.
+	cache_stage = valid_size ? cache_passthrough(message, message_len) : false;
+	if (cache_stage) {
+		handle_request(get_enclave_id(), &ecall_ret, (uint8_t*)message, message_len, (int32_t)pid, ptoken, sizeof(ptoken));
+	}
+
+	// Copy result into buffer to return to caller.
+	if (message_len == sizeof(struct citadel_op_extended_reply)) {
+		struct citadel_op_extended_reply *extended_reply = (struct citadel_op_extended_reply *)message;
+		reply = &extended_reply->reply;
+	} else {
+		reply = (struct citadel_op_reply *)message;
+	}
+	memcpy(reply->ptoken, ptoken, _CITADEL_PROCESS_PTOKEN_LENGTH);
+	reply->result = ecall_ret;
+
+
+	while (attempts < ipc_timeout) {
+		rv = write(client_fd, (const void*)reply, message_len);
+		sent += (rv > 0 ? rv : 0);
+		if (rv == -1 && (sent < message_len || (errno == EWOULDBLOCK || errno == EAGAIN))) {
+			usleep(1);
+			attempts++;
+			if(attempts >= ipc_timeout) {
+				printf("Timed out. Failed to send. %s\n", strerror(errno));
+				break;
+			}
+		}
+
+		else if (sent == message_len) {
+			break;
+		}
+		else if (rv < 0) {
+			printf("Error, %s\n", strerror(errno));
+			break;
+		}
+	}
+
+	// rv = write(client_fd, (char*)reply, message_len);
+	// sent += (rv > 0 ? rv : 0);
+	// printf("asd");
+
+	// rv = nng_sendmsg(sock, msg, NNG_FLAG_ALLOC);
+	// nng_aio_set_msg(ap2, msg);
+	// nng_send_aio(sock, ap2);
+	// nng_aio_wait(ap2);
+	// rv = nng_aio_result(ap2);
+	// if (rv != 0) {
+	// 	printf("nng_send failed\n");
+	// 	nng_msg_free(msg);
+	// }
+}
+
 void handle_client_socket(int client_fd) {
-	printf("FD: %d\n", client_fd);
+	size_t rv = 0;
+	int attempts = 0;
+	size_t received = 0;
+	char buffer[sizeof(struct citadel_op_extended_request)];
+
+	while (attempts < ipc_timeout) {
+		rv = read(client_fd, (char*)buffer, sizeof(buffer));
+		received += (rv > 0 ? rv : 0);
+		if (rv == -1 && (errno == EWOULDBLOCK || errno == EAGAIN)) {
+			usleep(1);
+			attempts++;
+			if(attempts >= ipc_timeout) {
+				printf("Timed out. Nothing received.\n");
+				break;
+				// return false;
+			} 
+		} 
+		else if (rv > 0) {
+			send_response(client_fd, (char*)buffer, received);
+			break;
+		}
+		// else if (rv > 0) {
+		// 	printf("Partial read: %ld bytes\n", rv);
+		// }
+		else if (rv < 0) {
+			printf("Error, %s\n", strerror(errno));
+			break;
+		}
+	}
+
+	close(client_fd);
 }
 
 void run_server(void) {
@@ -92,36 +190,36 @@ void run_server(void) {
 		// 	message = nng_msg_body(msg);
 		// 	message_len = nng_msg_len(msg);
 
-		// 	// Check length;
-		// 	valid_size = (message_len == sizeof(struct citadel_op_request)) || (message_len == sizeof(struct citadel_op_extended_request));
+		// // Check length;
+		// valid_size = (message_len == sizeof(struct citadel_op_request)) || (message_len == sizeof(struct citadel_op_extended_request));
 
-		// 	// Process request.
-		// 	ecall_ret = valid_size ? CITADEL_OP_ERROR : CITADEL_OP_INVALID; // Default.
-		// 	cache_stage = valid_size ? cache_passthrough(message, message_len) : false;
-		// 	if (cache_stage) {
-		// 		handle_request(get_enclave_id(), &ecall_ret, (uint8_t*)message, message_len, (int32_t)pid, ptoken, sizeof(ptoken));
-		// 	}
-		// 	// printf("Result: %s\n", citadel_error(ecall_ret));
+		// // Process request.
+		// ecall_ret = valid_size ? CITADEL_OP_ERROR : CITADEL_OP_INVALID; // Default.
+		// cache_stage = valid_size ? cache_passthrough(message, message_len) : false;
+		// if (cache_stage) {
+		// 	handle_request(get_enclave_id(), &ecall_ret, (uint8_t*)message, message_len, (int32_t)pid, ptoken, sizeof(ptoken));
+		// }
+		// // printf("Result: %s\n", citadel_error(ecall_ret));
 
-		// 	// Copy result into buffer to return to caller.
-		// 	if (message_len == sizeof(struct citadel_op_extended_reply)) {
-		// 		struct citadel_op_extended_reply *extended_reply = (struct citadel_op_extended_reply *)message;
-		// 		reply = &extended_reply->reply;
-		// 	} else {
-		// 		reply = (struct citadel_op_reply *)message;
-		// 	}
-		// 	memcpy(reply->ptoken, ptoken, _CITADEL_PROCESS_PTOKEN_LENGTH);
-		// 	reply->result = ecall_ret;
+		// // Copy result into buffer to return to caller.
+		// if (message_len == sizeof(struct citadel_op_extended_reply)) {
+		// 	struct citadel_op_extended_reply *extended_reply = (struct citadel_op_extended_reply *)message;
+		// 	reply = &extended_reply->reply;
+		// } else {
+		// 	reply = (struct citadel_op_reply *)message;
+		// }
+		// memcpy(reply->ptoken, ptoken, _CITADEL_PROCESS_PTOKEN_LENGTH);
+		// reply->result = ecall_ret;
 
-		// 	// rv = nng_sendmsg(sock, msg, NNG_FLAG_ALLOC);
-		// 	nng_aio_set_msg(ap2, msg);
-		// 	nng_send_aio(sock, ap2);
-		// 	nng_aio_wait(ap2);
-		// 	rv = nng_aio_result(ap2);
-		// 	if (rv != 0) {
-		// 		printf("nng_send failed\n");
-		// 		nng_msg_free(msg);
-		// 	}
+		// // rv = nng_sendmsg(sock, msg, NNG_FLAG_ALLOC);
+		// nng_aio_set_msg(ap2, msg);
+		// nng_send_aio(sock, ap2);
+		// nng_aio_wait(ap2);
+		// rv = nng_aio_result(ap2);
+		// if (rv != 0) {
+		// 	printf("nng_send failed\n");
+		// 	nng_msg_free(msg);
+		// }
 
 		// 	num_requests++;
 		// 	break;
@@ -130,7 +228,7 @@ void run_server(void) {
 		// 	printf("Socket error: %s\n", nng_strerror(rv));
 		// 	return;
 		// }
-		usleep(10);
+		usleep(1);
 	}
 
 	// end = std::chrono::high_resolution_clock::now();
@@ -156,11 +254,7 @@ void *socket_thread(void *arg) {
 // External.
 
 int initialise_socket(void) {
-	// int rv;
-	// if ((rv = nng_rep0_open(&sock)) != 0) {
-	// 	printf("nng_rep0_open fail\n");
-    //     return -1;
-	// }
+
 	if ((socket_fd = socket(AF_UNIX, SOCK_STREAM, 0)) == -1) {
 		perror("socket error\n");
 		return false;
@@ -189,16 +283,12 @@ int initialise_socket(void) {
 	// Mark as passive socket.
 	listen(socket_fd, 5);
 
-	// if ((rv = nng_listen(sock, _CITADEL_IPC_ADDRESS, NULL, 0)) != 0) {
-	// 	nng_close(sock);
-	// 	umask(22);
-    //     return -1;
-	// }
-	
 
 	// Now we've claimed the socket, dispatch thread to monitor it.
     if (pthread_create(&thid, NULL, socket_thread, NULL) != 0) {
         perror("pthread_create() error");
+		close(socket_fd);
+		unlink(_CITADEL_IPC_FILE);
         return -EIO;
     }
 
@@ -210,7 +300,11 @@ int close_socket(void) {
     running = false;
     if (pthread_join(thid, &ret) != 0) {
         perror("pthread_join() error");
+		close(socket_fd);
+		unlink(_CITADEL_IPC_FILE);
         return -EIO;
     }
+	close(socket_fd);
+	unlink(_CITADEL_IPC_FILE);
     return 0;
 }

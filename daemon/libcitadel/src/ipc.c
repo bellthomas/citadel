@@ -100,7 +100,7 @@ bool ipc_send(char *data, size_t len) {
 				citadel_perror("Timed out. Failed to send.\n");
 				return false;
 			}
-			break;
+			// break;
 		}
 
 		else if (sent == len) {
@@ -149,20 +149,19 @@ bool ipc_recv(void) {
 		// if(rv == 0) *msg = nng_aio_get_msg(ap);	
 		// else if (rv == NNG_ETIMEDOUT) rv = NNG_EAGAIN;
 
-		rv += read(socket_fd, buffer, sizeof(buffer));
+		rv = read(socket_fd, buffer, sizeof(buffer));
 		received += (rv > 0 ? rv : 0);
 		if (rv == -1 && (errno == EWOULDBLOCK || errno == EAGAIN)) {
-			usleep(20);
+			usleep(1);
 			attempts++;
 			if(attempts >= ipc_timeout) {
 				citadel_perror("Timed out. Nothing received.\n");
 				return false;
 			}
-			break;
 		}
 
 
-		else if (received > 0) {
+		else if (rv > 0) {
 #if _LIBCITADEL_PERF_METRICS
 			clock_gettime(CLOCK_MONOTONIC, &end);
 			diff = 1000000000L * (end.tv_sec - start.tv_sec) + end.tv_nsec - start.tv_nsec;
@@ -205,7 +204,6 @@ bool ipc_transaction(unsigned char *request, size_t length) {
 
     sent = ipc_send(request, length);	
 	if (sent) {
-		usleep(10);
 		received = ipc_recv();
 		if (received) {
 			// Get PID of sender.
