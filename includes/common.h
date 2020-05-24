@@ -51,14 +51,14 @@ typedef struct citadel_inode_data {
 
 extern struct lsm_blob_sizes citadel_blob_sizes;
 
-static inline citadel_inode_data_t *trm_inode(const struct inode *inode) {
+static inline citadel_inode_data_t *citadel_inode(const struct inode *inode) {
     if (unlikely(!inode) || unlikely(!inode->i_security)) return NULL;
 	return inode->i_security + citadel_blob_sizes.lbs_inode;
 }
 
-static inline citadel_inode_data_t *trm_dentry(const struct dentry *dentry) {
+static inline citadel_inode_data_t *citadel_dentry(const struct dentry *dentry) {
     if (unlikely(!dentry) || unlikely(!dentry->d_inode)) return NULL;
-	return trm_inode(d_real_inode(dentry));
+	return citadel_inode(d_real_inode(dentry));
 }
 
 static inline citadel_task_data_t *citadel_cred(const struct cred *cred) {

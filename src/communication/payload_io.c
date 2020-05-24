@@ -233,7 +233,7 @@ int xattr_enclave_installation(const void *value, size_t size, struct dentry *de
     int res, xattr_success;
     citadel_update_header_t *hdr;
     citadel_update_record_t *rcrd;
-    citadel_inode_data_t *d_inode_data = trm_inode(dentry->d_inode);
+    citadel_inode_data_t *d_inode_data = citadel_inode(dentry->d_inode);
 
     if (!registered) {
         printk(PFX_W "Can't process update. Not registered.\n");
@@ -265,25 +265,28 @@ int xattr_enclave_installation(const void *value, size_t size, struct dentry *de
     rcrd = (citadel_update_record_t *)(plain + sizeof(citadel_update_header_t));
 
     // Set the xattr values.
+    d_inode_data->needs_xattr_update = false;
+    d_inode_data->checked_disk_xattr = true;
     identifier_hex = to_hexstring(rcrd->identifier, _CITADEL_IDENTIFIER_LENGTH);
     // need to lock inode->i_rwsem
     // down_write(&(dentry->d_inode->i_rwsem));
     xattr_success = __vfs_setxattr_noperm(dentry, TRM_XATTR_ID_NAME, (const void*)identifier_hex, _CITADEL_IDENTIFIER_LENGTH * 2, 0);
     __vfs_setxattr_noperm(dentry, TRM_XATTR_REALM_NAME, NULL, 0, 0);
 	// up_write(&(dentry->d_inode->i_rwsem));
-    kfree(identifier_hex);
 
     if(xattr_success == 0) {
         // Update internal kernel structure.
+        printk(PFX "Inducted file. Identifier: %s\n", identifier_hex);
         d_inode_data->in_realm = true;
-        d_inode_data->needs_xattr_update = false;
-        d_inode_data->checked_disk_xattr = true;
         memcpy(d_inode_data->identifier, rcrd->identifier, sizeof(d_inode_data->identifier));
 
         update_aes_key(hdr->key_update, sizeof(hdr->key_update));
+        kfree(identifier_hex);
         kfree(plain);
         return 0;
     } else {
+        d_inode_data->checked_disk_xattr = false;
+        kfree(identifier_hex);
         kfree(plain);
         return -1;
     }

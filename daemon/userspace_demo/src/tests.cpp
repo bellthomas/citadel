@@ -4,7 +4,9 @@
 #include <sys/types.h>
 #include <sys/xattr.h>
 #include <netinet/in.h> 
+#include <sys/un.h>
 
+#include "../includes/app.h"
 #include "../includes/tests.h"
 
 const char path[] = "/opt/testing_dir/userspace_file.txt";
@@ -102,7 +104,7 @@ void run_file_test(void) {
 }
 
 
-void run_socket_test(void) {
+void run_socket_e_test(void) {
 	printf("running socket test...\n");
 	int server_fd, new_socket, valread; 
     struct sockaddr_in address; 
@@ -149,6 +151,63 @@ void run_socket_test(void) {
 	// strncpy(addr.sun_path, "socket", sizeof(addr.sun_path)-1);
 	// bind(fd, (struct sockaddr*)&addr, sizeof(addr));
 
-	while(1) {}
+	while(on_hold()) {}
+	reset_hold();
 	close(server_fd);
+}
+
+void run_socket_i_test(void) {
+	const char *socket_path = "/tmp/socket";
+
+    // Creating socket file descriptor 
+	int server_fd, child_fd;
+    if ((server_fd = socket(AF_UNIX, SOCK_STREAM, 0)) == 0) 
+    { 
+        perror("socket failed"); 
+        exit(EXIT_FAILURE); 
+    } 
+
+	struct sockaddr_un address;
+	memset(&address, 0, sizeof(address));
+	address.sun_family = AF_UNIX;
+	strncpy(address.sun_path, socket_path, sizeof(address.sun_path)-1);
+
+
+	bool socket_allowed = citadel_socket(server_fd, (struct sockaddr *)&address);
+
+    // Bind to address. 
+    if (bind(server_fd, (struct sockaddr *)&address, sizeof(address)) < 0) { 
+        perror("bind failed"); 
+        // exit(EXIT_FAILURE); 
+    }
+	else {
+		printf("Successfully bound to socket\n");
+	}
+
+
+	if (fork() == 0) {
+		// Child
+		if ((child_fd = socket(AF_UNIX, SOCK_STREAM, 0)) == 0) 
+		{ 
+			perror("child socket failed"); 
+			exit(EXIT_FAILURE); 
+		} 
+	}
+	else {
+		// Parent
+	}
+
+
+
+
+	// struct sockaddr_un addr;
+	// memset(&addr, 0, sizeof(addr));
+	// addr.sun_family = AF_UNIX;
+	// strncpy(addr.sun_path, "socket", sizeof(addr.sun_path)-1);
+	// bind(fd, (struct sockaddr*)&addr, sizeof(addr));
+
+	while(on_hold()) {}
+	reset_hold();
+	close(server_fd);
+	unlink(socket_path);
 }

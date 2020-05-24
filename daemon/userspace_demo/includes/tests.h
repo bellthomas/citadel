@@ -6,6 +6,7 @@ extern void run_init(void);
 extern void run_taint(void);
 extern void run_pty(void);
 extern void run_file_test(void);
-extern void run_socket_test(void);
+extern void run_socket_i_test(void);
+extern void run_socket_e_test(void);
 
 #endif

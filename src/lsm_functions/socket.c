@@ -50,7 +50,7 @@ static void realm_init_socket_copy(citadel_inode_data_t *original, citadel_inode
  */
 int trm_socket_post_create(struct socket *sock, int family, int type, int protocol, int kern) {
     struct inode *s_inode = SOCK_INODE(sock);
-    citadel_inode_data_t *inode_data = trm_inode(s_inode);
+    citadel_inode_data_t *inode_data = citadel_inode(s_inode);
     citadel_task_data_t *task_data = citadel_cred(current_cred());
 
     task_housekeeping();
@@ -75,8 +75,8 @@ int trm_socket_post_create(struct socket *sock, int family, int type, int protoc
 int trm_socket_socketpair(struct socket *socka, struct socket *sockb) {
     struct inode *s_inode_a = SOCK_INODE(socka);
     struct inode *s_inode_b = SOCK_INODE(sockb);
-    citadel_inode_data_t *inode_data_a = trm_inode(s_inode_a);
-    citadel_inode_data_t *inode_data_b = trm_inode(s_inode_b);
+    citadel_inode_data_t *inode_data_a = citadel_inode(s_inode_a);
+    citadel_inode_data_t *inode_data_b = citadel_inode(s_inode_b);
     citadel_task_data_t *task_data = citadel_cred(current_cred());
     task_housekeeping();
 
@@ -101,7 +101,7 @@ int trm_socket_socketpair(struct socket *socka, struct socket *sockb) {
  */
 int trm_socket_bind(struct socket *sock, struct sockaddr *address, int addrlen) {
     struct inode *s_inode = SOCK_INODE(sock);
-    citadel_inode_data_t *inode_data = trm_inode(s_inode);
+    citadel_inode_data_t *inode_data = citadel_inode(s_inode);
     citadel_task_data_t *task_data = citadel_cred(current_cred());
     task_housekeeping();
 
@@ -131,8 +131,8 @@ int trm_socket_bind(struct socket *sock, struct sockaddr *address, int addrlen) 
 int trm_socket_accept(struct socket *sock, struct socket *newsock) {
     struct inode *s_inode = SOCK_INODE(sock);
     struct inode *s_inode_new = SOCK_INODE(newsock);
-    citadel_inode_data_t *inode_data = trm_inode(s_inode);
-    citadel_inode_data_t *inode_data_new = trm_inode(s_inode_new);
+    citadel_inode_data_t *inode_data = citadel_inode(s_inode);
+    citadel_inode_data_t *inode_data_new = citadel_inode(s_inode_new);
     citadel_task_data_t *task_data = citadel_cred(current_cred());
     task_housekeeping();
 
@@ -153,7 +153,7 @@ int trm_socket_accept(struct socket *sock, struct socket *newsock) {
  */
 int trm_socket_sendmsg(struct socket *sock, struct msghdr *msg, int size) {
     struct inode *s_inode = SOCK_INODE(sock);
-    citadel_inode_data_t *inode_data = trm_inode(s_inode);
+    citadel_inode_data_t *inode_data = citadel_inode(s_inode);
     citadel_task_data_t *task_data = citadel_cred(current_cred());
     task_housekeeping();
 
@@ -175,7 +175,7 @@ int trm_socket_sendmsg(struct socket *sock, struct msghdr *msg, int size) {
  */
 int trm_socket_recvmsg(struct socket *sock, struct msghdr *msg, int size, int flags) {
     struct inode *s_inode = SOCK_INODE(sock);
-    citadel_inode_data_t *inode_data = trm_inode(s_inode);
+    citadel_inode_data_t *inode_data = citadel_inode(s_inode);
     citadel_task_data_t *task_data = citadel_cred(current_cred());
     task_housekeeping();
 
@@ -197,7 +197,7 @@ int trm_socket_recvmsg(struct socket *sock, struct msghdr *msg, int size, int fl
  */
 int trm_socket_shutdown(struct socket *sock, int how) {
     struct inode *s_inode = SOCK_INODE(sock);
-    citadel_inode_data_t *inode_data = trm_inode(s_inode);
+    citadel_inode_data_t *inode_data = citadel_inode(s_inode);
     citadel_task_data_t *task_data = citadel_cred(current_cred());
     task_housekeeping();
 

@@ -341,7 +341,7 @@ int can_access(struct inode *inode, citadel_operation_t operation) {
 	size_t tmp;
 	bool found = false;
 	citadel_ticket_t *current_ticket;
-	citadel_inode_data_t *inode_data = trm_inode(inode);
+	citadel_inode_data_t *inode_data = citadel_inode(inode);
 	citadel_task_data_t *cred = citadel_cred(current_cred());
 
 	// Invalid, allow.
