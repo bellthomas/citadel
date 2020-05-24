@@ -353,11 +353,12 @@ int can_access(struct inode *inode, citadel_operation_t operation) {
 	// 	printk(PFX "forged PID! %d vs %d\n", current->pid, cred->pid);
 	// }
 
-	// Allow directory traversing, SockFS, SysFS, PipeFS.
+	// Allow directory traversing, SockFS, SysFS, PipeFS, SecurityFS.
 	if (S_ISDIR(inode->i_mode)) return 0;
 	if (inode->i_sb->s_magic == SOCKFS_MAGIC) return 0;
 	else if (inode->i_sb->s_magic == SYSFS_MAGIC) return 0;
 	else if (inode->i_sb->s_magic == PIPEFS_MAGIC) return 0;
+	else if (inode->i_sb->s_magic == SECURITYFS_MAGIC) return 0;
 
 	// All processes can access public Citadel resources.
 	// Key: 0xFFFF_FFFF_FFFF_FFFF_FFFF_FFFF_FFFF_FFFF

@@ -8,7 +8,8 @@ extern "C" {
 #define _LIBCITADEL_H
 
 #include <stdint.h>
-#include <nng/nng.h>
+#include <stdbool.h>
+// #include <nng/nng.h>
 
 #include "_citadel_shared.h"
 #include "common.h"
