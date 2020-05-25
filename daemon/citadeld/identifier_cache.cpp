@@ -87,7 +87,9 @@ bool metadata_path_to_identifier(void *metadata_value) {
                 retval = false;
             } else {
                 IdentifierCacheEntry entry = result.first->second;
+#if CITADEL_DEBUG
                 std::cout << "Cache (*). " << s << ": " << result.first->second << std::endl;
+#endif 
                 memcpy(metadata_value, (const void*)(entry.get_value()), _CITADEL_IDENTIFIER_LENGTH);
             }
         }
@@ -98,7 +100,9 @@ bool metadata_path_to_identifier(void *metadata_value) {
 
     } else {
         IdentifierCacheEntry entry = itr->second;
+#if CITADEL_DEBUG
         std::cout << "Cache. " << s << ": " << entry << std::endl;
+#endif
         memcpy(metadata_value, (const void*)(entry.get_value()), _CITADEL_IDENTIFIER_LENGTH);
     }
 

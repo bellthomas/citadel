@@ -7,7 +7,7 @@ NNG_Include_Folder := /opt/playground/nng/include
 NNG_Library_Folder := /opt/devel/libnng
 
 C_Includes := -I$(NNG_Include_Folder)
-C_Flags := -L$(NNG_Library_Folder) -lnng -pthread
+C_Flags := -L$(NNG_Library_Folder) -lnng -pthread -D_GNU_SOURCE
 # -Wl,--no-whole-archive
 
 all: libcitadel.a

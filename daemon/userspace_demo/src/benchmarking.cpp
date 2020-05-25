@@ -3,7 +3,7 @@
 
 #include "../includes/benchmarking.h"
 
-static int repetitions = 1000;
+static int repetitions = 50000;
 
 
 void run_benchmarks(void) {
@@ -11,6 +11,7 @@ void run_benchmarks(void) {
 	fp = fopen("/opt/citadel-perf/libcitadel-benchmarks", "a");
 	if(!fp) return;
 
+	printf("1. citadel_init()\n");
 	uint64_t diff;
 	struct timespec start, end;
 	for (int i = 0; i < repetitions; i++) {
@@ -21,6 +22,10 @@ void run_benchmarks(void) {
 		fprintf(fp, "citadel_init,%llu\n", (long long unsigned int) diff);
 	}
 
+	
+	sleep(1);
+	printf("2. citadel_claim()\n");
+
 	const char path[] = "/opt/testing_dir/userspace_file.txt";
 	for (int i = 0; i < repetitions; i++) {
 		clock_gettime(CLOCK_MONOTONIC, &start);
@@ -30,6 +35,8 @@ void run_benchmarks(void) {
 		fprintf(fp, "citadel_claim,%llu\n", (long long unsigned int) diff);
 	}
 
+	sleep(1);
+	printf("3. citadel_open()\n");
 	for (int i = 0; i < repetitions; i++) {
 		clock_gettime(CLOCK_MONOTONIC, &start);
 		citadel_file_open((char*)path, sizeof(path));

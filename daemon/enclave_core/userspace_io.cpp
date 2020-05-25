@@ -93,11 +93,10 @@ uint8_t handle_request(uint8_t* data, size_t length, int32_t pid, uint8_t* ptoke
     }
 
     // Check the PID reported by the IPC medium and signed in the payload.
-    // TODO put back
-    // if (pid != ptoken_payload->pid) {
-    //     enclave_perror("Mismatching PIDs --- forged request.");
-    //     return CITADEL_OP_FORGED;
-    // }
+    if (pid != ptoken_payload->pid) {
+        enclave_perror("Mismatching PIDs --- forged request.");
+        return CITADEL_OP_FORGED;
+    }
     
     // char buffer[100];
     // int cx;

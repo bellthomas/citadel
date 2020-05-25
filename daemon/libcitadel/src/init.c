@@ -136,12 +136,12 @@ bool citadel_init(void) {
 
 
 bool citadel_pty(void) {
+
 	struct citadel_op_request request;
 	memcpy(request.signature, challenge_signature, sizeof(challenge_signature));
 	request.operation = CITADEL_OP_PTY_ACCESS;
 	memcpy(request.signed_ptoken, signed_ptoken, sizeof(request.signed_ptoken));
 	bool registered = ipc_transaction((unsigned char*)&request, sizeof(struct citadel_op_request));
-
 	if (registered) {
 		citadel_printf("PTY access granted.\n");
 	}

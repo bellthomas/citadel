@@ -1,4 +1,5 @@
   
+#include <linux/types.h>
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <stdio.h>
@@ -12,23 +13,22 @@
 
 // static nng_socket sock;
 // static nng_aio *ap;
-static int socket_fd = -1;
 static int ipc_timeout = 100 * 1000;
-static bool initialised_socket = false;
 static char buffer[sizeof(struct citadel_op_extended_request)];
 
-static bool init_socket(void) {
+static int init_socket(void) {
 
+	int socket_fd = -1;
 	if ((socket_fd = socket(AF_UNIX, SOCK_STREAM, 0)) == -1) {
 		citadel_perror("socket error\n");
-		return false;
+		return -1;
   	}
 
 	// Set non-blocking.
 	int flags = fcntl(socket_fd, F_GETFL, 0);
 	if (fcntl(socket_fd, F_SETFL, flags | O_NONBLOCK)) {
 		citadel_perror("failed to make socket non blocking\n");
-		return false;
+		return -1;
 	}
 
 	struct sockaddr_un addr;
@@ -38,7 +38,7 @@ static bool init_socket(void) {
 	
 	if (connect(socket_fd, (struct sockaddr*)&addr, sizeof(addr)) == -1) {
 		citadel_perror("connect error\n");
-		return false;
+		return -1;
 	}
 
 
@@ -64,17 +64,13 @@ static bool init_socket(void) {
 	// nng_setopt_ms(sock, NNG_OPT_RECONNMAXT, 1);
 	// nng_setopt_size(sock, NNG_OPT_RECVMAXSZ, 0);
 
-    initialised_socket = true;
-	return true;
+	return socket_fd;
 }
 
 /*
  *
  */
-bool ipc_send(char *data, size_t len) {
-
-    if (!initialised_socket) initialised_socket = init_socket();
-    if (!initialised_socket) return false;
+bool ipc_send(int fd, char *data, size_t len) {
 
 	int attempts = 0;
 	int rv;
@@ -89,12 +85,11 @@ bool ipc_send(char *data, size_t len) {
 	// Set message.
 
 	while (attempts < ipc_timeout) {
-		
 		// Try to send.
-		rv = write(socket_fd, data, len);
+		rv = write(fd, data, len);
 		sent += (rv > 0 ? rv : 0);
 		if (sent < len || (rv == -1 && (errno == EWOULDBLOCK || errno == EAGAIN))) {
-			usleep(1);
+			// usleep(1);
 			attempts++;
 			if(attempts >= ipc_timeout) {
 				citadel_perror("Timed out. Failed to send.\n");
@@ -123,10 +118,7 @@ bool ipc_send(char *data, size_t len) {
 /*
  *
  */
-bool ipc_recv(void) {
-
-    if (!initialised_socket) initialised_socket = init_socket();
-    if (!initialised_socket) return false;
+bool ipc_recv(int fd) {
 
 	int attempts = 0;
 	size_t received = 0;
@@ -149,10 +141,10 @@ bool ipc_recv(void) {
 		// if(rv == 0) *msg = nng_aio_get_msg(ap);	
 		// else if (rv == NNG_ETIMEDOUT) rv = NNG_EAGAIN;
 
-		rv = read(socket_fd, buffer, sizeof(buffer));
+		rv = read(fd, buffer, sizeof(buffer));
 		received += (rv > 0 ? rv : 0);
 		if (rv == -1 && (errno == EWOULDBLOCK || errno == EAGAIN)) {
-			usleep(1);
+			// usleep(1);
 			attempts++;
 			if(attempts >= ipc_timeout) {
 				citadel_perror("Timed out. Nothing received.\n");
@@ -184,8 +176,10 @@ bool ipc_recv(void) {
  */
 bool ipc_transaction(unsigned char *request, size_t length) {
 
-    if (!initialised_socket) initialised_socket = init_socket();
-    if (!initialised_socket) return false;
+    int socket = init_socket();
+	if (socket < 0) return false;
+    // if (!initialised_socket) initialised_socket = init_socket();
+    // if (!initialised_socket) return false;
 
 	if (length != sizeof(struct citadel_op_request) && length != sizeof(struct citadel_op_extended_request)) {
 		citadel_perror("Unknown payload length.\n");
@@ -196,20 +190,21 @@ bool ipc_transaction(unsigned char *request, size_t length) {
 	// size_t sz;
 	// char *buf = NULL;
 	// bool success = false;
+	struct ucred cred;
 	bool received, sent;
 	uint64_t pid;
 
     struct citadel_op_reply *reply;
     struct citadel_op_extended_reply *extended_reply;
 
-    sent = ipc_send(request, length);	
+    sent = ipc_send(socket, request, length);	
 	if (sent) {
-		received = ipc_recv();
+		received = ipc_recv(socket);
 		if (received) {
 			// Get PID of sender.
-
-			// TODO actually get
-			pid = get_citadel_pid();
+			socklen_t len = sizeof(struct ucred);
+			getsockopt(socket, SOL_SOCKET, SO_PEERCRED, (void*)&cred, &len);
+			pid = cred.pid;
 			
 			if (pid == get_citadel_pid()) {
 				if (length > sizeof(struct citadel_op_reply)){
@@ -227,6 +222,7 @@ bool ipc_transaction(unsigned char *request, size_t length) {
 					memcmp(reply->signature, challenge_signature, sizeof(challenge_signature)))
 				{
 					citadel_perror("Transaction: response ptoken/signature incorrect.\n");
+					close(socket);
 					return false;
 				}
 
@@ -234,12 +230,14 @@ bool ipc_transaction(unsigned char *request, size_t length) {
 				bool res = false;
 				switch (reply->result) {
 				case CITADEL_OP_APPROVED:
+					close(socket);
 					res = true;
 					break;
 				default:
 					citadel_perror("Transaction failed: %s.\n", citadel_error(reply->result));
 				}
 
+				close(socket);
 				return res;
 			} else {
 				citadel_perror("Forged transaction from PID %lu (Citadel PID: %d).\n", pid, get_citadel_pid());
@@ -252,5 +250,6 @@ bool ipc_transaction(unsigned char *request, size_t length) {
 		citadel_perror("Transaction failed (send timed out).\n");
 	}
 
+	close(socket);
     return false;
 }

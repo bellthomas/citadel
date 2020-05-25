@@ -15,7 +15,7 @@ sgx_enclave_id_t get_enclave_id(void) {
 }
 
 void signal_handler(int s) {
-    printf("\nRequesting termination.\n");
+    if (!running) printf("\nRequesting termination.\n");
     running = false;
 }
 

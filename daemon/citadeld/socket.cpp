@@ -43,6 +43,12 @@ void send_response(int client_fd, char *message, size_t message_len) {
 	size_t sent = 0;
 	int attempts = 0;
 
+	// Get PID.
+	struct ucred cred;
+	socklen_t len = sizeof(struct ucred);
+	getsockopt(client_fd, SOL_SOCKET, SO_PEERCRED, (void*)&cred, &len);
+	pid = cred.pid;
+
 	// Check length;
 	valid_size = (message_len == sizeof(struct citadel_op_request)) || (message_len == sizeof(struct citadel_op_extended_request));
 
@@ -68,7 +74,7 @@ void send_response(int client_fd, char *message, size_t message_len) {
 		rv = write(client_fd, (const void*)reply, message_len);
 		sent += (rv > 0 ? rv : 0);
 		if (rv == -1 && (sent < message_len || (errno == EWOULDBLOCK || errno == EAGAIN))) {
-			usleep(1);
+			// usleep(1);
 			attempts++;
 			if(attempts >= ipc_timeout) {
 				printf("Timed out. Failed to send. %s\n", strerror(errno));
@@ -110,7 +116,7 @@ void handle_client_socket(int client_fd) {
 		rv = read(client_fd, (char*)buffer, sizeof(buffer));
 		received += (rv > 0 ? rv : 0);
 		if (rv == -1 && (errno == EWOULDBLOCK || errno == EAGAIN)) {
-			usleep(1);
+			// usleep(1);
 			attempts++;
 			if(attempts >= ipc_timeout) {
 				printf("Timed out. Nothing received.\n");
@@ -150,85 +156,25 @@ void run_server(void) {
 	int c;
 
 	while (running) {
-
-
-		// nng_recv_aio(sock, ap);
-		// nng_aio_wait(ap);
-		// rv = nng_aio_result(ap);
-		// if(rv == 0) msg = nng_aio_get_msg(ap);	
-		// else if (rv == NNG_ETIMEDOUT) rv = NNG_EAGAIN;
-	
-		// rv = nng_recvmsg(sock, &msg, NNG_FLAG_NONBLOCK);
-		// rv = nng_recv(sock, &buf, &sz, NNG_FLAG_NONBLOCK | NNG_FLAG_ALLOC);
 		client_fd = accept(socket_fd, (struct sockaddr *)&client, (socklen_t*)&c);
 		if (client_fd > 0) {
 			// Got a connection.
 			handle_client_socket(client_fd);
 		}
 
-		else if (client_fd == -1 && (errno == EWOULDBLOCK || errno == EAGAIN)) {
-			continue;
+		else if (client_fd == -1 && !(errno == EWOULDBLOCK || errno == EAGAIN)) {
+			if (errno != EINTR)
+				printf("Error %d: %s\n", errno, strerror(errno));
+			else
+				running = false;
 		}
-		else {
-			printf("Error: %s\n", strerror(errno));
-		}
 
-		// switch (rv) {
-		// case NNG_EAGAIN:
-		// 	// Nothing this time.
-		// 	break;
-		// case 0:
-		// 	// if (!started) {
-		// 	// 	started = true;
-		// 	// 	start = std::chrono::high_resolution_clock::now();
-		// 	// }
-
-		// 	p = nng_msg_get_pipe(msg);
-		// 	nng_pipe_getopt_uint64(p, NNG_OPT_IPC_PEER_PID, &pid);
-		// 	printf("Received message: %lu bytes from PID %ld\n", nng_msg_len(msg), pid);
-
-		// 	message = nng_msg_body(msg);
-		// 	message_len = nng_msg_len(msg);
-
-		// // Check length;
-		// valid_size = (message_len == sizeof(struct citadel_op_request)) || (message_len == sizeof(struct citadel_op_extended_request));
-
-		// // Process request.
-		// ecall_ret = valid_size ? CITADEL_OP_ERROR : CITADEL_OP_INVALID; // Default.
-		// cache_stage = valid_size ? cache_passthrough(message, message_len) : false;
-		// if (cache_stage) {
-		// 	handle_request(get_enclave_id(), &ecall_ret, (uint8_t*)message, message_len, (int32_t)pid, ptoken, sizeof(ptoken));
-		// }
-		// // printf("Result: %s\n", citadel_error(ecall_ret));
-
-		// // Copy result into buffer to return to caller.
-		// if (message_len == sizeof(struct citadel_op_extended_reply)) {
-		// 	struct citadel_op_extended_reply *extended_reply = (struct citadel_op_extended_reply *)message;
-		// 	reply = &extended_reply->reply;
-		// } else {
-		// 	reply = (struct citadel_op_reply *)message;
-		// }
-		// memcpy(reply->ptoken, ptoken, _CITADEL_PROCESS_PTOKEN_LENGTH);
-		// reply->result = ecall_ret;
-
-		// // rv = nng_sendmsg(sock, msg, NNG_FLAG_ALLOC);
-		// nng_aio_set_msg(ap2, msg);
-		// nng_send_aio(sock, ap2);
-		// nng_aio_wait(ap2);
-		// rv = nng_aio_result(ap2);
-		// if (rv != 0) {
-		// 	printf("nng_send failed\n");
-		// 	nng_msg_free(msg);
-		// }
-
-		// 	num_requests++;
-		// 	break;
-
-		// default:
-		// 	printf("Socket error: %s\n", nng_strerror(rv));
-		// 	return;
-		// }
-		usleep(1);
+#if SOCKET_PERFORMANCE == 0
+		struct timespec t;
+   		t.tv_sec = 0;
+   		t.tv_nsec = 1000;
+		nanosleep(&t, &t);
+#endif
 	}
 
 	// end = std::chrono::high_resolution_clock::now();
@@ -240,13 +186,8 @@ void run_server(void) {
 
 
 void *socket_thread(void *arg) {
-    char *ret;
-
-	// ECALL to protect socket, then start it.
     run_server();
-
-    strcpy(ret, "This is a test");
-    pthread_exit(ret);
+    pthread_exit(NULL);
 }
 
 
@@ -260,18 +201,21 @@ int initialise_socket(void) {
 		return false;
   	}
 
+#if SOCKET_NON_BLOCKING == 1
 	// Set non-blocking.
 	int flags = fcntl(socket_fd, F_GETFL, 0);
 	if (fcntl(socket_fd, F_SETFL, flags | O_NONBLOCK)) {
 		perror("failed to make socket non blocking\n");
 		return false;
 	}
+#endif
 
 	struct sockaddr_un addr;
 	memset(&addr, 0, sizeof(addr));
 	addr.sun_family = AF_UNIX;
 	strncpy(addr.sun_path, _CITADEL_IPC_FILE, sizeof(_CITADEL_IPC_FILE));
-	
+	unlink(_CITADEL_IPC_FILE);
+
 	// Change permissions so anyone can read/write, then listen.
 	umask(0);
 	if (bind(socket_fd, (struct sockaddr*)&addr, sizeof(addr)) == -1) {
@@ -298,6 +242,8 @@ int initialise_socket(void) {
 int close_socket(void) {
     void *ret;
     running = false;
+
+	pthread_kill(thid, SIGINT);
     if (pthread_join(thid, &ret) != 0) {
         perror("pthread_join() error");
 		close(socket_fd);

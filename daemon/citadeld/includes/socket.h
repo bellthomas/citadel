@@ -17,6 +17,9 @@
 
 #include "app.h"
 
+#define SOCKET_NON_BLOCKING 0
+#define SOCKET_PERFORMANCE 1
+
 extern int initialise_socket(void);
 extern int close_socket(void);
 
