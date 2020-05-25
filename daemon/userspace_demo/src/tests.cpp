@@ -172,7 +172,6 @@ void run_socket_i_test(void) {
 	address.sun_family = AF_UNIX;
 	strncpy(address.sun_path, socket_path, sizeof(address.sun_path)-1);
 
-
 	bool socket_allowed = citadel_socket(server_fd, (struct sockaddr *)&address);
 
     // Bind to address. 
@@ -184,14 +183,33 @@ void run_socket_i_test(void) {
 		printf("Successfully bound to socket\n");
 	}
 
+	bool citadel_file_create_ret = citadel_file_recreate((char*)socket_path, sizeof(path));
+	bool citadel_file_open_ret = citadel_file_open((char*)socket_path, sizeof(path));
+
+	listen(server_fd, 5);
+
 
 	if (fork() == 0) {
+		run_init();		
+
 		// Child
 		if ((child_fd = socket(AF_UNIX, SOCK_STREAM, 0)) == 0) 
 		{ 
 			perror("child socket failed"); 
 			exit(EXIT_FAILURE); 
 		} 
+
+		bool socket_allowed = citadel_socket(child_fd, (struct sockaddr *)&address);
+		bool citadel_file_open_ret = citadel_file_open((char*)socket_path, sizeof(path));
+
+		// Bind to address. 
+		if (connect(child_fd, (struct sockaddr *)&address, sizeof(address)) < 0) { 
+			perror("connect failed"); 
+			// exit(EXIT_FAILURE); 
+		}
+		else {
+			printf("Successfully bound to socket\n");
+		}
 	}
 	else {
 		// Parent
