@@ -279,6 +279,7 @@ int xattr_enclave_installation(const void *value, size_t size, struct dentry *de
         printk(PFX "Inducted file. Identifier: %s\n", identifier_hex);
         d_inode_data->in_realm = true;
         memcpy(d_inode_data->identifier, rcrd->identifier, sizeof(d_inode_data->identifier));
+        d_inode_data->anonymous = false;
 
         update_aes_key(hdr->key_update, sizeof(hdr->key_update));
         kfree(identifier_hex);
@@ -294,9 +295,10 @@ int xattr_enclave_installation(const void *value, size_t size, struct dentry *de
 
 
 void* generate_ptoken(size_t *len) {
-    char *cipher, *hex;
+    char *cipher, *hex, *id;
     size_t outlen;
     int res, required_size;
+    citadel_task_data_t *task_data = citadel_cred(current_cred());
     citadel_ptoken_protected_t to_encrypt;
     citadel_ptoken_t *signed_ptoken;
 
@@ -309,11 +311,13 @@ void* generate_ptoken(size_t *len) {
     memcpy(signed_ptoken->signature, challenge_signature, sizeof(challenge_signature));
     get_random_bytes(signed_ptoken->ptoken, _CITADEL_PROCESS_PTOKEN_LENGTH);
     signed_ptoken->citadel_pid = (int32_t)enclave_pid;
+    memcpy(signed_ptoken->process_identifier, task_data->identifier, sizeof(signed_ptoken->process_identifier));
 
     // Generate cipher payload.
     memcpy(to_encrypt.signature, challenge_signature, sizeof(challenge_signature));
     to_encrypt.pid = (int32_t)current->pid;
     memcpy(to_encrypt.ptoken, signed_ptoken->ptoken, _CITADEL_PROCESS_PTOKEN_LENGTH);
+    memcpy(to_encrypt.process_identifier, task_data->identifier, sizeof(signed_ptoken->process_identifier));
 
     required_size = sizeof(citadel_ptoken_protected_t) + _CITADEL_TAG_LENGTH + _CITADEL_IV_LENGTH;
     cipher = kzalloc(required_size, GFP_KERNEL);
@@ -329,8 +333,10 @@ void* generate_ptoken(size_t *len) {
     kfree(cipher);
 
     hex = to_hexstring(signed_ptoken->ptoken, _CITADEL_PROCESS_PTOKEN_LENGTH);
-    printk(PFX "Generated ptoken for PID %d: %s\n", current->pid, hex);
+    id = to_hexstring(signed_ptoken->process_identifier, _CITADEL_IDENTIFIER_LENGTH);
+    printk(PFX "Generated ptoken for PID %d: %s, %s\n", current->pid, hex, id);
     kfree(hex);
+    kfree(id);
 
     *len = sizeof(citadel_ptoken_t);
     return signed_ptoken;

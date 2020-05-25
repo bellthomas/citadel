@@ -12,6 +12,7 @@ static bool _citadel_file_create(char *path, size_t length) {
 	payload.request.operation = CITADEL_OP_FILE_CREATE;
 	memcpy(payload.request.signed_ptoken, get_signed_ptoken(), sizeof(payload.request.signed_ptoken));
     memcpy(payload.metadata, path, length);
+	payload.translate = true;
 
 	bool success = ipc_transaction((unsigned char*)&payload, sizeof(struct citadel_op_extended_request));
 	if (success) {
@@ -42,6 +43,7 @@ bool citadel_file_open(char *path, size_t length) {
 	payload.request.operation = CITADEL_OP_FILE_OPEN;
 	memcpy(payload.request.signed_ptoken, get_signed_ptoken(), sizeof(payload.request.signed_ptoken));
     memcpy(payload.metadata, path, length);
+	payload.translate = true;
 
 	bool success = ipc_transaction((unsigned char*)&payload, sizeof(struct citadel_op_extended_request));
 	if (success) {

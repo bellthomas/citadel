@@ -3,8 +3,10 @@
 
 CWD := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 SGX_SDK ?= /opt/intel/sgxsdk
-SGX_MODE ?= SIM
+SGX_MODE ?= HW
+SGX_PRERELEASE ?= 1
 SGX_ARCH ?= x64
+SGX_DEBUG ?= 0
 Build_Folder := build
 Enclave_Impls := basic uflume
 LibTomCrypt_Folder := $(CWD)/enclave_core/crypto/ltc

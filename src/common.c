@@ -292,32 +292,60 @@ void task_housekeeping(void) {
 	}
 }
 
+void inode_housekeeping(citadel_inode_data_t *inode_data, struct inode *inode) {
+	char *pipe_id;
+	citadel_task_data_t *task_data = citadel_cred(current_cred()); 
 
-void inode_housekeeping(citadel_inode_data_t *i_trm, struct dentry *dentry) {
+	if (likely(inode) && inode->i_sb->s_magic == PIPEFS_MAGIC && !S_ISFIFO(inode->i_mode)) {
+		// This is an unnamed pipe.
+
+		printk(PFX "inode_housekeeping for unnamed socket (ino %d)\n", inode->i_ino);
+		if (inode_data->anonymous && task_data) {
+			// Assume this pipe has just been created.
+			memcpy(inode_data->identifier, task_data->identifier, sizeof(inode_data->identifier));
+			inode_data->anonymous = false;
+			inode_data->checked_disk_xattr = true;
+			inode_data->needs_xattr_update = false;
+
+			pipe_id = to_hexstring(inode_data->identifier, _CITADEL_IDENTIFIER_LENGTH);
+			printk(PFX "Tagged PipeFS inode (%ld) as %s\n", inode->i_ino, pipe_id);
+			kfree(pipe_id);
+		}
+	}
+	// else if (S_ISFIFO(inode->i_mode)) {
+	// 	printk(PFX "Get named pipe!\n");
+	// }
+}
+
+void dentry_housekeeping(citadel_inode_data_t *inode_data, struct dentry *dentry) {
 	int x;
 	char *identifier;
+	struct inode *ino = d_backing_inode(dentry);
+
 	task_housekeeping();
 	// Abort if invalid.
-	if (i_trm == NULL || dentry == NULL) return;
+	if (inode_data == NULL || dentry == NULL) return;
+	if (ino) inode_housekeeping(inode_data, ino);
 
-	if (!i_trm->checked_disk_xattr && !i_trm->is_socket) {
-		i_trm->checked_disk_xattr = true;
+
+	if (!inode_data->checked_disk_xattr && !inode_data->is_socket) {
+		inode_data->checked_disk_xattr = true;
 
 		// Fetch identifier.
 		identifier = get_xattr_identifier(dentry);
 		if (identifier) {
-			memcpy(i_trm->identifier, identifier, _CITADEL_IDENTIFIER_LENGTH);
-			i_trm->in_realm = true;
+			memcpy(inode_data->identifier, identifier, _CITADEL_IDENTIFIER_LENGTH);
+			inode_data->in_realm = true;
 			kfree(identifier);
 		}
 		else {
 			// No identifier, check for anonymous entity.
 			x = __vfs_getxattr(dentry, d_backing_inode(dentry), TRM_XATTR_REALM_NAME, NULL, 0);
-			i_trm->in_realm = (x > 0);
+			inode_data->in_realm = (x > 0);
 		}
     }
 
-	if (i_trm->in_realm) realm_housekeeping(i_trm, dentry);
+	if (inode_data->in_realm) realm_housekeeping(inode_data, dentry);
 }
 
 bool pty_check(struct inode *inode) {
@@ -345,21 +373,35 @@ int can_access(struct inode *inode, citadel_operation_t operation) {
 	citadel_task_data_t *cred = citadel_cred(current_cred());
 
 	// Invalid, allow.
-	if (!inode_data) return 0;
+	if (unlikely(!inode_data || !inode)) return 0;
 	if (inode->i_ino < 2) return 0;
+	if (!inode_data->in_realm && !cred->in_realm) return 0;
 
 	// Check for forged PID.
 	// if (cred->pid > 1 && current->pid != cred->pid) {
 	// 	printk(PFX "forged PID! %d vs %d\n", current->pid, cred->pid);
 	// }
 
-	// Allow directory traversing, SockFS, SysFS, PipeFS, SecurityFS.
+	// Allow directory traversing, SockFS, SysFS, SecurityFS.
 	if (S_ISDIR(inode->i_mode)) return 0;
 	if (inode->i_sb->s_magic == SOCKFS_MAGIC) return 0;
 	else if (inode->i_sb->s_magic == SYSFS_MAGIC) return 0;
-	else if (inode->i_sb->s_magic == PIPEFS_MAGIC) return 0;
 	else if (inode->i_sb->s_magic == SECURITYFS_MAGIC) return 0;
 
+	else if (inode->i_sb->s_magic == PIPEFS_MAGIC && !S_ISFIFO(inode->i_mode)) {
+		// All processes can always access their own unnamed pipes.
+		printk(PFX "Checking unnamed pipe...\n");
+		found = true;
+		for (tmp = 0; tmp < _CITADEL_IDENTIFIER_LENGTH; tmp++) {
+			if (inode_data->identifier[tmp] != cred->identifier[tmp]) {
+				found = false;
+				break;
+			}
+		}
+		if (unlikely(found)) return 0;
+	}
+			
+		
 	// All processes can access public Citadel resources.
 	// Key: 0xFFFF_FFFF_FFFF_FFFF_FFFF_FFFF_FFFF_FFFF
 	found = true;
@@ -371,7 +413,7 @@ int can_access(struct inode *inode, citadel_operation_t operation) {
 	}
 	if (unlikely(found)) return 0;
 
-	// ... and Citadel can access all objects.
+	// Citadel can access all objects.
 	if (current->pid == citadel_pid()) return 0;
 
 	// Check for exceptional PTY access.
@@ -381,6 +423,12 @@ int can_access(struct inode *inode, citadel_operation_t operation) {
 	if (!cred || !cred->ticket_head) {
 		printk(PFX "Rejecting PID %d access to object (magic: %ld, ino: %ld).\n", current->pid, inode->i_sb->s_magic, inode->i_ino);
 		return -EACCES;
+	}
+
+	// Short circuit if node is anonymous.
+	if (inode_data->anonymous) {
+		printk(PFX "Rejected PID %d access to anonymous inode (%ld)\n", current->pid, inode->i_ino);
+		return 0;
 	}
 
 	// Let's see if the process has the correct ticket.

@@ -53,6 +53,7 @@ int trm_inode_alloc_security(struct inode *inode) {
 	itp->needs_xattr_update = false;
 	itp->checked_disk_xattr = false;
 	itp->is_socket = false;
+	itp->anonymous = true;
 	mutex_init(&itp->lock);
 	return 0;
 }
@@ -91,6 +92,7 @@ int trm_inode_init_security(struct inode *inode, struct inode *dir, const struct
 		new_inode_data->needs_xattr_update = true;
 	}
 
+	inode_housekeeping(new_inode_data, inode);
 	return -EOPNOTSUPP; // We don't use security attributes here.
 }
 
@@ -110,6 +112,7 @@ int trm_inode_permission(struct inode *inode, int mask) {
 	citadel_inode_data_t *inode_data = citadel_inode(inode);
 	citadel_task_data_t *task_data = citadel_cred(current_cred());
 	task_housekeeping();
+	inode_housekeeping(inode_data, inode);
 	if (inode_data && (inode_data->in_realm || task_data->in_realm)) {
 		return can_access(inode, CITADEL_OP_FILE_OPEN);
 	} 
@@ -133,7 +136,7 @@ int trm_inode_link(struct dentry *old_dentry, struct inode *dir, struct dentry *
 	// struct inode *inode = d_backing_inode(old_dentry);
 	citadel_inode_data_t *old_inode_trm = citadel_dentry(old_dentry);
 
-	// inode_housekeeping(old_inode_trm, old_dentry);
+	// dentry_housekeeping(old_inode_trm, old_dentry);
 
 	// Copy metadata to the new inode link.
 	if (old_inode_trm) {
@@ -242,7 +245,7 @@ void trm_inode_post_setxattr(struct dentry *dentry, const char *name, const void
 
 	if (inode_data) {
 		// Do housekeeping.
-		inode_housekeeping(inode_data, dentry);
+		dentry_housekeeping(inode_data, dentry);
 
 		// if (inode_data->in_realm) {
 		// 	// Log for debug.
@@ -256,13 +259,13 @@ int trm_inode_getxattr(struct dentry *dentry, const char *name)
 {
 	citadel_inode_data_t *inode_data = citadel_dentry(dentry);
 	if(inode_data)
-		inode_housekeeping(inode_data, dentry);
+		dentry_housekeeping(inode_data, dentry);
 	return 0;
 }
 int trm_inode_listxattr(struct dentry *dentry) {
 	citadel_inode_data_t *current_inode_trm = citadel_dentry(dentry);
 	if(current_inode_trm)
-		inode_housekeeping(current_inode_trm, dentry);
+		dentry_housekeeping(current_inode_trm, dentry);
 	return 0;
 }
 
@@ -271,7 +274,7 @@ int trm_inode_removexattr(struct dentry *dentry, const char *name)
 	struct task_struct *task = current;
 	citadel_inode_data_t *current_inode_trm = citadel_dentry(dentry);
 	if(current_inode_trm)
-		inode_housekeeping(current_inode_trm, dentry);
+		dentry_housekeeping(current_inode_trm, dentry);
 
 	if (strncmp(name, TRM_XATTR_PREFIX, strlen(TRM_XATTR_PREFIX))) {
 		return cap_inode_removexattr(dentry, name);

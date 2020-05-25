@@ -3,20 +3,21 @@
 #include "../include/citadel/init.h"
 
 static int32_t citadel_pid = 0;
+static int32_t own_pid = 0;
+static int32_t parent_pid = 0;
+
+static char identifier[_CITADEL_IDENTIFIER_LENGTH], parent_identifier[_CITADEL_IDENTIFIER_LENGTH];
 static char *ptoken = NULL;
 static char *signed_ptoken = NULL;
 
-const char *get_ptoken(void) {
-	return ptoken;
-}
-
-const char *get_signed_ptoken(void) {
-	return signed_ptoken;
-}
-
-const int32_t get_citadel_pid(void) {
-	return citadel_pid;
-}
+/* Getters */
+const char *get_ptoken(void) { return ptoken; }
+const char *get_signed_ptoken(void) { return signed_ptoken; }
+const int32_t get_citadel_pid(void) { return citadel_pid; }
+const int32_t get_own_pid(void) { return citadel_pid; }
+const int32_t get_parent_pid(void) { return citadel_pid; }
+const char *get_identifier(void) { return (const char *)identifier; }
+const char *get_parent_identifier(void) { return (const char *)parent_identifier; }
 
 void* _hex_identifier_to_bytes(char* hexstring) {
 	size_t i, j;
@@ -81,62 +82,64 @@ static bool fetch_kernel_ptoken(void) {
 	memcpy(ptoken, ptoken_payload->ptoken, _CITADEL_PROCESS_PTOKEN_LENGTH);
 	signed_ptoken = malloc(_CITADEL_PROCESS_SIGNED_PTOKEN_LENGTH);
 	memcpy(signed_ptoken, ptoken_payload->signed_ptoken, _CITADEL_PROCESS_SIGNED_PTOKEN_LENGTH);
+
 	citadel_pid = ptoken_payload->citadel_pid;
+	memcpy(identifier, ptoken_payload->process_identifier, _CITADEL_IDENTIFIER_LENGTH);
 
 #if CITADEL_DEBUG
-	char *hex_ptoken = to_hexstring(ptoken_payload->ptoken, _CITADEL_PROCESS_PTOKEN_LENGTH);
-	citadel_printf("ptoken: %s\n", hex_ptoken);
-	// int set_env = setenv(_CITADEL_ENV_ATTR_NAME, hex_ptoken, 1);
+	char *hex_ptoken = to_hexstring(ptoken_payload->process_identifier, _CITADEL_IDENTIFIER_LENGTH);
+	citadel_printf("Process ID: %s\n", hex_ptoken);
 	free(hex_ptoken);
 
-	// char *hex_signed_ptoken = to_hexstring(ptoken_payload->signed_ptoken, _CITADEL_PROCESS_SIGNED_PTOKEN_LENGTH);
-	// set_env += setenv(_CITADEL_SIGNED_ENV_ATTR_NAME, hex_signed_ptoken, 1);
-	// free(hex_signed_ptoken);
+	char *hex_ptoken2 = to_hexstring(parent_identifier, _CITADEL_IDENTIFIER_LENGTH);
+	citadel_printf("Parent ID:  %s\n", hex_ptoken2);
+	free(hex_ptoken2);
 #endif
 
 	return true;
 }
 
-static void init_rand(void) {
+static bool init_pid(void) {
 	pid_t pid = getpid();
+	pid_t ppid = getppid();
+
+	// Check if already registered.
+	if (pid == own_pid) return false;
+
+	// Check for suspect fork.
+	if (own_pid > 0 && own_pid != pid && own_pid != ppid) {
+		citadel_perror("Suspect PID... (current: %d, parent: %d, actual: %d)\n", pid, ppid, own_pid);
+	}
+	else if (own_pid == ppid) {
+		memcpy(parent_identifier, identifier, _CITADEL_IDENTIFIER_LENGTH);
+	}
+
 	citadel_printf("PID: %d\n", pid);
+	own_pid = pid;
+	parent_pid = ppid;
+	return true;
+}
+
+static void init_rand(void) {
+	
     time_t seconds = time(NULL);
-    unsigned int seed = seconds + CITADEL_KEY_PID_MULTIPLIER * pid;
+    unsigned int seed = seconds + CITADEL_KEY_PID_MULTIPLIER * own_pid;
     srand(seed);
 }
 
 
 bool citadel_init(void) {
+	if (!init_pid()) return true;
 	init_rand();
 	if (fetch_kernel_ptoken()) {
 		return ipc_declare_self();
 	}
 
 	return false;
-
-	// uint64_t diff;
-	// struct timespec start, end;
-	// long long int total_duration = 0;
-	// long int num_runs = 0;
-	// int res;
-
-	// for (size_t i = 0; i < 10; i++) {
-	// 	clock_gettime(CLOCK_MONOTONIC, &start);	/* mark start time */
-	// 	res = ipc_declare_self();
-	// 	clock_gettime(CLOCK_MONOTONIC, &end);
-	// 	diff = 1000000000L * (end.tv_sec - start.tv_sec) + end.tv_nsec - start.tv_nsec;
-	// 	total_duration += diff;
-	// 	num_runs++;
-	// 	usleep((rand() % 50000));
-	// 	printf("* %llu microseconds\n", (long long unsigned int) diff / 1000);
-	// }
-
-	// citadel_printf("Average duration = %llu microseconds\n", (long long unsigned int) ((total_duration / num_runs)/1000));
 }
 
 
 bool citadel_pty(void) {
-
 	struct citadel_op_request request;
 	memcpy(request.signature, challenge_signature, sizeof(challenge_signature));
 	request.operation = CITADEL_OP_PTY_ACCESS;
@@ -147,6 +150,28 @@ bool citadel_pty(void) {
 	}
 	else {
 		citadel_perror("PTY access refused.\n");
+	}
+	
+	return registered;
+}
+
+bool citadel_parent_pipe(void) {
+	if (parent_pid == 0) {
+		citadel_perror("Parent process identifier unknown.\n");
+		return false;
+	}
+
+	struct citadel_op_request request;
+	memcpy(request.signature, challenge_signature, sizeof(challenge_signature));
+	request.operation = CITADEL_OP_FILE_OPEN;
+	memcpy(request.subject, parent_identifier, _CITADEL_IDENTIFIER_LENGTH);
+	memcpy(request.signed_ptoken, signed_ptoken, sizeof(request.signed_ptoken));
+	bool registered = ipc_transaction((unsigned char*)&request, sizeof(struct citadel_op_request));
+	if (registered) {
+		citadel_printf("Parent pipe access granted.\n");
+	}
+	else {
+		citadel_perror("Parent pipe access refused.\n");
 	}
 	
 	return registered;

@@ -125,14 +125,18 @@ bool cache_passthrough(void *message, size_t message_len) {
     }
 
     // Invoke cache lookup if required.
-    switch (request->operation) {
-    case CITADEL_OP_FILE_OPEN:
-        if (extended_request) success = metadata_path_to_identifier((void *)extended_request->metadata);
-        else success = false;
-        break;
-    default:
-        break;
+    if (extended_request && extended_request->translate) {
+        success = metadata_path_to_identifier((void *)extended_request->metadata);
     }
+    // switch (request->operation) {
+    // case CITADEL_OP_FILE_OPEN:
+    //     if (extended_)
+    //     if (extended_request) success = metadata_path_to_identifier((void *)extended_request->metadata);
+    //     else success = false;
+    //     break;
+    // default:
+    //     break;
+    // }
 
     return success;
 }

@@ -1,4 +1,5 @@
 #include <citadel/citadel.h>
+#include <citadel/shim.h>
 #include <time.h>
 #include <sys/socket.h> 
 #include <sys/types.h>
@@ -189,8 +190,7 @@ void run_socket_i_test(void) {
 	listen(server_fd, 5);
 
 
-	if (fork() == 0) {
-		run_init();		
+	if (c_fork() == 0) {
 
 		// Child
 		if ((child_fd = socket(AF_UNIX, SOCK_STREAM, 0)) == 0) 
@@ -228,4 +228,47 @@ void run_socket_i_test(void) {
 	reset_hold();
 	close(server_fd);
 	unlink(socket_path);
+}
+
+
+void run_pipe_test(void) {
+	int     fd[2], nbytes;
+	pid_t   childpid;
+	char    string[] = "Hello, world!\n";
+	char    readbuffer[80];
+
+	pipe(fd);
+	
+	if((childpid = c_fork()) == -1) {
+		perror("fork");
+		return;
+	}
+
+	if(childpid == 0)
+	{
+		/* Child process closes up input side of pipe */
+		close(fd[0]);
+
+		bool can_have_parent_pipe = citadel_parent_pipe();
+		if (!can_have_parent_pipe) {
+			printf("Citadel failed to get pipe access.\n");
+		}
+
+		/* Send "string" through the output side of pipe */
+		write(fd[1], string, (strlen(string)+1));
+		return;
+	}
+	else
+	{
+		/* Parent process closes up output side of pipe */
+		close(fd[1]);
+
+		/* Read in a string from the pipe */
+		nbytes = read(fd[0], readbuffer, sizeof(readbuffer));
+		printf("Received string: %s", readbuffer);
+	}
+	
+	while(on_hold()) {}
+	reset_hold();
+	return;
 }

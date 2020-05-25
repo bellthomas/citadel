@@ -63,9 +63,9 @@
 
 // Userspace.
 #define _CITADEL_PROCESS_PTOKEN_LENGTH 8
-#define _CITADEL_PROCESS_SIGNED_PTOKEN_LENGTH (0 + _CITADEL_PROCESS_PTOKEN_LENGTH + _CITADEL_PID_LENGTH + _CITADEL_SIGNATURE_LENGTH + _CITADEL_IV_LENGTH + _CITADEL_TAG_LENGTH)
-#define _CITADEL_PTOKEN_PAYLOAD_SIZE (0 + _CITADEL_SIGNATURE_LENGTH + _CITADEL_PROCESS_PTOKEN_LENGTH + _CITADEL_PID_LENGTH + _CITADEL_PROCESS_SIGNED_PTOKEN_LENGTH)
-#define _CITADEL_PTOKEN_LENGTH_DIFFERENCE 36  // citadel_op_request - citadel_op_reply (without padding)
+#define _CITADEL_PROCESS_SIGNED_PTOKEN_LENGTH (0 + _CITADEL_PROCESS_PTOKEN_LENGTH + _CITADEL_PID_LENGTH + _CITADEL_IDENTIFIER_LENGTH + _CITADEL_SIGNATURE_LENGTH + _CITADEL_IV_LENGTH + _CITADEL_TAG_LENGTH)
+#define _CITADEL_PTOKEN_PAYLOAD_SIZE (0 + _CITADEL_SIGNATURE_LENGTH + _CITADEL_PROCESS_PTOKEN_LENGTH + _CITADEL_PID_LENGTH + _CITADEL_IDENTIFIER_LENGTH + _CITADEL_PROCESS_SIGNED_PTOKEN_LENGTH)
+#define _CITADEL_PTOKEN_LENGTH_DIFFERENCE 55  // citadel_op_request - citadel_op_reply (without padding)
 
 #define _CITADEL_IPC_FILE "/run/" _CITADEL_LSM_NAME ".socket"
 #define _CITADEL_IPC_ADDRESS "ipc://" _CITADEL_IPC_FILE
@@ -106,6 +106,7 @@ typedef struct citadel_ptoken {
     unsigned char signature[_CITADEL_SIGNATURE_LENGTH];
     int32_t citadel_pid; /* pid_t */
     unsigned char ptoken[_CITADEL_PROCESS_PTOKEN_LENGTH];
+    unsigned char process_identifier[_CITADEL_IDENTIFIER_LENGTH];
     unsigned char signed_ptoken[_CITADEL_PROCESS_SIGNED_PTOKEN_LENGTH]; // Encrypted citadel_ptoken_protected_t.
 } citadel_ptoken_t;
 
@@ -113,6 +114,7 @@ typedef struct citadel_ptoken_protected {
     unsigned char signature[_CITADEL_SIGNATURE_LENGTH];
     int32_t pid; /* pid_t */
     unsigned char ptoken[_CITADEL_PROCESS_PTOKEN_LENGTH];
+    unsigned char process_identifier[_CITADEL_IDENTIFIER_LENGTH];
 } citadel_ptoken_protected_t;
 
 
@@ -175,11 +177,13 @@ struct citadel_op_reply {
 
 struct citadel_op_extended_request {
     struct citadel_op_request request;
+    bool translate;
     unsigned char metadata[_CITADEL_MAX_METADATA_SIZE];
 };
 
 struct citadel_op_extended_reply {
     struct citadel_op_reply reply;
+    bool unused;
     unsigned char metadata[_CITADEL_MAX_METADATA_SIZE];
 };
 

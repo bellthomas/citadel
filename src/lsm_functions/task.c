@@ -10,6 +10,7 @@
 #include <linux/crypto.h>
 #include <linux/mutex.h>
 #include <linux/dcache.h>
+#include <linux/random.h>
 
 #include "../../includes/citadel.h"
 #include "../../includes/task.h"
@@ -32,6 +33,7 @@ static void init_task_trm(citadel_task_data_t *data, citadel_task_data_t *previo
         mutex_destroy(&previous->lock);
     }
     
+    get_random_bytes(data->identifier, sizeof(data->identifier));
     mutex_init(&data->lock);
 }
 

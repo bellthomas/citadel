@@ -58,6 +58,8 @@ void send_response(int client_fd, char *message, size_t message_len) {
 	if (cache_stage) {
 		handle_request(get_enclave_id(), &ecall_ret, (uint8_t*)message, message_len, (int32_t)pid, ptoken, sizeof(ptoken));
 	}
+		printf("...\n");
+
 
 	// Copy result into buffer to return to caller.
 	if (message_len == sizeof(struct citadel_op_extended_reply)) {

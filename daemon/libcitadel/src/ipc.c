@@ -234,7 +234,7 @@ bool ipc_transaction(unsigned char *request, size_t length) {
 					res = true;
 					break;
 				default:
-					citadel_perror("Transaction failed: %s.\n", citadel_error(reply->result));
+					citadel_perror("Transaction failed: %s (%d).\n", citadel_error(reply->result), reply->result);
 				}
 
 				close(socket);
