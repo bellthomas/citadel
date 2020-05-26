@@ -9,7 +9,7 @@ static bool _citadel_file_claim(char *path, size_t length) {
 
 	struct citadel_op_extended_request payload;
 	memcpy(payload.request.signature, challenge_signature, sizeof(challenge_signature));
-	payload.request.operation = CITADEL_OP_CLAIM;
+	payload.request.operation = CITADEL_OP_CLAIM | CITADEL_OP_OPEN;
 	memcpy(payload.request.signed_ptoken, get_signed_ptoken(), sizeof(payload.request.signed_ptoken));
     memcpy(payload.metadata, path, length);
 	payload.translate = false;

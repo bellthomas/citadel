@@ -42,7 +42,7 @@ public:
         struct timeval end;
         gettimeofday(&end, NULL);
         unsigned long us = ((end.tv_sec - _time.tv_sec) * 1000000 + end.tv_usec - _time.tv_usec);
-        return true;//(us > _CITADEL_CACHE_EXPIRY * 1000000);
+        return (us > _CITADEL_CACHE_EXPIRY * 1000000);
     }
 private:
     const unsigned char *_value;

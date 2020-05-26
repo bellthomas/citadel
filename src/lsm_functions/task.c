@@ -18,29 +18,25 @@
 
 static void init_task_trm(citadel_task_data_t *data, citadel_task_data_t *previous)
 {
-    if (!previous) {
-        data->in_realm = false;
-        data->ticket_head = NULL;
-        data->granted_pty = false;
-        data->tagged = false;
-        data->pid = 1;
-    }
-    else {
+    data->in_realm = false;
+    data->ticket_head = NULL;
+    data->granted_pty = false;
+    data->pid = 1;  // This is the default, signifying next hook to see it should set it. 0 is error.
+    get_random_bytes(data->identifier, sizeof(data->identifier));
+    mutex_init(&data->lock);
+
+    if (previous) {
+        // Generate forked process' credentials.
         data->in_realm = previous->in_realm;
-        data->pid = (previous->pid == 0) ? 1 : previous->pid;
         data->granted_pty = previous->granted_pty;
 
         // TODO do we want this? Auto propagation of identifiers and tickets to children might be bad.
-        data->ticket_head = previous->ticket_head;
-        previous->ticket_head = NULL;
-        data->tagged = previous->tagged;
-        if (previous->tagged) memcpy(data->identifier, previous->identifier, _CITADEL_IDENTIFIER_LENGTH);
-
-        mutex_destroy(&previous->lock);
+        // data->ticket_head = NULL;
+        // previous->ticket_head = previous->ticket_head;;
+        // data->tagged = false; //previous->tagged;
+        // if (previous->tagged) memcpy(data->identifier, previous->identifier, _CITADEL_IDENTIFIER_LENGTH);
+        // mutex_destroy(&previous->lock);
     }
-    
-    get_random_bytes(data->identifier, sizeof(data->identifier));
-    mutex_init(&data->lock);
 }
 
 /*

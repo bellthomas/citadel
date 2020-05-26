@@ -33,7 +33,6 @@ typedef struct citadel_ticket {
 
 typedef struct citadel_task_data {
     bool in_realm;
-    bool tagged;
     bool granted_pty;
     citadel_ticket_t *ticket_head;
     pid_t pid;

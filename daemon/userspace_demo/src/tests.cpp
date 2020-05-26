@@ -319,12 +319,12 @@ void run_fifo_test(void) {
 		close(fdc);
 	}
 	else {
+
 		// citadel_file_create_ret = citadel_file_open((char*)myfifo, sizeof(myfifo));
 		// if (!citadel_file_create_ret) {
 		// 	printf("Child failed to open file.\n");
 		// 	return;
 		// } else
-		sleep(1);
 		{
 			fdp = open(myfifo, O_WRONLY);
 			if (fdc >= 0) {

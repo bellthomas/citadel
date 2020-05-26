@@ -272,8 +272,6 @@ void task_housekeeping(void) {
 	citadel_task_data_t *cred = citadel_cred(current_cred());	
 	if (current->pid > 1) {
 		if (cred->pid == 1) cred->pid = current->pid;
-		else if (cred->pid == current->real_parent->pid) cred->pid = current->pid;
-		else if (cred->pid == current->parent->pid) cred->pid = current->pid;
 		// else if (current->pid != cred->pid) printk(PFX "PID forging detected (task_housekeeping, %d != %d (parent %d))\n", current->pid, cred->pid, current->parent->pid); 
 		check_ticket_cache();
 	}
@@ -449,7 +447,7 @@ int can_access(struct inode *inode, citadel_operation_t operation) {
 
 	if (found) {
 		// Found a ticket relating to this object.
-		printk(PFX "Allowing PID %d access to object (ino: %ld).\n", current->pid, inode->i_ino);
+		printk(PFX "Allowing PID %d access to object (ino: %ld, cred: %d).\n", current->pid, inode->i_ino, cred->pid);
 		cred->in_realm = true;
 		return 0;
 	}
