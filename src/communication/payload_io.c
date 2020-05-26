@@ -135,7 +135,7 @@ void update_aes_key(void *key, size_t key_len) {
 
 
 void process_received_update(void *update, size_t update_len) {
-    char *plain; //, *hex;
+    char *plain;
     size_t outlen, iter;
     bool success = true;
     int res;
@@ -163,7 +163,7 @@ void process_received_update(void *update, size_t update_len) {
         printk(PFX "Rejected updates. Signature mismatch.\n");
     }
 
-    printk(PFX "Received %d records.\n", hdr->records);
+    // printk(PFX "Received %d records.\n", hdr->records);
     rcrd = (citadel_update_record_t *)(plain + sizeof(citadel_update_header_t));
     for (iter = 0; iter < hdr->records; iter++) {
         success = insert_ticket(rcrd);

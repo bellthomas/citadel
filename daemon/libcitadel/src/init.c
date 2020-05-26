@@ -91,9 +91,11 @@ static bool fetch_kernel_ptoken(void) {
 	citadel_printf("Process ID: %s\n", hex_ptoken);
 	free(hex_ptoken);
 
-	char *hex_ptoken2 = to_hexstring(parent_identifier, _CITADEL_IDENTIFIER_LENGTH);
-	citadel_printf("Parent ID:  %s\n", hex_ptoken2);
-	free(hex_ptoken2);
+	if (*((uint64_t*)parent_identifier) > 0) {
+		char *hex_ptoken2 = to_hexstring(parent_identifier, _CITADEL_IDENTIFIER_LENGTH);
+		citadel_printf("Parent ID:  %s\n", hex_ptoken2);
+		free(hex_ptoken2);
+	}
 #endif
 
 	return true;

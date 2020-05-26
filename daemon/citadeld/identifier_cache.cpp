@@ -41,8 +41,8 @@ public:
     bool expired() {
         struct timeval end;
         gettimeofday(&end, NULL);
-        unsigned long ms = ((end.tv_sec - _time.tv_sec) * 1000000 + end.tv_usec - _time.tv_usec);
-        return ms > 15 * 1000000;
+        unsigned long us = ((end.tv_sec - _time.tv_sec) * 1000000 + end.tv_usec - _time.tv_usec);
+        return true;//(us > _CITADEL_CACHE_EXPIRY * 1000000);
     }
 private:
     const unsigned char *_value;
@@ -96,7 +96,6 @@ bool metadata_path_to_identifier(void *metadata_value) {
     if (itr == identifierCache.end() || itr->second.expired()) {
         // Not in the cache or expired.
         if (itr != identifierCache.end() && itr->second.expired()) {
-            printf("expired\n");
             identifierCache.erase(itr);
         }
 

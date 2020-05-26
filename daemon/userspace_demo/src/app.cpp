@@ -56,10 +56,10 @@ void reset_hold(void) {
 
 int main(int argc, char** argv) {
 
-	if (argc == 1) {
-		printf("No arguments given!\n");
-		return 0;
-	}
+	// if (argc == 1) {
+	// 	printf("No arguments given!\n");
+	// 	return 0;
+	// }
 
 	// Catch Ctrl+C and systemd stop commands.
     struct sigaction interrupt_handler;

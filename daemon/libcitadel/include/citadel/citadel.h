@@ -18,7 +18,7 @@ extern "C" {
 #include "file.h"
 #include "socket.h"
 
-#define _LIBCITADEL_PERF_METRICS true
+#define _LIBCITADEL_PERF_METRICS false
 
 #define _LIBCITADEL_STD_PREFIX "\033[0;34m[/]\033[0m "
 #define _LIBCITADEL_ERR_PREFIX "\033[0;31m[/]\033[0m "

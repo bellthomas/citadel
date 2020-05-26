@@ -70,7 +70,7 @@ void check_ticket_cache() {
     // int res;
     int count = 1, tmp;
     ktime_t expiry_threshold, last_to_free;
-    citadel_ticket_t *current_ticket, *initial_ticket, *a, *b, *c, *d;
+    citadel_ticket_t *current_ticket, *initial_ticket;//, *a, *b, *c, *d;
     citadel_task_data_t *task_data = citadel_cred(current_cred());
     struct ticket_reservation_node *reservation_node = ticket_search(&ticketing_reservations, current->pid);
 
@@ -90,7 +90,7 @@ void check_ticket_cache() {
             count++;
         }
 
-        if (current->pid > 1) printk(PFX "PID %d has %d tickets in the cache to install.\n", current->pid, count);
+        if (current->pid > 1) printk(PFX "Cache -> PID %d: %d ticket(s).\n", current->pid, count);
 
         // Append to the task's ticket list.
         if (task_data->ticket_head == NULL) {
@@ -107,21 +107,21 @@ void check_ticket_cache() {
              */
 
             // a = reservation_node->ticket_head
-            a = task_data->ticket_head;
-            b = task_data->ticket_head->prev;
-            c = reservation_node->ticket_head;
-            d = reservation_node->ticket_head->prev;
+            // a = task_data->ticket_head;
+            // b = task_data->ticket_head->prev;
+            // c = reservation_node->ticket_head;
+            // d = reservation_node->ticket_head->prev;
 
-            b->next = c;
-            d->next = a;
-            c->prev = b;
-            a->prev = d;
+            // b->next = c;
+            // d->next = a;
+            // c->prev = b;
+            // a->prev = d;
 
-            // current_ticket = reservation_node->ticket_head->prev; // current -> c
-            // reservation_node->ticket_head->prev = task_data->ticket_head->prev; // a.prev = e
-            // current_ticket->next = task_data->ticket_head; // c.next = d
-            // task_data->ticket_head->prev->next = reservation_node->ticket_head; // e.next = a
-            // task_data->ticket_head->prev = current_ticket; // d.prev = c
+            current_ticket = reservation_node->ticket_head->prev; // current -> c
+            reservation_node->ticket_head->prev = task_data->ticket_head->prev; // a.prev = e
+            current_ticket->next = task_data->ticket_head; // c.next = d
+            task_data->ticket_head->prev->next = reservation_node->ticket_head; // e.next = a
+            task_data->ticket_head->prev = current_ticket; // d.prev = c
         }
 
         reservation_node->ticket_head = NULL;
@@ -174,6 +174,7 @@ void check_ticket_cache() {
 
 bool insert_ticket(citadel_update_record_t *record) {
     int res;
+    char *hex;
     citadel_ticket_t *current_ticket, *tmp;
     citadel_ticket_t *ticket;
     struct ticket_reservation_node *reservation_node = ticket_search(&ticketing_reservations, record->pid);
@@ -195,8 +196,13 @@ bool insert_ticket(citadel_update_record_t *record) {
     // Check for special PTY grant.
     if (record->operation == CITADEL_OP_PTY_ACCESS) {
         reservation_node->granted_pty = true;
+        printk(PFX "[PID %d] Granted PTY\n", record->pid);
         return true;
     }
+
+    hex = to_hexstring(record->identifier, _CITADEL_IDENTIFIER_LENGTH);
+    printk(PFX "[PID %d] Installing %s\n", record->pid, hex);
+    kfree(hex);
 
     ticket = kzalloc(sizeof(citadel_ticket_t), GFP_KERNEL);
     if (!ticket) return false;

@@ -11,11 +11,14 @@
 #include <fcntl.h> 
 #include <sys/stat.h> 
 #include <unistd.h> 
+#include <sys/ipc.h>
+#include <sys/shm.h>
 
 #include "../includes/app.h"
 #include "../includes/tests.h"
 
 const char path[] = "/opt/testing_dir/userspace_file.txt";
+const char path2[] = "/opt/testing_dir/userspace_file_2.txt";
 
 void run_init(void) {
 	bool citadel_ready = citadel_init();
@@ -27,19 +30,39 @@ void run_init(void) {
 
 void run_taint(void) {
 	// Open file.
-	bool citadel_file_open_ret = citadel_file_open((char*)path, sizeof(path));
+	// bool citadel_file_open_ret = citadel_file_open((char*)path, sizeof(path));
+	// if (!citadel_file_open_ret) {
+	// 	printf("Can't open file.\n");
+	// 	exit(3);
+	// }
+
+
+
+	// Open file.
+
+	bool citadel_file_open_ret = citadel_file_open((char*)path2, sizeof(path2));
 	if (!citadel_file_open_ret) {
 		printf("Can't open file.\n");
 		exit(3);
 	}
 
-	FILE *fp;
-	fp = fopen(path, "rw");
-	if(fp) {
-		printf("Tainted.\n\n");
-		fclose(fp);
+		
+
+	FILE *fp2;
+	fp2 = fopen(path2, "rw");
+	if(fp2) {
+		printf("Tainted 1.\n");
+		fclose(fp2);
 	}
-	else printf("Failed to taint\n");
+	else printf("Failed to taint 1.\n");
+
+	// FILE *fp;
+	// fp = fopen(path, "rw");
+	// if(fp) {
+	// 	printf("Tainted 2.\n\n");
+	// 	fclose(fp);
+	// }
+	// else printf("Failed to taint 2.\n");
 }
 
 void run_pty(void) {
@@ -367,4 +390,8 @@ void run_fifo_test(void) {
 
 	unlink(myfifo);
 	return;
+}
+
+void run_shm_test(void) {
+
 }

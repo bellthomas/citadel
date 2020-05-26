@@ -11,6 +11,7 @@ void set_ptoken_aes_key(unsigned char* key) {
 static citadel_response_t core_handle_request(int32_t pid, struct citadel_op_request *request, void *metadata, bool translated, citadel_response_t asm_result) {
     if (asm_result != CITADEL_OP_APPROVED) return asm_result;
 
+    void *identifier;
     citadel_response_t result = asm_result;
     switch (request->operation) {
     case CITADEL_OP_FILE_CREATE:
@@ -18,9 +19,8 @@ static citadel_response_t core_handle_request(int32_t pid, struct citadel_op_req
             result = CITADEL_OP_ERROR;
         break;
     case CITADEL_OP_FILE_OPEN:
-        if (translated && !generate_ticket(pid, (const char*)metadata, request->operation))
-            result = CITADEL_OP_ERROR;
-        else if (!generate_ticket(pid, (const char*)request->subject, request->operation))
+        identifier = (translated ? metadata : request->subject);
+        if (translated && !generate_ticket(pid, (const char*)identifier, request->operation))
             result = CITADEL_OP_ERROR;
         break;
     case CITADEL_OP_PTY_ACCESS:
