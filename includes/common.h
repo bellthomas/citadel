@@ -11,10 +11,12 @@
 #define PFX "LSM/Citadel: "
 #define PFX_W KERN_WARNING PFX
 #define PFX_E KERN_ERR PFX
-#define TRM_XATTR_PREFIX XATTR_SECURITY_PREFIX "citadel."
-#define TRM_XATTR_ID_NAME TRM_XATTR_PREFIX "identifier"
-#define TRM_XATTR_REALM_NAME TRM_XATTR_PREFIX "in_realm"
-#define TRM_XATTR_INSTALL_NAME TRM_XATTR_PREFIX "install"
+
+// TODO remove
+// #define TRM_XATTR_PREFIX XATTR_SECURITY_PREFIX "citadel."
+// #define TRM_XATTR_ID_NAME TRM_XATTR_PREFIX "identifier"
+// #define TRM_XATTR_REALM_NAME TRM_XATTR_PREFIX "in_realm"
+// #define TRM_XATTR_INSTALL_NAME TRM_XATTR_PREFIX "install"
 
 
 typedef struct citadel_ticket_detail {
@@ -73,8 +75,7 @@ extern char *to_hexstring(unsigned char *buf, unsigned int len);
 extern char *get_path_for_dentry(struct dentry *dentry);
 extern int   set_xattr_in_realm(struct dentry *dentry);
 extern int   set_xattr_identifier(struct dentry *dentry, char *value, size_t len);
-extern char *get_xattr_identifier(struct dentry *dentry);
-extern void  realm_housekeeping(citadel_inode_data_t *i_trm, struct dentry *dentry);
+extern char *get_xattr_identifier(struct dentry *dentry, struct inode *inode);
 extern void  inode_housekeeping(citadel_inode_data_t *i_trm, struct inode *inode);
 extern void  dentry_housekeeping(citadel_inode_data_t *i_trm, struct dentry *dentry, struct inode *inode);
 extern void  task_housekeeping(void);

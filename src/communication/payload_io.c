@@ -270,8 +270,8 @@ int xattr_enclave_installation(const void *value, size_t size, struct dentry *de
     identifier_hex = to_hexstring(rcrd->identifier, _CITADEL_IDENTIFIER_LENGTH);
     // need to lock inode->i_rwsem
     // down_write(&(dentry->d_inode->i_rwsem));
-    xattr_success = __vfs_setxattr_noperm(dentry, TRM_XATTR_ID_NAME, (const void*)identifier_hex, _CITADEL_IDENTIFIER_LENGTH * 2, 0);
-    __vfs_setxattr_noperm(dentry, TRM_XATTR_REALM_NAME, NULL, 0, 0);
+    xattr_success = __vfs_setxattr_noperm(dentry, _CITADEL_XATTR_IDENTIFIER, (const void*)identifier_hex, _CITADEL_IDENTIFIER_LENGTH * 2, 0);
+    __vfs_setxattr_noperm(dentry, _CITADEL_XATTR_IN_REALM, NULL, 0, 0);
 	// up_write(&(dentry->d_inode->i_rwsem));
 
     if(xattr_success == 0) {

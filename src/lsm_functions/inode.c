@@ -128,7 +128,7 @@ int trm_inode_permission(struct inode *inode, int mask) {
 	citadel_inode_data_t *inode_data = citadel_inode(inode);
 	citadel_task_data_t *task_data = citadel_cred(current_cred());
 	task_housekeeping();
-	// inode_housekeeping(inode_data, inode);
+	inode_housekeeping(inode_data, inode);
 	if (inode_data && (inode_data->in_realm || task_data->in_realm)) {
 		return can_access(inode, CITADEL_OP_FILE_OPEN);
 	} 
@@ -216,11 +216,12 @@ int trm_inode_listsecurity(struct inode *inode, char *buffer, size_t buffer_size
 
 void trm_d_instantiate(struct dentry *dentry, struct inode *inode) {
 	citadel_inode_data_t *inode_data = citadel_inode(inode);
-
+	struct inode *current_inode = NULL;
 	if (inode_data) {
+		current_inode = dentry->d_inode;
 		dentry->d_inode = inode;
 		dentry_housekeeping(inode_data, dentry, inode);
-		dentry->d_inode = NULL;
+		dentry->d_inode = current_inode;
 	}
 
 	// if(inode_data && inode_data->in_realm && !inode_data->is_socket) {
@@ -242,7 +243,7 @@ int trm_inode_setxattr(struct dentry *dentry, const char *name,
 	int rc = 0;
 
 	// Check for security.citadel.install
-	if (!strcmp(name, TRM_XATTR_INSTALL_NAME)) {
+	if (!strcmp(name, _CITADEL_XATTR_INSTALL)) {
 		if(system_ready())
 			rc = xattr_enclave_installation(value, size, dentry) ? -_CITADEL_XATTR_REJECTED_SIGNAL : -_CITADEL_XATTR_ACCEPTED_SIGNAL;
 		else
@@ -252,7 +253,7 @@ int trm_inode_setxattr(struct dentry *dentry, const char *name,
 	}
 
 	// Normal, non-security.citadel.* attribute.
-	if (strncmp(name, TRM_XATTR_PREFIX, strlen(TRM_XATTR_PREFIX))) {
+	if (strncmp(name, _CITADEL_XATTR_ROOT, strlen(_CITADEL_XATTR_ROOT))) {
 		return cap_inode_setxattr(dentry, name, value, size, flags);
 	}
 
@@ -298,7 +299,7 @@ int trm_inode_removexattr(struct dentry *dentry, const char *name)
 	if(current_inode_trm)
 		dentry_housekeeping(current_inode_trm, dentry, d_backing_inode(dentry));
 
-	if (strncmp(name, TRM_XATTR_PREFIX, strlen(TRM_XATTR_PREFIX))) {
+	if (strncmp(name, _CITADEL_XATTR_ROOT, strlen(_CITADEL_XATTR_ROOT))) {
 		return cap_inode_removexattr(dentry, name);
 	}
 

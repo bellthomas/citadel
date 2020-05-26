@@ -205,7 +205,7 @@ int __internal_set_xattr(struct dentry *dentry, const char *name, char *value, s
 
 
 int __internal_set_in_realm(struct dentry *dentry) {
-	return __internal_set_xattr(dentry, TRM_XATTR_REALM_NAME, NULL, 0);
+	return __internal_set_xattr(dentry, _CITADEL_XATTR_IN_REALM, NULL, 0);
 }
 
 int __internal_set_identifier(struct dentry *dentry, char *value, size_t len) {
@@ -214,7 +214,7 @@ int __internal_set_identifier(struct dentry *dentry, char *value, size_t len) {
 
 	hex = to_hexstring(value, len);
 	if (!hex) return -ENOMEM;
-	res = __internal_set_xattr(dentry, TRM_XATTR_ID_NAME, hex, _CITADEL_IDENTIFIER_LENGTH * 2 + 1);
+	res = __internal_set_xattr(dentry, _CITADEL_XATTR_IDENTIFIER, hex, _CITADEL_IDENTIFIER_LENGTH * 2 + 1);
 	kfree(hex);
 	return res;
 }
@@ -251,13 +251,13 @@ void* _hex_identifier_to_bytes(char* hexstring) {
 	return identifier;
 }
 
-char *get_xattr_identifier(struct dentry *dentry) {
+char *get_xattr_identifier(struct dentry *dentry, struct inode *inode) {
 	int x;
 	char *hex_identifier, *identifier;
 	size_t identifier_length = _CITADEL_ENCODED_IDENTIFIER_LENGTH;
 	
 	hex_identifier = kzalloc(identifier_length, GFP_KERNEL);
-	x = __vfs_getxattr(dentry, d_backing_inode(dentry), TRM_XATTR_ID_NAME, hex_identifier, identifier_length);
+	x = __vfs_getxattr(dentry, inode, _CITADEL_XATTR_IDENTIFIER, hex_identifier, identifier_length);
 	if (x > 0) {
 		printk(PFX "Loaded xattr from disk: %s\n", hex_identifier);
 		identifier = _hex_identifier_to_bytes(hex_identifier);
@@ -267,18 +267,6 @@ char *get_xattr_identifier(struct dentry *dentry) {
 
 	kfree(hex_identifier);
 	return identifier;
-}
-
-void realm_housekeeping(citadel_inode_data_t *inode_data, struct dentry *dentry) {
-	int res;
-    if (!inode_data->in_realm) return;
-
-    if (inode_data->needs_xattr_update && !inode_data->is_socket) {
-		inode_data->needs_xattr_update = false;
-		res = set_xattr_in_realm(dentry);
-		printk(PFX "realm_housekeeping -> set xattr (%d)\n", res);
-		// TODO support setting identifier
-    }
 }
 
 void task_housekeeping(void) {
@@ -318,24 +306,25 @@ void inode_housekeeping(citadel_inode_data_t *inode_data, struct inode *inode) {
 }
 
 void dentry_housekeeping(citadel_inode_data_t *inode_data, struct dentry *dentry, struct inode *inode) {
-	int read;
+	int read, res;
 	char *identifier;
 	// struct inode *ino = d_backing_inode(dentry);
 
 	// Abort if invalid.
-	if (unlikely(inode_data == NULL) || unlikely(dentry == NULL)) return;
+	if (unlikely(!inode_data) || unlikely(!dentry)) return;
 	if (likely(inode)) inode_housekeeping(inode_data, inode);
-
 
 	if (!inode_data->checked_disk_xattr && !inode_data->is_socket) {
 		inode_data->checked_disk_xattr = true;
 
 		// Fetch in_realm.
-		read = __vfs_getxattr(dentry, d_backing_inode(dentry), TRM_XATTR_REALM_NAME, NULL, 0);
-		if (unlikely(read > 0)) {
+		read = __vfs_getxattr(dentry, inode, _CITADEL_XATTR_IN_REALM, NULL, 0);
+
+		// If xattr doesn't exists read will equal -1.
+		if (unlikely(read >= 0)) {
 			printk(PFX "Loaded protected file from disk (ino: %ld)\n", inode->i_ino);
 			inode_data->in_realm = true;
-			identifier = get_xattr_identifier(dentry);
+			identifier = get_xattr_identifier(dentry, inode);
 			if (identifier) {
 				memcpy(inode_data->identifier, identifier, _CITADEL_IDENTIFIER_LENGTH);
 				kfree(identifier);
@@ -343,7 +332,14 @@ void dentry_housekeeping(citadel_inode_data_t *inode_data, struct dentry *dentry
 		}
     }
 
-	if (unlikely(inode_data->in_realm)) realm_housekeeping(inode_data, dentry);
+	if (unlikely(inode_data->in_realm)) {
+		if (inode_data->needs_xattr_update && !inode_data->is_socket) {
+			inode_data->needs_xattr_update = false;
+			res = set_xattr_in_realm(dentry);
+			printk(PFX "realm_housekeeping -> set xattr (%d)\n", res);
+			// TODO support setting identifier
+		}
+	}
 }
 
 bool pty_check(struct inode *inode) {
@@ -371,7 +367,7 @@ int can_access(struct inode *inode, citadel_operation_t operation) {
 	citadel_task_data_t *cred = citadel_cred(current_cred());
 
 	// Invalid, allow.
-	if (unlikely(!inode_data || !inode)) return 0;
+	if (unlikely(!inode_data) || unlikely(!inode)) return 0;
 	if (inode->i_ino < 2) return 0;
 	if (!inode_data->in_realm && !cred->in_realm) return 0;
 
