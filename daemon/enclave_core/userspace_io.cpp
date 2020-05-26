@@ -12,27 +12,44 @@ static citadel_response_t core_handle_request(int32_t pid, struct citadel_op_req
     if (asm_result != CITADEL_OP_APPROVED) return asm_result;
 
     void *identifier;
+    citadel_operation_t op = request->operation;
     citadel_response_t result = asm_result;
-    switch (request->operation) {
-    case CITADEL_OP_FILE_CREATE:
-        if (!generate_xattr_ticket((const char*)metadata))
+
+    if (op & CITADEL_OP_CLAIM) {
+        // Create file
+        enclave_printf("[#%d] File create.", pid);
+        char id[_CITADEL_IDENTIFIER_LENGTH];
+        if (!generate_xattr_ticket((const char*)metadata, (char*)&id))
             result = CITADEL_OP_ERROR;
-        break;
-    case CITADEL_OP_FILE_OPEN:
+
+        // Also claim access for free.
+        if (result != CITADEL_OP_ERROR && (op & CITADEL_OP_OPEN)) {
+            enclave_printf("[#%d] File open (post-claim).", pid);
+            if (!generate_ticket(pid, (const char*)&id, CITADEL_OP_OPEN))
+                result = CITADEL_OP_ERROR;
+        }
+        
+        op &= ~CITADEL_OP_OPEN;
+    }
+    
+    if (op & CITADEL_OP_OPEN) {
+        // Open file
+        enclave_printf("[#%d] File open.", pid);
         identifier = (translated ? metadata : request->subject);
-        if (translated && !generate_ticket(pid, (const char*)identifier, request->operation))
+        if (!generate_ticket(pid, (const char*)identifier, request->operation))
             result = CITADEL_OP_ERROR;
-        break;
-    case CITADEL_OP_PTY_ACCESS:
-    case CITADEL_OP_SOCKET_EXTERNAL:
-    case CITADEL_OP_SOCKET_INTERNAL:
-    case CITADEL_OP_SOCKET:
-        // ...
+    }
+
+    if (op & (CITADEL_OP_PTY_ACCESS | CITADEL_OP_SOCKET)) {
+        // Instlal ticket
+        enclave_printf("[#%d] PTY or socket.", pid);
         if (!generate_ticket(pid, (const char*)request->subject, request->operation))
             result = CITADEL_OP_ERROR;
-        break;
-    default:
-        break;
+    }
+
+    if (op & CITADEL_OP_REGISTER) {
+        // Register
+        enclave_printf("[#%d] Registered.", pid);
     }
     
     return result;

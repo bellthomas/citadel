@@ -61,7 +61,7 @@ int send_update(void *data, size_t datalen) {
 
 int install_ticket(uint8_t* ticket_data, size_t ticket_length) {
     FILE *f_update;
-    printf("Installing ticket...\n");
+    // printf("Installing ticket...\n");
     f_update = fopen(_CITADEL_LSM_UPDATE_PATH, "wb");
     size_t wrote = fwrite(ticket_data, ticket_length, 1, f_update);
     fclose(f_update);

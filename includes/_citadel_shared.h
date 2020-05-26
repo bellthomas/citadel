@@ -123,12 +123,11 @@ typedef struct citadel_ptoken_protected {
 #define CITADEL_OP_NOP              0x00
 #define CITADEL_OP_PTY_ACCESS       0x01  // Special, will persist indefinitely.
 #define CITADEL_OP_REGISTER         0x02
-#define CITADEL_OP_FILE_CREATE      0x04
-#define CITADEL_OP_FILE_RECREATE    0x08
-#define CITADEL_OP_FILE_OPEN        0x10
-#define CITADEL_OP_SOCKET_INTERNAL  0x20
-#define CITADEL_OP_SOCKET_EXTERNAL  0x40
-#define CITADEL_OP_SOCKET           0x60  // CITADEL_OP_SOCKET_INTERNAL & CITADEL_OP_SOCKET_EXTERNAL
+#define CITADEL_OP_CLAIM            0x04
+#define CITADEL_OP_OPEN             0x08
+#define CITADEL_OP_SOCKET_INTERNAL  0x10
+#define CITADEL_OP_SOCKET_EXTERNAL  0x20
+#define CITADEL_OP_SOCKET           CITADEL_OP_SOCKET_INTERNAL | CITADEL_OP_SOCKET_EXTERNAL
 
 // Citadel request response (citadel_response_t).
 // enum citadel_status {
@@ -151,7 +150,7 @@ static const char* citadel_status_names[] = {
     "Forgery detected",
     "Approved",
     "Rejected",
-    "Ownership granted."
+    "Ownership granted.",
     "An internal error occurred",
 };
 

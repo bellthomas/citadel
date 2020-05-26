@@ -30,39 +30,19 @@ void run_init(void) {
 
 void run_taint(void) {
 	// Open file.
-	// bool citadel_file_open_ret = citadel_file_open((char*)path, sizeof(path));
-	// if (!citadel_file_open_ret) {
-	// 	printf("Can't open file.\n");
-	// 	exit(3);
-	// }
-
-
-
-	// Open file.
-
-	bool citadel_file_open_ret = citadel_file_open((char*)path2, sizeof(path2));
+	bool citadel_file_open_ret = citadel_file_open((char*)path, sizeof(path));
 	if (!citadel_file_open_ret) {
 		printf("Can't open file.\n");
 		exit(3);
 	}
 
-		
-
-	FILE *fp2;
-	fp2 = fopen(path2, "rw");
-	if(fp2) {
-		printf("Tainted 1.\n");
-		fclose(fp2);
+	FILE *fp;
+	fp = fopen(path, "rw");
+	if(fp) {
+		printf("Tainted.\n\n");
+		fclose(fp);
 	}
-	else printf("Failed to taint 1.\n");
-
-	// FILE *fp;
-	// fp = fopen(path, "rw");
-	// if(fp) {
-	// 	printf("Tainted 2.\n\n");
-	// 	fclose(fp);
-	// }
-	// else printf("Failed to taint 2.\n");
+	else printf("Failed to taint.\n");
 }
 
 void run_pty(void) {
@@ -77,7 +57,7 @@ void run_file_test(void) {
 	printf("Running file test...\n");
 
 	// Init file.
-	bool citadel_file_create_ret = citadel_file_create((char*)path, sizeof(path));
+	bool citadel_file_create_ret = citadel_file_claim((char*)path, sizeof(path));
 	if (!citadel_file_create_ret) {
 		printf("Citadel failed to create file.\n");
 		exit(2);
@@ -212,7 +192,7 @@ void run_socket_i_test(void) {
 		printf("Successfully bound to socket\n");
 	}
 
-	bool citadel_file_create_ret = citadel_file_recreate((char*)socket_path, sizeof(path));
+	bool citadel_file_create_ret = citadel_file_claim_force((char*)socket_path, sizeof(path));
 	bool citadel_file_open_ret = citadel_file_open((char*)socket_path, sizeof(path));
 
 	listen(server_fd, 5);
@@ -311,7 +291,7 @@ void run_fifo_test(void) {
 		return;
 	}
 
-	bool citadel_file_create_ret = citadel_file_create((char*)myfifo, sizeof(myfifo));
+	bool citadel_file_create_ret = citadel_file_claim((char*)myfifo, sizeof(myfifo));
 	if (!citadel_file_create_ret) {
 		printf("Citadel failed to claim file.\n");
 		unlink(myfifo);
@@ -339,11 +319,13 @@ void run_fifo_test(void) {
 		close(fdc);
 	}
 	else {
-		citadel_file_create_ret = citadel_file_open((char*)myfifo, sizeof(myfifo));
-		if (!citadel_file_create_ret) {
-			printf("Child failed to open file.\n");
-			return;
-		} else {
+		// citadel_file_create_ret = citadel_file_open((char*)myfifo, sizeof(myfifo));
+		// if (!citadel_file_create_ret) {
+		// 	printf("Child failed to open file.\n");
+		// 	return;
+		// } else
+		sleep(1);
+		{
 			fdp = open(myfifo, O_WRONLY);
 			if (fdc >= 0) {
 				printf("Successfully opened file (parent, read)\n");
@@ -354,41 +336,9 @@ void run_fifo_test(void) {
 		}
 		while(on_hold()) {}
 		close(fdp);
+		unlink(myfifo);
 	}
 	reset_hold();
-
-	
-
-	// Open FIFO for write only 
-	// fd = open(myfifo, O_WRONLY); 
-	// if (fd >= 0) {
-	// 	// Take an input arr2ing from user. 
-	// 	// 80 is maximum length 
-	// 	// fgets(arr2, 80, stdin); 
-
-	// 	// Write the input arr2ing on FIFO 
-	// 	// and close it 
-	// 	write(fd, "This is a test", strlen(arr2)+1); 
-	// 	close(fd); 
-	// } else {
-	// 	printf("Failed to open file.\n");
-	// }
-
-	// Open FIFO for Read only 
-	// fd = open(myfifo, O_RDONLY); 
-
-	// // Read from FIFO 
-	// read(fd, arr1, sizeof(arr1)); 
-
-	// // Print the read message 
-	// printf("User2: %s\n", arr1); 
-	// close(fd); 
-
-	// while(on_hold()) {}
-	// reset_hold();
-	printf("%lu\n", (unsigned long)time(NULL)); 
-
-	unlink(myfifo);
 	return;
 }
 

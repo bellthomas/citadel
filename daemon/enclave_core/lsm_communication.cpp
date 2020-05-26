@@ -147,7 +147,7 @@ int process_updates(uint8_t *update_data, size_t update_length)
 }
 
 
-static bool _generate_xattr_ticket(const char* path, bool internal)
+static bool _generate_xattr_ticket(const char* path, bool internal, char *identifier)
 {
     // The +11 is to mitigate a bug in the SGX runtime.
     // Hypothesis: an illegal insturction is called if the stack frame isn't word-aligned (16 bytes).
@@ -184,18 +184,20 @@ static bool _generate_xattr_ticket(const char* path, bool internal)
     if (install_ret == _CITADEL_XATTR_ACCEPTED_SIGNAL)
     {
         update_aes_key(hdr->key_update, sizeof(hdr->key_update));
+        if (identifier != NULL)
+            memcpy(identifier, rcrd->identifier, sizeof(rcrd->identifier));
         return true;
     }
 
     return false;
 }
 
-bool generate_xattr_ticket(const char *path)
+bool generate_xattr_ticket(const char *path, char *identifier)
 {
-    return _generate_xattr_ticket(path, false);
+    return _generate_xattr_ticket(path, false, identifier);
 }
 
 bool generate_xattr_ticket_internal(const char *path)
 {
-    return _generate_xattr_ticket(path, true);
+    return _generate_xattr_ticket(path, true, NULL);
 }

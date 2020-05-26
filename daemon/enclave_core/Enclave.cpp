@@ -20,9 +20,10 @@ void reset_hex_buffer() {
         hex_buffer[i] = '\0';
 }
 
-void print_hex(unsigned char *buf, unsigned int len) {
+void _print_hex(bool embedded, unsigned char *buf, unsigned int len) {
     load_hex_buffer(buf, len);
-    enclave_printf("%s", hex_buffer);
+    if (embedded) { asm_printf("%s", hex_buffer); }
+    else { enclave_printf("%s", hex_buffer); }
 }
 
 void timer_pulse(void) {

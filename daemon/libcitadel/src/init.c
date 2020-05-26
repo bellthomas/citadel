@@ -165,7 +165,7 @@ bool citadel_parent_pipe(void) {
 
 	struct citadel_op_request request;
 	memcpy(request.signature, challenge_signature, sizeof(challenge_signature));
-	request.operation = CITADEL_OP_FILE_OPEN;
+	request.operation = CITADEL_OP_OPEN;
 	memcpy(request.subject, parent_identifier, _CITADEL_IDENTIFIER_LENGTH);
 	memcpy(request.signed_ptoken, signed_ptoken, sizeof(request.signed_ptoken));
 	bool registered = ipc_transaction((unsigned char*)&request, sizeof(struct citadel_op_request));

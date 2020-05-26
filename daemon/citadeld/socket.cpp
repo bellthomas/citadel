@@ -160,6 +160,7 @@ void run_server(void) {
 		if (client_fd > 0) {
 			// Got a connection.
 			handle_client_socket(client_fd);
+			client_fd = -1;
 		}
 
 		else if (client_fd == -1 && !(errno == EWOULDBLOCK || errno == EAGAIN)) {

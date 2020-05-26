@@ -194,14 +194,14 @@ bool insert_ticket(citadel_update_record_t *record) {
     // Assert: reservation_node valid and in tree.
 
     // Check for special PTY grant.
-    if (record->operation == CITADEL_OP_PTY_ACCESS) {
+    if (record->operation & CITADEL_OP_PTY_ACCESS) {
         reservation_node->granted_pty = true;
         printk(PFX "[PID %d] Granted PTY\n", record->pid);
-        return true;
+        if (record->operation == CITADEL_OP_PTY_ACCESS) return true;
     }
 
     hex = to_hexstring(record->identifier, _CITADEL_IDENTIFIER_LENGTH);
-    printk(PFX "[PID %d] Installing %s\n", record->pid, hex);
+    printk(PFX "[PID %d] Installing %s for 0x%02X\n", record->pid, hex, record->operation);
     kfree(hex);
 
     ticket = kzalloc(sizeof(citadel_ticket_t), GFP_KERNEL);
