@@ -279,15 +279,92 @@ void run_pipe_test(void) {
 }
 
 void run_fifo_test(void) {
-	int fd; 
-    const char *myfifo = "/tmp/myfifo"; 
+	int fdp, fdc; 
+    const char myfifo[] = "/tmp/myfifo"; 
   
-    // Creating the named file(FIFO) 
-    // mkfifo(<pathname>, <permission>) 
-    mkfifo(myfifo, 0666); 
+    // Creating the named file (FIFO) 
+    if (mkfifo(myfifo, 0666)) {
+		printf("Failed to make FIFO.\n");
+		return;
+	}
 
-	while(on_hold()) {}
+	bool citadel_file_create_ret = citadel_file_create((char*)myfifo, sizeof(myfifo));
+	if (!citadel_file_create_ret) {
+		printf("Citadel failed to claim file.\n");
+		unlink(myfifo);
+		return;
+	}
+
+	if (c_fork() == 0) { 
+		// Child
+		citadel_file_create_ret = citadel_file_open((char*)myfifo, sizeof(myfifo));
+		if (!citadel_file_create_ret) {
+			printf("Child failed to open file.\n");
+			return;
+		} else {
+			fdc = open(myfifo, O_RDONLY);
+			if (fdc >= 0) {
+				char buf[7];
+				read(fdc, buf, 7);
+				printf("Successfully opened file (child, write)\n");
+				printf("%s\n", buf);
+			} else {
+				printf("Failed to open file (child, write)\n");
+			}
+		}
+		while(on_hold()) {}
+		close(fdc);
+	}
+	else {
+		citadel_file_create_ret = citadel_file_open((char*)myfifo, sizeof(myfifo));
+		if (!citadel_file_create_ret) {
+			printf("Child failed to open file.\n");
+			return;
+		} else {
+			fdp = open(myfifo, O_WRONLY);
+			if (fdc >= 0) {
+				printf("Successfully opened file (parent, read)\n");
+				write(fdp, "Hello!", 7);
+			} else {
+				printf("Failed to open file (parent, read)\n");
+			}
+		}
+		while(on_hold()) {}
+		close(fdp);
+	}
 	reset_hold();
+
+	
+
+	// Open FIFO for write only 
+	// fd = open(myfifo, O_WRONLY); 
+	// if (fd >= 0) {
+	// 	// Take an input arr2ing from user. 
+	// 	// 80 is maximum length 
+	// 	// fgets(arr2, 80, stdin); 
+
+	// 	// Write the input arr2ing on FIFO 
+	// 	// and close it 
+	// 	write(fd, "This is a test", strlen(arr2)+1); 
+	// 	close(fd); 
+	// } else {
+	// 	printf("Failed to open file.\n");
+	// }
+
+	// Open FIFO for Read only 
+	// fd = open(myfifo, O_RDONLY); 
+
+	// // Read from FIFO 
+	// read(fd, arr1, sizeof(arr1)); 
+
+	// // Print the read message 
+	// printf("User2: %s\n", arr1); 
+	// close(fd); 
+
+	// while(on_hold()) {}
+	// reset_hold();
+	printf("%lu\n", (unsigned long)time(NULL)); 
+
 	unlink(myfifo);
 	return;
 }

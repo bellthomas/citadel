@@ -12,6 +12,7 @@
 #define _CITADEL_SIGNATURE_LENGTH 8
 #define _CITADEL_PID_LENGTH 4
 #define _CITADEL_TICKET_EXPIRY 15  // seconds
+#define _CITADEL_CACHE_EXPIRY 15  // seconds
 
 
 // Parameters for RSA 2048-bit and GCM-AES-128.
@@ -155,7 +156,7 @@ static const char* citadel_status_names[] = {
 };
 
 static inline const char* citadel_error(uint8_t err_num) {
-    if(err_num > sizeof(citadel_status_names)) return "Invalid error";
+    if(err_num >= sizeof(citadel_status_names)) return "Invalid error";
     else return citadel_status_names[err_num];
 }
 

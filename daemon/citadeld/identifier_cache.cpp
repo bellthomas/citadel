@@ -4,6 +4,8 @@
 #include <algorithm>
 #include <iostream>
 #include <string>
+#include <sys/time.h>
+
 
 #include <sparsehash/sparse_hash_map>
 
@@ -13,11 +15,18 @@ const unsigned char defaultCacheValue[_CITADEL_IDENTIFIER_LENGTH] = {'\0'};
 class IdentifierCacheEntry {
 public:
     // The usual boilerplate
-    IdentifierCacheEntry() : _value((const unsigned char*)&defaultCacheValue) {}
-    IdentifierCacheEntry(const IdentifierCacheEntry &other) : _value(other._value) {}
-    IdentifierCacheEntry(const unsigned char value[_CITADEL_IDENTIFIER_LENGTH]) : _value(value) {}
+    IdentifierCacheEntry() : _value((const unsigned char*)&defaultCacheValue) {
+        gettimeofday(&_time, NULL);
+    }
+    IdentifierCacheEntry(const IdentifierCacheEntry &other) : _value(other._value) {
+        gettimeofday(&_time, NULL);
+    }
+    IdentifierCacheEntry(const unsigned char value[_CITADEL_IDENTIFIER_LENGTH]) : _value(value) {
+        gettimeofday(&_time, NULL);
+    }
     void operator=(const IdentifierCacheEntry &other) {
         _value = other._value;
+        gettimeofday(&_time, NULL);
     }
     const std::string asString() const {
         std::stringstream ss;
@@ -29,8 +38,15 @@ public:
     const unsigned char *get_value() const {
         return _value;
     }
+    bool expired() {
+        struct timeval end;
+        gettimeofday(&end, NULL);
+        unsigned long ms = ((end.tv_sec - _time.tv_sec) * 1000000 + end.tv_usec - _time.tv_usec);
+        return ms > 15 * 1000000;
+    }
 private:
     const unsigned char *_value;
+    struct timeval _time;
 };
 
 // Allow value type to be redirected to std::ostream
@@ -77,8 +93,13 @@ bool metadata_path_to_identifier(void *metadata_value) {
     // // Remember to free: delete sp;
 
     const IdentifierCache::iterator itr = identifierCache.find(s);
-    if (itr == identifierCache.end()) {
-        // Not in the cache.
+    if (itr == identifierCache.end() || itr->second.expired()) {
+        // Not in the cache or expired.
+        if (itr != identifierCache.end() && itr->second.expired()) {
+            printf("expired\n");
+            identifierCache.erase(itr);
+        }
+
         const unsigned char *identifier = get_identifier_for_path(&s);
         if (identifier) {
             const std::pair<IdentifierCache::const_iterator, bool> result = identifierCache.insert(std::make_pair(s, identifier));

@@ -34,7 +34,7 @@ static citadel_response_t core_handle_request(int32_t pid, struct citadel_op_req
     default:
         break;
     }
-
+    
     return result;
 }
 
@@ -120,6 +120,6 @@ uint8_t handle_request(uint8_t* data, size_t length, int32_t pid, uint8_t* ptoke
 
 
 void protect_socket(void) {
-    enclave_printf("Protecting %s\n", _CITADEL_IPC_FILE);
+    enclave_printf("Protecting %s", _CITADEL_IPC_FILE);
     generate_xattr_ticket_internal(_CITADEL_IPC_FILE);
 }

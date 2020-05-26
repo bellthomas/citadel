@@ -259,7 +259,6 @@ char *get_xattr_identifier(struct dentry *dentry, struct inode *inode) {
 	hex_identifier = kzalloc(identifier_length, GFP_KERNEL);
 	x = __vfs_getxattr(dentry, inode, _CITADEL_XATTR_IDENTIFIER, hex_identifier, identifier_length);
 	if (x > 0) {
-		printk(PFX "Loaded xattr from disk: %s\n", hex_identifier);
 		identifier = _hex_identifier_to_bytes(hex_identifier);
 	} else {
 		identifier = NULL;
@@ -322,13 +321,12 @@ void dentry_housekeeping(citadel_inode_data_t *inode_data, struct dentry *dentry
 
 		// If xattr doesn't exists read will equal -1.
 		if (unlikely(read >= 0)) {
-			printk(PFX "Loaded protected file from disk (ino: %ld)\n", inode->i_ino);
 			inode_data->in_realm = true;
 			identifier = get_xattr_identifier(dentry, inode);
 			if (identifier) {
 				memcpy(inode_data->identifier, identifier, _CITADEL_IDENTIFIER_LENGTH);
 				kfree(identifier);
-			}
+			} 
 		}
     }
 
