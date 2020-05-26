@@ -6,6 +6,11 @@
 #include <sys/xattr.h>
 #include <netinet/in.h> 
 #include <sys/un.h>
+#include <stdio.h> 
+#include <string.h> 
+#include <fcntl.h> 
+#include <sys/stat.h> 
+#include <unistd.h> 
 
 #include "../includes/app.h"
 #include "../includes/tests.h"
@@ -270,5 +275,19 @@ void run_pipe_test(void) {
 	
 	while(on_hold()) {}
 	reset_hold();
+	return;
+}
+
+void run_fifo_test(void) {
+	int fd; 
+    const char *myfifo = "/tmp/myfifo"; 
+  
+    // Creating the named file(FIFO) 
+    // mkfifo(<pathname>, <permission>) 
+    mkfifo(myfifo, 0666); 
+
+	while(on_hold()) {}
+	reset_hold();
+	unlink(myfifo);
 	return;
 }

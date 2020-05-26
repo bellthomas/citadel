@@ -55,7 +55,23 @@ int trm_inode_alloc_security(struct inode *inode) {
 	itp->is_socket = false;
 	itp->anonymous = true;
 	mutex_init(&itp->lock);
+
+	inode_housekeeping(itp, inode);
 	return 0;
+}
+
+
+/*
+ *	@inode contains the inode structure.
+ *	Deallocate the inode security structure and set @inode->i_security to
+ *	NULL.
+ */
+void trm_inode_free_security(struct inode *inode) {
+	citadel_inode_data_t *itp;
+	if (inode->i_ino < 2) return;  
+
+	itp = citadel_inode(inode);
+	mutex_destroy(&itp->lock);
 }
 
 
@@ -112,7 +128,7 @@ int trm_inode_permission(struct inode *inode, int mask) {
 	citadel_inode_data_t *inode_data = citadel_inode(inode);
 	citadel_task_data_t *task_data = citadel_cred(current_cred());
 	task_housekeeping();
-	inode_housekeeping(inode_data, inode);
+	// inode_housekeeping(inode_data, inode);
 	if (inode_data && (inode_data->in_realm || task_data->in_realm)) {
 		return can_access(inode, CITADEL_OP_FILE_OPEN);
 	} 
@@ -165,24 +181,24 @@ int trm_inode_getsecurity(struct inode *inode, const char *name, void **buffer, 
 	citadel_inode_data_t *inode_data = citadel_inode(inode);
 	struct inode *ip = (struct inode *)inode;
 
+	// Only use for sockets, files' xattrs are served from VFS.
 	// Verify that inode belongs to SockFS.
 	if (ip->i_sb->s_magic != SOCKFS_MAGIC)
 		return -EOPNOTSUPP;
 
-	// Only use for sockets, files' xattrs are served from VFS.
 	if (inode_data && inode_data->in_realm && inode_data->is_socket) {
 		// This is a protected socket.
 
+		// This is security.citadel.in_realm
 		if (strncmp(name, _CITADEL_XATTR_NS_TAG_IN_REALM, sizeof(_CITADEL_XATTR_NS_TAG_IN_REALM)) == 0) {
 			return 0;
 		}
 
+		// This is security.citadel.identifier
 		if (strncmp(name, _CITADEL_XATTR_NS_TAG_IDENTIFIER, sizeof(_CITADEL_XATTR_NS_TAG_IDENTIFIER)) == 0) {
-			// This is security.citadel.identifier
 			if (alloc) {
 				*buffer = to_hexstring(inode_data->identifier, _CITADEL_IDENTIFIER_LENGTH);
-				if (*buffer == NULL)
-					return -ENOMEM;
+				if (*buffer == NULL) return -ENOMEM;
 			}
 			return _CITADEL_ENCODED_IDENTIFIER_LENGTH;
 		}
@@ -200,14 +216,20 @@ int trm_inode_listsecurity(struct inode *inode, char *buffer, size_t buffer_size
 
 void trm_d_instantiate(struct dentry *dentry, struct inode *inode) {
 	citadel_inode_data_t *inode_data = citadel_inode(inode);
-	if(inode_data->in_realm) {
-		if (!inode_data->is_socket) {
-			dentry->d_inode = inode;
-			realm_housekeeping(inode_data, dentry);
-			dentry->d_inode = NULL;
-		}
-		// printk(PFX "trm_d_instantiate (in_realm: %d, %ld, socket: %d)\n", inode_data->in_realm, inode->i_ino, inode_data->is_socket);
+
+	if (inode_data) {
+		dentry->d_inode = inode;
+		dentry_housekeeping(inode_data, dentry, inode);
+		dentry->d_inode = NULL;
 	}
+
+	// if(inode_data && inode_data->in_realm && !inode_data->is_socket) {
+	// 	dentry->d_inode = inode;
+	// 	dentry_housekeeping(inode_data, dentry);
+	// 	dentry->d_inode = NULL;
+	// } else {
+	// 	inode_housekeeping(inode_data, inode);
+	// }
 }
 
 
@@ -245,7 +267,7 @@ void trm_inode_post_setxattr(struct dentry *dentry, const char *name, const void
 
 	if (inode_data) {
 		// Do housekeeping.
-		dentry_housekeeping(inode_data, dentry);
+		dentry_housekeeping(inode_data, dentry, d_backing_inode(dentry));
 
 		// if (inode_data->in_realm) {
 		// 	// Log for debug.
@@ -259,13 +281,13 @@ int trm_inode_getxattr(struct dentry *dentry, const char *name)
 {
 	citadel_inode_data_t *inode_data = citadel_dentry(dentry);
 	if(inode_data)
-		dentry_housekeeping(inode_data, dentry);
+		dentry_housekeeping(inode_data, dentry, d_backing_inode(dentry));
 	return 0;
 }
 int trm_inode_listxattr(struct dentry *dentry) {
 	citadel_inode_data_t *current_inode_trm = citadel_dentry(dentry);
 	if(current_inode_trm)
-		dentry_housekeeping(current_inode_trm, dentry);
+		dentry_housekeeping(current_inode_trm, dentry, d_backing_inode(dentry));
 	return 0;
 }
 
@@ -274,7 +296,7 @@ int trm_inode_removexattr(struct dentry *dentry, const char *name)
 	struct task_struct *task = current;
 	citadel_inode_data_t *current_inode_trm = citadel_dentry(dentry);
 	if(current_inode_trm)
-		dentry_housekeeping(current_inode_trm, dentry);
+		dentry_housekeeping(current_inode_trm, dentry, d_backing_inode(dentry));
 
 	if (strncmp(name, TRM_XATTR_PREFIX, strlen(TRM_XATTR_PREFIX))) {
 		return cap_inode_removexattr(dentry, name);

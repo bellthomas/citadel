@@ -269,12 +269,12 @@ char *get_xattr_identifier(struct dentry *dentry) {
 	return identifier;
 }
 
-void realm_housekeeping(citadel_inode_data_t *i_trm, struct dentry *dentry) {
+void realm_housekeeping(citadel_inode_data_t *inode_data, struct dentry *dentry) {
 	int res;
-    if (!i_trm->in_realm) return;
+    if (!inode_data->in_realm) return;
 
-    if (i_trm->needs_xattr_update && !i_trm->is_socket) {
-		i_trm->needs_xattr_update = false;
+    if (inode_data->needs_xattr_update && !inode_data->is_socket) {
+		inode_data->needs_xattr_update = false;
 		res = set_xattr_in_realm(dentry);
 		printk(PFX "realm_housekeeping -> set xattr (%d)\n", res);
 		// TODO support setting identifier
@@ -293,59 +293,57 @@ void task_housekeeping(void) {
 }
 
 void inode_housekeeping(citadel_inode_data_t *inode_data, struct inode *inode) {
-	char *pipe_id;
-	citadel_task_data_t *task_data = citadel_cred(current_cred()); 
+	// char *pipe_id;
+	citadel_task_data_t *task_data = citadel_cred(current_cred());
+	if (unlikely(!inode) || unlikely(!inode_data) || inode->i_ino < 2) return;
 
-	if (likely(inode) && inode->i_sb->s_magic == PIPEFS_MAGIC && !S_ISFIFO(inode->i_mode)) {
+	if (inode->i_sb->s_magic == PIPEFS_MAGIC) { // !S_ISFIFO(inode->i_mode)
+
 		// This is an unnamed pipe.
-
-		printk(PFX "inode_housekeeping for unnamed socket (ino %d)\n", inode->i_ino);
-		if (inode_data->anonymous && task_data) {
+		if (inode_data->anonymous && task_data && task_data->in_realm) {
 			// Assume this pipe has just been created.
 			memcpy(inode_data->identifier, task_data->identifier, sizeof(inode_data->identifier));
 			inode_data->anonymous = false;
 			inode_data->checked_disk_xattr = true;
 			inode_data->needs_xattr_update = false;
 
-			pipe_id = to_hexstring(inode_data->identifier, _CITADEL_IDENTIFIER_LENGTH);
-			printk(PFX "Tagged PipeFS inode (%ld) as %s\n", inode->i_ino, pipe_id);
-			kfree(pipe_id);
+			// pipe_id = to_hexstring(inode_data->identifier, _CITADEL_IDENTIFIER_LENGTH);
+			// printk(PFX "Tagged PipeFS inode (%ld) for PID %d\n", inode->i_ino, current->pid);
+			// kfree(pipe_id);
 		}
 	}
 	// else if (S_ISFIFO(inode->i_mode)) {
-	// 	printk(PFX "Get named pipe!\n");
+	// 	printk(PFX "Got named pipe!\n");
 	// }
 }
 
-void dentry_housekeeping(citadel_inode_data_t *inode_data, struct dentry *dentry) {
-	int x;
+void dentry_housekeeping(citadel_inode_data_t *inode_data, struct dentry *dentry, struct inode *inode) {
+	int read;
 	char *identifier;
-	struct inode *ino = d_backing_inode(dentry);
+	// struct inode *ino = d_backing_inode(dentry);
 
-	task_housekeeping();
 	// Abort if invalid.
-	if (inode_data == NULL || dentry == NULL) return;
-	if (ino) inode_housekeeping(inode_data, ino);
+	if (unlikely(inode_data == NULL) || unlikely(dentry == NULL)) return;
+	if (likely(inode)) inode_housekeeping(inode_data, inode);
 
 
 	if (!inode_data->checked_disk_xattr && !inode_data->is_socket) {
 		inode_data->checked_disk_xattr = true;
 
-		// Fetch identifier.
-		identifier = get_xattr_identifier(dentry);
-		if (identifier) {
-			memcpy(inode_data->identifier, identifier, _CITADEL_IDENTIFIER_LENGTH);
+		// Fetch in_realm.
+		read = __vfs_getxattr(dentry, d_backing_inode(dentry), TRM_XATTR_REALM_NAME, NULL, 0);
+		if (unlikely(read > 0)) {
+			printk(PFX "Loaded protected file from disk (ino: %ld)\n", inode->i_ino);
 			inode_data->in_realm = true;
-			kfree(identifier);
-		}
-		else {
-			// No identifier, check for anonymous entity.
-			x = __vfs_getxattr(dentry, d_backing_inode(dentry), TRM_XATTR_REALM_NAME, NULL, 0);
-			inode_data->in_realm = (x > 0);
+			identifier = get_xattr_identifier(dentry);
+			if (identifier) {
+				memcpy(inode_data->identifier, identifier, _CITADEL_IDENTIFIER_LENGTH);
+				kfree(identifier);
+			}
 		}
     }
 
-	if (inode_data->in_realm) realm_housekeeping(inode_data, dentry);
+	if (unlikely(inode_data->in_realm)) realm_housekeeping(inode_data, dentry);
 }
 
 bool pty_check(struct inode *inode) {
@@ -388,7 +386,7 @@ int can_access(struct inode *inode, citadel_operation_t operation) {
 	else if (inode->i_sb->s_magic == SYSFS_MAGIC) return 0;
 	else if (inode->i_sb->s_magic == SECURITYFS_MAGIC) return 0;
 
-	else if (inode->i_sb->s_magic == PIPEFS_MAGIC && !S_ISFIFO(inode->i_mode)) {
+	else if (inode->i_sb->s_magic == PIPEFS_MAGIC) { // && !S_ISFIFO(inode->i_mode)
 		// All processes can always access their own unnamed pipes.
 		printk(PFX "Checking unnamed pipe...\n");
 		found = true;
@@ -428,7 +426,7 @@ int can_access(struct inode *inode, citadel_operation_t operation) {
 	// Short circuit if node is anonymous.
 	if (inode_data->anonymous) {
 		printk(PFX "Rejected PID %d access to anonymous inode (%ld)\n", current->pid, inode->i_ino);
-		return 0;
+		return -EACCES;
 	}
 
 	// Let's see if the process has the correct ticket.

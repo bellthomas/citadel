@@ -38,7 +38,7 @@ int trm_file_permission(struct file *file, int mask) {
     citadel_task_data_t *task_data = citadel_cred(current_cred());
 
     task_housekeeping();
-    dentry_housekeeping(inode_data, f_dentry);
+    dentry_housekeeping(inode_data, f_dentry, d_backing_inode(f_dentry));
     
     // Don't care if this file isn't under our protection.
     if (inode_data && (inode_data->in_realm || task_data->in_realm)) {
@@ -64,7 +64,7 @@ int trm_file_ioctl(struct file *file, unsigned int cmd, unsigned long arg) {
     citadel_inode_data_t *inode_data = citadel_dentry(f_dentry);
 
     task_housekeeping();
-    dentry_housekeeping(inode_data, f_dentry);
+    dentry_housekeeping(inode_data, f_dentry, d_backing_inode(f_dentry));
 
     return 0;
 }
@@ -81,7 +81,7 @@ int trm_file_open(struct file *file) {
     citadel_task_data_t *task_data = citadel_cred(current_cred());
 
     task_housekeeping();
-    dentry_housekeeping(inode_data, f_dentry);
+    dentry_housekeeping(inode_data, f_dentry, d_backing_inode(f_dentry));
 
     // Don't care if this file isn't under our protection.
     if (inode_data && (inode_data->in_realm || task_data->in_realm)) {

@@ -2,6 +2,7 @@
 #define _SECURITY_TRM_LSM_INODE_H
 
 extern int trm_inode_alloc_security(struct inode *inode);
+extern void trm_inode_free_security(struct inode *inode);
 extern int trm_inode_init_security(struct inode *inode, struct inode *dir, const struct qstr *qstr, const char **name, void **value, size_t *len);
 extern int trm_inode_permission(struct inode *inode, int mask);
 extern int trm_inode_link(struct dentry *old_dentry, struct inode *dir, struct dentry *new_dentry);

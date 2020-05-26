@@ -141,6 +141,7 @@ static struct security_hook_list citadel_hooks[] __lsm_ro_after_init = {
     // Provided by lsm_functions/inode.c
     LSM_HOOK_INIT(inode_alloc_security, trm_inode_alloc_security),
     LSM_HOOK_INIT(inode_init_security, trm_inode_init_security),
+    LSM_HOOK_INIT(inode_free_security, trm_inode_free_security),
     // LSM_HOOK_INIT(inode_create, trm_inode_create),
     LSM_HOOK_INIT(inode_permission, trm_inode_permission),
     LSM_HOOK_INIT(inode_link, trm_inode_link),
