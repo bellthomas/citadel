@@ -140,10 +140,10 @@ void run_socket_e_test(void) {
     address.sin_addr.s_addr = INADDR_ANY; 
     address.sin_port = htons(13756); 
        
-	bool socket_allowed = citadel_socket(server_fd, (struct sockaddr *)&address);
+	// bool socket_allowed = citadel_socket(server_fd, (struct sockaddr *)&address);
 
     // Bind to address. 
-    if (bind(server_fd, (struct sockaddr *)&address, sizeof(address)) < 0) { 
+    if (c_bind(server_fd, (struct sockaddr *)&address, sizeof(address)) < 0) { 
         perror("bind failed"); 
         // exit(EXIT_FAILURE); 
     }
@@ -181,19 +181,20 @@ void run_socket_i_test(void) {
 	address.sun_family = AF_UNIX;
 	strncpy(address.sun_path, socket_path, sizeof(address.sun_path)-1);
 
-	bool socket_allowed = citadel_socket(server_fd, (struct sockaddr *)&address);
+	// bool socket_allowed = citadel_socket(server_fd, (struct sockaddr *)&address);
 
     // Bind to address. 
-    if (bind(server_fd, (struct sockaddr *)&address, sizeof(address)) < 0) { 
+    if (c_bind(server_fd, (struct sockaddr *)&address, sizeof(address)) < 0) { 
         perror("bind failed"); 
+		return;
         // exit(EXIT_FAILURE); 
     }
 	else {
 		printf("Successfully bound to socket\n");
 	}
 
-	bool citadel_file_create_ret = citadel_file_claim_force((char*)socket_path, sizeof(path));
-	bool citadel_file_open_ret = citadel_file_open((char*)socket_path, sizeof(path));
+	// bool citadel_file_create_ret = citadel_file_claim_force((char*)socket_path, sizeof(path));
+	// bool citadel_file_open_ret = citadel_file_open((char*)socket_path, sizeof(path));
 
 	listen(server_fd, 5);
 
@@ -207,11 +208,11 @@ void run_socket_i_test(void) {
 			exit(EXIT_FAILURE); 
 		} 
 
-		bool socket_allowed = citadel_socket(child_fd, (struct sockaddr *)&address);
-		bool citadel_file_open_ret = citadel_file_open((char*)socket_path, sizeof(path));
+		// bool socket_allowed = citadel_socket(child_fd, (struct sockaddr *)&address);
+		// bool citadel_file_open_ret = citadel_file_open((char*)socket_path, sizeof(path));
 
 		// Bind to address. 
-		if (connect(child_fd, (struct sockaddr *)&address, sizeof(address)) < 0) { 
+		if (c_connect(child_fd, (struct sockaddr *)&address, sizeof(address)) < 0) { 
 			perror("connect failed"); 
 			// exit(EXIT_FAILURE); 
 		}

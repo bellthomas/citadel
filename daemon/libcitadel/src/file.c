@@ -7,6 +7,7 @@
 static bool _citadel_file_claim(char *path, size_t length) {
 	if (length > _CITADEL_MAX_METADATA_SIZE || length < 2) return false;
 
+	citadel_printf("Claiming %s\n", path);
 	struct citadel_op_extended_request payload;
 	memcpy(payload.request.signature, challenge_signature, sizeof(challenge_signature));
 	payload.request.operation = CITADEL_OP_CLAIM | CITADEL_OP_OPEN;

@@ -323,6 +323,7 @@ void dentry_housekeeping(citadel_inode_data_t *inode_data, struct dentry *dentry
 			identifier = get_xattr_identifier(dentry, inode);
 			if (identifier) {
 				memcpy(inode_data->identifier, identifier, _CITADEL_IDENTIFIER_LENGTH);
+				inode_data->anonymous = false;
 				kfree(identifier);
 			} 
 		}
@@ -449,7 +450,7 @@ int can_access(struct inode *inode, citadel_operation_t operation) {
 		// Found a ticket relating to this object.
 		printk(PFX "Allowing PID %d access to object (ino: %ld, cred: %d).\n", current->pid, inode->i_ino, cred->pid);
 		if (inode_data->in_realm) cred->in_realm = true;
-		if (cred->in_realm) inode_data->in_realm = true;
+		// if (cred->in_realm) inode_data->in_realm = true;
 		return 0;
 	}
 
