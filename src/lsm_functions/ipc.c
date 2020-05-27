@@ -15,15 +15,9 @@
  */
 int trm_ipc_alloc_security(struct kern_ipc_perm *isp) {
 	citadel_ipc_data_t *ipc_data = citadel_ipc(isp);
-    char *hex;
     ipc_data->in_realm = 0;
     memcpy(ipc_data->identifier, &isp->key, sizeof(key_t));
     memset(ipc_data->identifier + sizeof(key_t), 0, sizeof(ipc_data->identifier) - sizeof(key_t));
-
-    hex = to_hexstring(ipc_data->identifier, sizeof(ipc_data->identifier));
-    printk(PFX "SHM alloc: %s\n", hex);
-    kfree(hex);
-
 	return 0;
 }
 
@@ -39,9 +33,7 @@ void trm_ipc_free_security(struct kern_ipc_perm *isp) {
 }
 
 static int allow_shm_access(key_t key) {
-    printk(PFX "Allow SHM access (%d)\n", key);
     if (unlikely(!current) || unlikely(current->pid < 2)) return 0;
-    // if (unlikely(!key)) return 0; // TODO check?
     return add_to_shmid(key, current->pid) ? 0 : -EIO;
 }
 
@@ -52,8 +44,6 @@ static int shm_can_access(struct kern_ipc_perm *perm) {
     ktime_t tracker;
     bool found = false;
     size_t tmp;
-
-    printk(PFX "Can SHM access (%d)\n", perm->key);
 
     // Invalid.
     if (unlikely(!ipc_data) || unlikely(!cred)) return allow_shm_access(perm->key);

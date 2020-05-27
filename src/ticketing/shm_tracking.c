@@ -97,8 +97,6 @@ bool add_to_shmid(key_t key, pid_t pid) {
     // Add to end of existing list.
     if (eol) eol->next = shm_pid;
     else shm_node->pid_head = shm_pid;
-    printk(PFX "add_to_shmid(%d,%d) 3\n", key, pid);
-
 
     return true;
 }
