@@ -4,6 +4,8 @@
 #define _SECURITY_TRM_COMMON_H
 
 #include <linux/lsm_hooks.h>
+#include <linux/types.h>
+#include <linux/cred.h>
 
 #include "_citadel_shared.h"
 #include "citadel.h"
@@ -11,12 +13,6 @@
 #define PFX "LSM/Citadel: "
 #define PFX_W KERN_WARNING PFX
 #define PFX_E KERN_ERR PFX
-
-// TODO remove
-// #define TRM_XATTR_PREFIX XATTR_SECURITY_PREFIX "citadel."
-// #define TRM_XATTR_ID_NAME TRM_XATTR_PREFIX "identifier"
-// #define TRM_XATTR_REALM_NAME TRM_XATTR_PREFIX "in_realm"
-// #define TRM_XATTR_INSTALL_NAME TRM_XATTR_PREFIX "install"
 
 
 typedef struct citadel_ticket_detail {
@@ -52,6 +48,11 @@ typedef struct citadel_inode_data {
     struct mutex lock;
 } __randomize_layout citadel_inode_data_t;
 
+typedef struct citadel_ipc_data {
+    bool in_realm;
+    unsigned char identifier[_CITADEL_IDENTIFIER_LENGTH];
+} __randomize_layout citadel_ipc_data_t;
+
 
 extern struct lsm_blob_sizes citadel_blob_sizes;
 
@@ -70,7 +71,13 @@ static inline citadel_task_data_t *citadel_cred(const struct cred *cred) {
 	return cred->security + citadel_blob_sizes.lbs_cred;
 }
 
+static inline citadel_ipc_data_t *citadel_ipc(const struct kern_ipc_perm *ipc) {
+    if (unlikely(!ipc)) return NULL;
+	return ipc->security + citadel_blob_sizes.lbs_ipc;
+}
+
 extern char *to_hexstring(unsigned char *buf, unsigned int len);
+extern void *hexstring_to_bytes(char* hexstring);
 extern char *get_path_for_dentry(struct dentry *dentry);
 extern int   set_xattr_in_realm(struct dentry *dentry);
 extern int   set_xattr_identifier(struct dentry *dentry, char *value, size_t len);

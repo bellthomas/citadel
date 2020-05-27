@@ -19,7 +19,7 @@ struct lsm_blob_sizes citadel_blob_sizes __lsm_ro_after_init = {
 	.lbs_cred = sizeof(citadel_task_data_t),
 	.lbs_file = 0, //sizeof(struct smack_known *),
 	.lbs_inode = sizeof(citadel_inode_data_t),
-	.lbs_ipc = 0, //sizeof(struct smack_known *),
+	.lbs_ipc = sizeof(citadel_ipc_data_t),
 	.lbs_msg_msg = 0 //sizeof(struct smack_known *),
 };
 
@@ -236,7 +236,7 @@ int set_xattr_identifier(struct dentry *dentry, char *value, size_t len) {
 	return (res_a < res_b) ? res_a : res_b;
 }
 
-void* _hex_identifier_to_bytes(char* hexstring) {
+void* hexstring_to_bytes(char* hexstring) {
 	size_t i, j;
 	size_t len = strlen(hexstring);
 	size_t final_len = len / 2;
@@ -259,7 +259,7 @@ char *get_xattr_identifier(struct dentry *dentry, struct inode *inode) {
 	hex_identifier = kzalloc(identifier_length, GFP_KERNEL);
 	x = __vfs_getxattr(dentry, inode, _CITADEL_XATTR_IDENTIFIER, hex_identifier, identifier_length);
 	if (x > 0) {
-		identifier = _hex_identifier_to_bytes(hex_identifier);
+		identifier = hexstring_to_bytes(hex_identifier);
 	} else {
 		identifier = NULL;
 	}
@@ -448,7 +448,8 @@ int can_access(struct inode *inode, citadel_operation_t operation) {
 	if (found) {
 		// Found a ticket relating to this object.
 		printk(PFX "Allowing PID %d access to object (ino: %ld, cred: %d).\n", current->pid, inode->i_ino, cred->pid);
-		cred->in_realm = true;
+		if (inode_data->in_realm) cred->in_realm = true;
+		if (cred->in_realm) inode_data->in_realm = true;
 		return 0;
 	}
 

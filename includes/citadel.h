@@ -3,6 +3,8 @@
 #ifndef _SECURITY_TRM_H
 #define _SECURITY_TRM_H
 
+#include <linux/types.h>
+
 #include "_citadel_shared.h"
 #include "common.h"
 

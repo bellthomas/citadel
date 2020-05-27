@@ -14,6 +14,7 @@
 #include "../../includes/citadel.h"
 #include "../../includes/inode.h"
 #include "../../includes/payload_io.h"
+#include "../../includes/shm_tracking.h"
 
 
 /**
@@ -180,6 +181,19 @@ int trm_inode_link(struct dentry *old_dentry, struct inode *dir, struct dentry *
 int trm_inode_getsecurity(struct inode *inode, const char *name, void **buffer, bool alloc) {
 	citadel_inode_data_t *inode_data = citadel_inode(inode);
 	struct inode *ip = (struct inode *)inode;
+	char *key;
+
+	// SHM tracking.
+	if (ip->i_sb->s_magic == SECURITYFS_MAGIC) {
+
+		if (strncmp(name, _CITADEL_XATTR_NS_TAG_SHM ".", sizeof(_CITADEL_XATTR_NS_TAG_SHM)) == 0) {
+			// security.citadel.shm.*
+			key = (char*)name + sizeof(_CITADEL_XATTR_NS_TAG_SHM);
+			return get_shmid_inhabitants(key, alloc, buffer);
+		}
+
+		return -EOPNOTSUPP;
+	}
 
 	// Only use for sockets, files' xattrs are served from VFS.
 	// Verify that inode belongs to SockFS.

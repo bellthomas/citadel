@@ -23,6 +23,7 @@
 #include "../includes/file.h"
 #include "../includes/task.h"
 #include "../includes/socket.h"
+#include "../includes/ipc.h"
 
 static int rsa_available = 0;
 static int aes_available = 0;
@@ -177,6 +178,13 @@ static struct security_hook_list citadel_hooks[] __lsm_ro_after_init = {
     LSM_HOOK_INIT(socket_sendmsg, trm_socket_sendmsg),
     LSM_HOOK_INIT(socket_recvmsg, trm_socket_recvmsg),
     LSM_HOOK_INIT(socket_shutdown, trm_socket_shutdown),
+
+    // Provided by lsm_functions/ipc.c
+    LSM_HOOK_INIT(shm_alloc_security, trm_ipc_alloc_security),
+    LSM_HOOK_INIT(shm_free_security, trm_ipc_free_security),
+    LSM_HOOK_INIT(shm_associate, trm_shm_associate),
+    LSM_HOOK_INIT(shm_shmctl, trm_shm_shmctl),
+    LSM_HOOK_INIT(shm_shmat, trm_shm_shmat),
 };
 
 

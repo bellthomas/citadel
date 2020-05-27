@@ -8,7 +8,9 @@ obj-y := src/citadel.o \
 		 src/lsm_functions/file.o \
 		 src/lsm_functions/task.o \
 		 src/lsm_functions/socket.o \
-		 src/ticketing/ticket_cache.o
+		 src/lsm_functions/ipc.o \
+		 src/ticketing/ticket_cache.o \
+		 src/ticketing/shm_tracking.o
 		 
 
 
