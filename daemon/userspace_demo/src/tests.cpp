@@ -343,5 +343,58 @@ void run_fifo_test(void) {
 }
 
 void run_shm_test(void) {
+	key_t key;
+    int shmid;
+    char *data;
+    int mode;
+
+
+    /* make the key: */
+    if ((key = ftok(path, 'R')) == -1) /*Here the file must exist */ 
+	{
+        perror("ftok");
+        exit(1);
+    }
+
+	printf("SHM key: %d\n", key);
+
+
+	bool allow_shm = citadel_shm_access(key);
+	if (!allow_shm) {
+		printf("Failed to get SHM.\n");
+		return;
+	}
+
+    // /*  create the segment: */
+    if ((shmid = shmget(key, 50, 0644 | IPC_CREAT)) == -1) {
+        perror("shmget");
+        exit(1);
+    } else {
+		printf("Success: shmget\n");
+	}
+
+    /* attach to the segment to get a pointer to it: */
+    data = (char*)shmat(shmid, NULL, 0);
+    if (data == (char *)(-1)) {
+        perror("shmat");
+        exit(1);
+    } else {
+		printf("Success: shmat\n");
+	}
+
+    // /* read or modify the segment, based on the command line: */
+    // if (argc == 2) {
+    //     printf("writing to segment: \"%s\"\n", argv[1]);
+    //     strncpy(data, argv[1], SHM_SIZE);
+    // } else
+    //     printf("segment contains: \"%s\"\n", data);
+
+    // /* detach from the segment: */
+    if (shmdt(data) == -1) {
+        perror("shmdt");
+        exit(1);
+    } else {
+		printf("Success: shmdt\n");
+	}
 
 }

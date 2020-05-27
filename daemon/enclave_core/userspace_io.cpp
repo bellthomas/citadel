@@ -41,8 +41,14 @@ static citadel_response_t core_handle_request(int32_t pid, struct citadel_op_req
     }
 
     if (op & (CITADEL_OP_PTY_ACCESS | CITADEL_OP_SOCKET)) {
-        // Instlal ticket
+        // Install ticket
         enclave_printf("[#%d] PTY or socket.", pid);
+        if (!generate_ticket(pid, (const char*)request->subject, request->operation))
+            result = CITADEL_OP_ERROR;
+    }
+
+    if (op & CITADEL_OP_SHM) {
+        enclave_printf("[#%d] SHM access granted.", pid);
         if (!generate_ticket(pid, (const char*)request->subject, request->operation))
             result = CITADEL_OP_ERROR;
     }
@@ -51,7 +57,7 @@ static citadel_response_t core_handle_request(int32_t pid, struct citadel_op_req
         // Register
         enclave_printf("[#%d] Registered.", pid);
     }
-    
+
     return result;
 }
 

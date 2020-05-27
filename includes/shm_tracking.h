@@ -14,5 +14,5 @@ typedef struct shm_id_node {
 } citadel_shm_node_t;
 
 extern size_t get_shmid_inhabitants(char* keystring, bool alloc, void **buffer);
-
+extern bool add_to_shmid(key_t key, pid_t pid);
 #endif

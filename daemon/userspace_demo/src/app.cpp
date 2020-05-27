@@ -18,6 +18,7 @@ enum Action {
 	A_SOCKET_E_TEST,
 	A_PIPE_TEST,
 	A_FIFO_TEST,
+	A_SHM_TEST,
 	A_TAINT,
 	A_PTY,
 };
@@ -31,6 +32,7 @@ void init_actions(void) {
 	actions["sockete"] = A_SOCKET_E_TEST;
 	actions["pipe"] = A_PIPE_TEST;
 	actions["fifo"] = A_FIFO_TEST;
+	actions["shm"] = A_SHM_TEST;
 	actions["taint"] = A_TAINT;
 	actions["pty"] = A_PTY;
 } 
@@ -95,6 +97,9 @@ int main(int argc, char** argv) {
 			break;		
 		case A_FIFO_TEST:
 			run_fifo_test();
+			break;
+		case A_SHM_TEST:
+			run_shm_test();
 			break;
 		case A_PTY:
 			run_pty();

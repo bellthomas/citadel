@@ -66,7 +66,7 @@ static bool insert_shmid(struct rb_root *root, citadel_shm_node_t *data)
 
 bool add_to_shmid(key_t key, pid_t pid) {
     int res;
-    citadel_shm_pid_t *shm_pid, *eol;
+    citadel_shm_pid_t *shm_pid, *eol = NULL;
     citadel_shm_node_t *shm_node = shmid_search(&shm_pool, key);
     if (!shm_node) {
         shm_node = kzalloc(sizeof(citadel_shm_node_t), GFP_KERNEL);
@@ -95,7 +95,10 @@ bool add_to_shmid(key_t key, pid_t pid) {
     shm_pid->next = NULL;
 
     // Add to end of existing list.
-    eol->next = shm_pid;
+    if (eol) eol->next = shm_pid;
+    else shm_node->pid_head = shm_pid;
+    printk(PFX "add_to_shmid(%d,%d) 3\n", key, pid);
+
 
     return true;
 }
@@ -111,8 +114,6 @@ size_t get_shmid_inhabitants(char* keystring, bool alloc, void **buffer) {
     // Convert key to key_t.
     if (unlikely(strlen(keystring) != 2 * sizeof(key_t))) return -EINVAL;
     key = (key_t*)hexstring_to_bytes(keystring);
-    printk(PFX "Getting for SHMID %s (%u)\n", keystring, *key);
-
     shm_node = shmid_search(&shm_pool, *key);
     kfree(key);
     if (!shm_node) return 0;
@@ -123,7 +124,7 @@ size_t get_shmid_inhabitants(char* keystring, bool alloc, void **buffer) {
         count++;
         shm_pid = shm_pid->next;
     }
-    
+
     // If the process hasn't requested the data, return.
     if (!alloc) return 2 * count * sizeof(pid_t) + 1;
 
@@ -136,8 +137,9 @@ size_t get_shmid_inhabitants(char* keystring, bool alloc, void **buffer) {
     count = 0;
     while (shm_pid) {
         pids[count] = shm_pid->pid;
+        shm_pid = shm_pid->next;
         count++;
-    }
+    }       
 
     // Encode and return.
     *buffer = to_hexstring((unsigned char*)pids, count * sizeof(pid_t));

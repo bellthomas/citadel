@@ -4,6 +4,7 @@
 #include "../../includes/citadel.h"
 #include "../../includes/ipc.h"
 #include "../../includes/payload_io.h"
+#include "../../includes/shm_tracking.h"
 
 /*
  *	Allocate and attach a security structure to the @perm->security
@@ -37,6 +38,12 @@ void trm_ipc_free_security(struct kern_ipc_perm *isp) {
     memset(ipc_data->identifier, 0, sizeof(ipc_data->identifier));
 }
 
+static int allow_shm_access(key_t key) {
+    printk(PFX "Allow SHM access (%d)\n", key);
+    if (unlikely(!current) || unlikely(current->pid < 2)) return 0;
+    // if (unlikely(!key)) return 0; // TODO check?
+    return add_to_shmid(key, current->pid) ? 0 : -EIO;
+}
 
 static int shm_can_access(struct kern_ipc_perm *perm) {
     citadel_task_data_t *cred = citadel_cred(current_cred());
@@ -46,14 +53,16 @@ static int shm_can_access(struct kern_ipc_perm *perm) {
     bool found = false;
     size_t tmp;
 
+    printk(PFX "Can SHM access (%d)\n", perm->key);
+
     // Invalid.
-    if (unlikely(!ipc_data) || unlikely(!cred)) return 0;
+    if (unlikely(!ipc_data) || unlikely(!cred)) return allow_shm_access(perm->key);
 
     // If untainted, allow untainted processes to join.
-    if (!cred->in_realm && !ipc_data->in_realm) return 0;
+    if (!cred->in_realm && !ipc_data->in_realm) return allow_shm_access(perm->key);
 
     // Citadel always allowed to access.
-	if (unlikely(current->pid == citadel_pid())) return 0;
+	if (unlikely(current->pid == citadel_pid())) return allow_shm_access(perm->key);
 
     // Let's see if the process has the correct ticket.
 	current_ticket = cred->ticket_head;
@@ -84,11 +93,12 @@ static int shm_can_access(struct kern_ipc_perm *perm) {
 		printk(PFX "Allowing PID %d access to SHM %d\n", current->pid, perm->key);
 		if (ipc_data->in_realm) cred->in_realm = true;
 		if (cred->in_realm) ipc_data->in_realm = true;
-		return 0;
+
+		return allow_shm_access(perm->key);
     }
    
     printk(PFX "Rejecting PID %d access to SHM %d\n", current->pid, perm->key);
-    return 0; // -EACCES;
+    return -EACCES;
 }
 
 /*
