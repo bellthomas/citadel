@@ -41,6 +41,7 @@ static bool _citadel_file_claim(const char *path, size_t length) {
 		entry->op = CITADEL_OP_CLAIM | CITADEL_OP_OPEN;
 		entry->data = malloc(length);
 		memcpy(entry->data, path, length);
+
 	} else {
 		citadel_perror("Failed to register file: %s\n", path);
 	}
@@ -85,4 +86,16 @@ bool citadel_file_open(const char *path, size_t length) {
 		citadel_perror("Can't open file: %s\n", path);
 	}
 	return success;
+}
+
+void citadel_declare_fd(int fd, citadel_operation_t op) {
+	bool tainted = false;
+	char *identifier = get_fd_identifier(fd, &tainted);
+	if (tainted) {
+		libcitadel_cache_item_t *entry = create_cache_entry(LIBCITADEL_CACHE_FD);
+		entry->op = op;
+		entry->fd = fd;
+		entry->data = malloc(_CITADEL_IDENTIFIER_LENGTH);
+		memcpy(entry->data, identifier, _CITADEL_IDENTIFIER_LENGTH);
+	}
 }

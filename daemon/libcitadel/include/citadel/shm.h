@@ -6,6 +6,7 @@
 
 #include "citadel.h"
 
-extern bool citadel_shm_access(key_t key);
+extern bool citadel_shm_access(int key, bool is_shmid);
+extern void declare_shmid_from_key(key_t key, int shmid);
 
 #endif

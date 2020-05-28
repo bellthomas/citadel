@@ -28,6 +28,12 @@ void run_init(void) {
 	}
 }
 
+bool test(int i) {
+	printf("Number is %d\n", i);
+	return true;
+}
+typedef bool (*fnptr)(int);
+
 void run_taint(void) {
 	// Open file.
 	bool citadel_file_open_ret = citadel_file_claim((char*)path, sizeof(path));
@@ -36,11 +42,8 @@ void run_taint(void) {
 		exit(3);
 	}
 
-	citadel_file_open_ret = citadel_file_claim((char*)path, sizeof(path));
-	if (!citadel_file_open_ret) {
-		printf("Can't open file.\n");
-		exit(3);
-	}
+	fnptr x = &test;
+	(*x)(1);
 
 	FILE *fp;
 	fp = c_fopen(path, "rw");
@@ -300,11 +303,12 @@ void run_fifo_test(void) {
 
 	pid_t pid = c_fork();
 
-	if (pid == 0) { ;
+	if (pid == 0) { 
+		sleep(1);
 		fdc = c_open(myfifo, O_RDONLY);
 		if (fdc >= 0) {
 			char buf[sizeof(message)];
-			read(fdc, buf, sizeof(message));
+			c_read(fdc, buf, sizeof(message));
 			printf("Successfully opened file (child, write)\n");
 			printf("%s\n", buf);
 		} else {
@@ -315,7 +319,7 @@ void run_fifo_test(void) {
 		close(fdc);
 	}
 	else {
-		fdp = open(myfifo, O_WRONLY);
+		fdp = c_open(myfifo, O_WRONLY);
 		if (fdc >= 0) {
 			printf("Successfully opened file (parent, read)\n");
 			write(fdp, message, sizeof(message));
@@ -348,14 +352,14 @@ void run_shm_test(void) {
 	printf("SHM key: %d\n", key);
 
 
-	bool allow_shm = citadel_shm_access(key);
-	if (!allow_shm) {
-		printf("Failed to get SHM.\n");
-		return;
-	}
+	// bool allow_shm = citadel_shm_access(key);
+	// if (!allow_shm) {
+	// 	printf("Failed to get SHM.\n");
+	// 	return;
+	// }
 
     // /*  create the segment: */
-    if ((shmid = shmget(key, 50, 0644 | IPC_CREAT)) == -1) {
+    if ((shmid = c_shmget(key, 50, 0644 | IPC_CREAT)) == -1) {
         perror("shmget");
         exit(1);
     } else {
@@ -363,7 +367,7 @@ void run_shm_test(void) {
 	}
 
     /* attach to the segment to get a pointer to it: */
-    data = (char*)shmat(shmid, NULL, 0);
+    data = (char*)c_shmat(shmid, NULL, 0);
     if (data == (char *)(-1)) {
         perror("shmat");
         exit(1);

@@ -5,8 +5,8 @@
 #include <sys/socket.h>
 
 #include "citadel.h"
+#include "cache.h"
 
 extern bool citadel_socket(int socket_fd, struct sockaddr *address, bool *tainted);
-extern bool citadel_validate_socket_fd(int sockfd, char *identifier, citadel_operation_t *op, bool *tainted);
 
 #endif
