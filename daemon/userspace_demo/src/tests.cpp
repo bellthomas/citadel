@@ -203,15 +203,6 @@ void run_socket_i_test(void) {
 	// bool citadel_file_open_ret = citadel_file_open((char*)socket_path, sizeof(path));
 
 	c_listen(server_fd, 5);
-	
-	citadel_printf("\n");
-	
-	sleep(18);
-
-	c_listen(server_fd, 5);
-	citadel_printf("\n");
-
-	sleep(5);
 
 	if (c_fork() == 0) {
 

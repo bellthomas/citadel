@@ -113,13 +113,11 @@ bool citadel_validate_socket_fd(int sockfd, char *identifier, citadel_operation_
 					ret = true;
 					citadel_printf("Socket entry in cache\n");
 					if (entry_in_date(head)) goto bail_validate_socket;
-					citadel_printf("... out of date.\n");
+					
 					// Out of date, refresh.
 					ret = _citadel_socket(sockfd, identifier, head->op, false);
-					citadel_printf("success: %d\n", ret);
 					if (!ret) goto bail_validate_socket;
 
-					citadel_printf("updating cache\n");
 					update_cache_timestamp(head);
 					if (head->next) move_cache_item_to_end(head, prev, LIBCITADEL_CACHE_SOCKET_FD);
 
