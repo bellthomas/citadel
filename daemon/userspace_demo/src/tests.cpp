@@ -144,7 +144,7 @@ void run_socket_e_test(void) {
     } 
     address.sin_family = AF_INET; 
     address.sin_addr.s_addr = INADDR_ANY; 
-    address.sin_port = htons(13756); 
+    address.sin_port = htons(13756);
        
 	// bool socket_allowed = citadel_socket(server_fd, (struct sockaddr *)&address);
 
@@ -202,8 +202,16 @@ void run_socket_i_test(void) {
 	// bool citadel_file_create_ret = citadel_file_claim_force((char*)socket_path, sizeof(path));
 	// bool citadel_file_open_ret = citadel_file_open((char*)socket_path, sizeof(path));
 
-	listen(server_fd, 5);
+	c_listen(server_fd, 5);
+	
+	citadel_printf("\n");
+	
+	sleep(18);
 
+	c_listen(server_fd, 5);
+	citadel_printf("\n");
+
+	sleep(5);
 
 	if (c_fork() == 0) {
 

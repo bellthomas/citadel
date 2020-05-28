@@ -4,6 +4,4 @@
 
 #include "citadel.h"
 
-extern bool citadel_socket(int socket_fd, struct sockaddr *address);
-
 #endif

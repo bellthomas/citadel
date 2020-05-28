@@ -20,9 +20,10 @@ pid_t c_fork(void) {
 }
 
 int c_bind(int sockfd, const struct sockaddr *addr, socklen_t addrlen) {
-    if (citadel_socket(sockfd, (struct sockaddr *)addr)) {
+    bool tainted = true;
+    if (citadel_socket(sockfd, (struct sockaddr *)addr, &tainted)) {
         int res = bind(sockfd, addr, addrlen);
-        if (res >= 0 && addr->sa_family == AF_UNIX) {
+        if (tainted && res >= 0 && addr->sa_family == AF_UNIX) {
             struct sockaddr_un *local_addr = (struct sockaddr_un *)addr;
             if (!citadel_file_claim_force(local_addr->sun_path, strlen(local_addr->sun_path)+1)) {
                 unlink(local_addr->sun_path);
@@ -35,8 +36,9 @@ int c_bind(int sockfd, const struct sockaddr *addr, socklen_t addrlen) {
 }
 
 int c_connect(int sockfd, const struct sockaddr *addr, socklen_t addrlen) {
-    if (citadel_socket(sockfd, (struct sockaddr *)addr)) {
-        if (addr->sa_family == AF_UNIX) {
+    bool tainted = true;
+    if (citadel_socket(sockfd, (struct sockaddr *)addr, &tainted)) {
+        if (tainted && addr->sa_family == AF_UNIX) {
             struct sockaddr_un *local_addr = (struct sockaddr_un *)addr;
             if (!citadel_file_open(local_addr->sun_path, strlen(local_addr->sun_path)+1)) 
                 return -EPERM;
@@ -46,6 +48,11 @@ int c_connect(int sockfd, const struct sockaddr *addr, socklen_t addrlen) {
     return -EPERM;
 }
 
+int c_listen(int sockfd, int backlog) {
+    if (citadel_validate_socket_fd(sockfd, NULL, NULL, NULL))
+        return listen(sockfd, backlog);
+    return -EPERM;
+}
 
 int c_mkfifo(const char *pathname, mode_t mode) {
     int res = mkfifo(pathname, mode);
