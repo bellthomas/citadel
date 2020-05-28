@@ -3,6 +3,9 @@
 #ifndef __CITADEL_SHARED_DEFINITIONS_H
 #define __CITADEL_SHARED_DEFINITIONS_H
 
+#include <stdbool.h>
+#include <stdint.h>
+
 #define CITADEL_DEBUG 1
 
 // Generic.

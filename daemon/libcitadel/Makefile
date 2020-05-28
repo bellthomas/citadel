@@ -3,12 +3,7 @@ SOURCEDIR := src
 SOURCES := $(shell find $(SOURCEDIR) -name '*.c')
 OBJECTS := $(SOURCES:%.c=%.o)
 
-NNG_Include_Folder := /opt/playground/nng/include
-NNG_Library_Folder := /opt/devel/libnng
-
-C_Includes := -I$(NNG_Include_Folder)
-C_Flags := -L$(NNG_Library_Folder) -lnng -pthread -D_GNU_SOURCE
-# -Wl,--no-whole-archive
+C_Flags := -pthread -D_GNU_SOURCE
 
 all: libcitadel.a
 
@@ -22,4 +17,4 @@ libcitadel.a: %: $(OBJECTS)
 
 .PHONY: clean
 clean:
-	@rm -rf *.o **/*.o *.a $(LIBNNG_FOLDER)
+	@rm -rf *.o **/*.o *.a

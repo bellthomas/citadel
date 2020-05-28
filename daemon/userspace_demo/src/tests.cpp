@@ -30,14 +30,20 @@ void run_init(void) {
 
 void run_taint(void) {
 	// Open file.
-	bool citadel_file_open_ret = citadel_file_open((char*)path, sizeof(path));
+	bool citadel_file_open_ret = citadel_file_claim((char*)path, sizeof(path));
+	if (!citadel_file_open_ret) {
+		printf("Can't open file.\n");
+		exit(3);
+	}
+
+	citadel_file_open_ret = citadel_file_claim((char*)path, sizeof(path));
 	if (!citadel_file_open_ret) {
 		printf("Can't open file.\n");
 		exit(3);
 	}
 
 	FILE *fp;
-	fp = fopen(path, "rw");
+	fp = c_fopen(path, "rw");
 	if(fp) {
 		printf("Tainted.\n\n");
 		fclose(fp);
@@ -57,21 +63,21 @@ void run_file_test(void) {
 	printf("Running file test...\n");
 
 	// Init file.
-	bool citadel_file_create_ret = citadel_file_claim((char*)path, sizeof(path));
-	if (!citadel_file_create_ret) {
-		printf("Citadel failed to create file.\n");
-		exit(2);
-	}
+	// bool citadel_file_create_ret = citadel_file_claim((char*)path, sizeof(path));
+	// if (!citadel_file_create_ret) {
+	// 	printf("Citadel failed to create file.\n");
+	// 	exit(2);
+	// }
 
 	// Open file.
-	bool citadel_file_open_ret = citadel_file_open((char*)path, sizeof(path));
-	if (!citadel_file_open_ret) {
-		printf("Can't open file.\n");
-		exit(3);
-	}
+	// bool citadel_file_open_ret = citadel_file_open((char*)path, sizeof(path));
+	// if (!citadel_file_open_ret) {
+	// 	printf("Can't open file.\n");
+	// 	exit(3);
+	// }
 
 	FILE *fp;
-	fp = fopen(path, "rw");
+	fp = c_fopen(path, "rw");
 	if(fp) {
 		printf("Opened file (1)\n");
 		fprintf(fp, "%d", 1);
@@ -80,7 +86,7 @@ void run_file_test(void) {
 	else printf("Failed to open file (1)\n");
 
 	sleep(10);
-	fp = fopen(path, "r");
+	fp = c_fopen(path, "r");
 	if(fp) {
 		printf("Opened file (2)\n");
 		// fprintf(fp, "%d", 2);
@@ -89,7 +95,7 @@ void run_file_test(void) {
 	else printf("Failed to open file (2)\n");
 
 	sleep(10);
-	fp = fopen(path, "w");
+	fp = c_fopen(path, "w");
 	if(fp) {
 		printf("Opened file (3)\n");
 		fprintf(fp, "%d", 3);
@@ -97,13 +103,13 @@ void run_file_test(void) {
 	}
 	else printf("Failed to open file (3)\n");
 
-	citadel_file_create_ret = citadel_file_open((char*)path, sizeof(path));
-	if (!citadel_file_create_ret) {
-		printf("Citadel failed to create file.\n");
-		exit(3);
-	}
+	// citadel_file_create_ret = citadel_file_open((char*)path, sizeof(path));
+	// if (!citadel_file_create_ret) {
+	// 	printf("Citadel failed to create file.\n");
+	// 	exit(3);
+	// }
 
-	fp = fopen(path, "r");
+	fp = c_fopen(path, "r");
 	if(fp) {
 		printf("Opened file (4)\n");
 		fprintf(fp, "%d", 4);
@@ -114,7 +120,7 @@ void run_file_test(void) {
 
 
 void run_socket_e_test(void) {
-	printf("running socket test...\n");
+	printf("Running external socket test...\n");
 	int server_fd, new_socket, valread; 
     struct sockaddr_in address; 
     int opt = 1; 
@@ -284,57 +290,40 @@ void run_pipe_test(void) {
 
 void run_fifo_test(void) {
 	int fdp, fdc; 
+	const char message[] = "Message from FIFO!";
     const char myfifo[] = "/tmp/myfifo"; 
   
     // Creating the named file (FIFO) 
-    if (mkfifo(myfifo, 0666)) {
+    if (c_mkfifo(myfifo, 0666)) {
 		printf("Failed to make FIFO.\n");
 		return;
 	}
 
-	bool citadel_file_create_ret = citadel_file_claim((char*)myfifo, sizeof(myfifo));
-	if (!citadel_file_create_ret) {
-		printf("Citadel failed to claim file.\n");
-		unlink(myfifo);
-		return;
-	}
+	pid_t pid = c_fork();
 
-	if (c_fork() == 0) { 
-		// Child
-		citadel_file_create_ret = citadel_file_open((char*)myfifo, sizeof(myfifo));
-		if (!citadel_file_create_ret) {
-			printf("Child failed to open file.\n");
-			return;
+	if (pid == 0) { ;
+		fdc = c_open(myfifo, O_RDONLY);
+		if (fdc >= 0) {
+			char buf[sizeof(message)];
+			read(fdc, buf, sizeof(message));
+			printf("Successfully opened file (child, write)\n");
+			printf("%s\n", buf);
 		} else {
-			fdc = open(myfifo, O_RDONLY);
-			if (fdc >= 0) {
-				char buf[7];
-				read(fdc, buf, 7);
-				printf("Successfully opened file (child, write)\n");
-				printf("%s\n", buf);
-			} else {
-				printf("Failed to open file (child, write)\n");
-			}
+			printf("Failed to open file (child, write)\n");
 		}
+
 		while(on_hold()) {}
 		close(fdc);
 	}
 	else {
-
-		// citadel_file_create_ret = citadel_file_open((char*)myfifo, sizeof(myfifo));
-		// if (!citadel_file_create_ret) {
-		// 	printf("Child failed to open file.\n");
-		// 	return;
-		// } else
-		{
-			fdp = open(myfifo, O_WRONLY);
-			if (fdc >= 0) {
-				printf("Successfully opened file (parent, read)\n");
-				write(fdp, "Hello!", 7);
-			} else {
-				printf("Failed to open file (parent, read)\n");
-			}
+		fdp = open(myfifo, O_WRONLY);
+		if (fdc >= 0) {
+			printf("Successfully opened file (parent, read)\n");
+			write(fdp, message, sizeof(message));
+		} else {
+			printf("Failed to open file (parent, read)\n");
 		}
+
 		while(on_hold()) {}
 		close(fdp);
 		unlink(myfifo);

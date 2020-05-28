@@ -129,6 +129,16 @@ bool metadata_path_to_identifier(void *metadata_value) {
     return retval;
 }
 
+void clear_entry_from_cache(void *metadata_value) {
+    size_t len = strlen((const char*)metadata_value);
+    std::string s((const char*)metadata_value, len);
+
+    const IdentifierCache::iterator itr = identifierCache.find(s);
+    if (itr != identifierCache.end()) {
+        identifierCache.erase(itr);
+    }
+}
+
 bool cache_passthrough(void *message, size_t message_len) {
     bool success = true;
     struct citadel_op_request *request;
@@ -144,10 +154,14 @@ bool cache_passthrough(void *message, size_t message_len) {
         return false;
     }
 
-    // Invoke cache lookup if required.
-    if (extended_request && extended_request->translate) {
+    // Invoke cache lookup if required, clear entry on claim.
+    if (extended_request && request->operation & CITADEL_OP_CLAIM) {
+        clear_entry_from_cache((void *)extended_request->metadata);
+    }
+    else if (extended_request && extended_request->translate) {
         success = metadata_path_to_identifier((void *)extended_request->metadata);
     }
+
     // switch (request->operation) {
     // case CITADEL_OP_OPEN:
     //     if (extended_)

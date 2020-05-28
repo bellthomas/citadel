@@ -133,6 +133,7 @@ static void init_rand(void) {
 bool citadel_init(void) {
 	if (!init_pid()) return true;
 	init_rand();
+	init_cache();
 	if (fetch_kernel_ptoken()) {
 		return ipc_declare_self();
 	}

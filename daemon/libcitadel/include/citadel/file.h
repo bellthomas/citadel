@@ -5,8 +5,8 @@
 
 #include "citadel.h"
 
-extern bool citadel_file_claim(char *path, size_t length);
-extern bool citadel_file_claim_force(char *path, size_t length);
-extern bool citadel_file_open(char *path, size_t length);
+extern bool citadel_file_claim(const char *path, size_t length);
+extern bool citadel_file_claim_force(const char *path, size_t length);
+extern bool citadel_file_open(const char *path, size_t length);
 
 #endif

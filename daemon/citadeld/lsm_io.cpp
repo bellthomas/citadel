@@ -90,10 +90,10 @@ int trigger_process_updates() {
 
 // xattr IO.
 int install_xattr(char *path, size_t path_length, uint8_t *ticket_data, size_t ticket_length) {
-    printf("Path: %s\n", path);
+    // printf("Path: %s\n", path);
     setxattr(path, _CITADEL_XATTR_INSTALL, ticket_data, ticket_length, 0);
     int res = errno; 
-    printf("xattr_install return value: %d\n", res);
+    // printf("xattr_install return value: %d\n", res);
     errno = 0;
 
     return res;
