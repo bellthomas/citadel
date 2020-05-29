@@ -333,8 +333,11 @@ void dentry_housekeeping(citadel_inode_data_t *inode_data, struct dentry *dentry
 		if (inode_data->needs_xattr_update && !inode_data->is_socket) {
 			inode_data->needs_xattr_update = false;
 			res = set_xattr_in_realm(dentry);
+
+			if (!inode_data->anonymous) {
+				res += __internal_set_identifier(dentry, inode_data->identifier, _CITADEL_IDENTIFIER_LENGTH);
+			}
 			printk(PFX "realm_housekeeping -> set xattr (%d)\n", res);
-			// TODO support setting identifier
 		}
 	}
 }

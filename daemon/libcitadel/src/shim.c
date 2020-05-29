@@ -69,6 +69,13 @@ int c_mkfifo(const char *pathname, mode_t mode) {
 
 
 int c_open(const char *pathname, int oflag, mode_t mode) {
+    if (access(pathname, F_OK) == -1 && (oflag & O_CREAT) > 0) {
+        // Doesn't exist, need to make.
+        int fd = open(pathname, O_CREAT);
+        printf("Making empty file: %s (%d)\n", pathname, fd);
+        if (fd < 0) return -EACCES;
+        close(fd);
+    }
     // bool citadel_file_create_ret = citadel_file_open((char*)myfifo, sizeof(myfifo));
 		// if (!citadel_file_create_ret) {
 		// 	printf("Child failed to open file.\n");

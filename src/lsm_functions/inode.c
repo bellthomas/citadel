@@ -107,6 +107,11 @@ int trm_inode_init_security(struct inode *inode, struct inode *dir, const struct
 		printk(PFX "trm_inode_init_security setting child (%ld) [%d,%d]\n", inode->i_ino, parent_inode_data->in_realm, task_data->in_realm);
 		new_inode_data->in_realm = true;
 		new_inode_data->needs_xattr_update = true;
+		if (task_data->in_realm) {
+			printk(PFX "New inode is being quietly granted parent identifier\n");
+			new_inode_data->anonymous = false;
+			memcpy(new_inode_data->identifier, task_data->identifier, _CITADEL_IDENTIFIER_LENGTH);
+		}
 	}
 
 	inode_housekeeping(new_inode_data, inode);
