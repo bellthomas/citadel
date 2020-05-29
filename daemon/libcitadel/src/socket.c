@@ -42,6 +42,7 @@ bool citadel_socket(int socket_fd, struct sockaddr *address, bool *tainted) {
     else
         operation = CITADEL_OP_SOCKET_EXTERNAL;
 
+	citadel_printf("citadel_socket\n");
 	// Check permission, requesting if not.
 	if (citadel_validate_fd(socket_fd, NULL, &operation, tainted, _citadel_socket)) 
 		return true;

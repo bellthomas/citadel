@@ -3,7 +3,7 @@ SOURCEDIR := src
 SOURCES := $(shell find $(SOURCEDIR) -name '*.c')
 OBJECTS := $(SOURCES:%.c=%.o)
 
-C_Flags := -pthread -D_GNU_SOURCE
+C_Flags := -pthread -D_GNU_SOURCE -fPIC 
 
 all: libcitadel.a
 

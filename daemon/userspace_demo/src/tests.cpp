@@ -28,11 +28,6 @@ void run_init(void) {
 	}
 }
 
-bool test(int i) {
-	printf("Number is %d\n", i);
-	return true;
-}
-typedef bool (*fnptr)(int);
 
 void run_taint(void) {
 	// Open file.
@@ -41,9 +36,6 @@ void run_taint(void) {
 		printf("Can't open file.\n");
 		exit(3);
 	}
-
-	fnptr x = &test;
-	(*x)(1);
 
 	FILE *fp;
 	fp = c_fopen(path, "rw");
@@ -305,7 +297,7 @@ void run_fifo_test(void) {
 
 	if (pid == 0) { 
 		sleep(1);
-		fdc = c_open(myfifo, O_RDONLY);
+		fdc = c_open(myfifo, O_RDONLY, 0);
 		if (fdc >= 0) {
 			char buf[sizeof(message)];
 			c_read(fdc, buf, sizeof(message));
@@ -319,7 +311,7 @@ void run_fifo_test(void) {
 		close(fdc);
 	}
 	else {
-		fdp = c_open(myfifo, O_WRONLY);
+		fdp = c_open(myfifo, O_WRONLY, 0);
 		if (fdc >= 0) {
 			printf("Successfully opened file (parent, read)\n");
 			write(fdp, message, sizeof(message));

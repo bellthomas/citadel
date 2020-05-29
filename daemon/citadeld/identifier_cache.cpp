@@ -86,8 +86,9 @@ const unsigned char *get_identifier_for_path(std::string *path) {
     return NULL;
 } 
 
-bool metadata_path_to_identifier(void *metadata_value) {
+bool metadata_path_to_identifier(struct citadel_op_extended_request* request) {
     bool retval = true;
+    void *metadata_value = (void*)request->metadata;
     size_t len = strlen((const char*)metadata_value);
     std::string s((const char*)metadata_value, len);
     // // Remember to free: delete sp;
@@ -104,18 +105,18 @@ bool metadata_path_to_identifier(void *metadata_value) {
             const std::pair<IdentifierCache::const_iterator, bool> result = identifierCache.insert(std::make_pair(s, identifier));
             if (!result.second) {
                 std::cout << "Failed to insert item into sparse_hash_map" << std::endl;
-                retval = false;
-            } else {
-                IdentifierCacheEntry entry = result.first->second;
+            } 
+
+            IdentifierCacheEntry entry = result.first->second;
 #if CITADEL_DEBUG
-                std::cout << "Cache (*). " << s << ": " << result.first->second << std::endl;
+            std::cout << "Cache (*). " << s << ": " << result.first->second << std::endl;
 #endif 
-                memcpy(metadata_value, (const void*)(entry.get_value()), _CITADEL_IDENTIFIER_LENGTH);
-            }
+            memcpy(metadata_value, (const void*)identifier, _CITADEL_IDENTIFIER_LENGTH);
+            request->translate_success = true;
         }
         else {
             std::cout << "No identifier found for file." << std::endl;
-            memset(metadata_value, 0, _CITADEL_IDENTIFIER_LENGTH);
+            request->translate_success = false;
         }
 
     } else {
@@ -124,6 +125,7 @@ bool metadata_path_to_identifier(void *metadata_value) {
         std::cout << "Cache. " << s << ": " << entry << std::endl;
 #endif
         memcpy(metadata_value, (const void*)(entry.get_value()), _CITADEL_IDENTIFIER_LENGTH);
+        request->translate_success = true;
     }
 
     return retval;
@@ -159,7 +161,7 @@ bool cache_passthrough(void *message, size_t message_len) {
         clear_entry_from_cache((void *)extended_request->metadata);
     }
     else if (extended_request && extended_request->translate) {
-        success = metadata_path_to_identifier((void *)extended_request->metadata);
+        success = metadata_path_to_identifier(extended_request);
     }
 
     // switch (request->operation) {

@@ -8,7 +8,7 @@ void set_ptoken_aes_key(unsigned char* key) {
 }
 
 
-static citadel_response_t core_handle_request(int32_t pid, struct citadel_op_request *request, void *metadata, bool translated, citadel_response_t asm_result) {
+static citadel_response_t core_handle_request(int32_t pid, struct citadel_op_request *request, void *metadata, bool translated, bool translate_success, citadel_response_t asm_result) {
     if (asm_result != CITADEL_OP_APPROVED) return asm_result;
 
     void *identifier;
@@ -35,8 +35,19 @@ static citadel_response_t core_handle_request(int32_t pid, struct citadel_op_req
     if (op & CITADEL_OP_OPEN) {
         // Open file
         enclave_printf("[#%d] File open.", pid);
-        identifier = (translated ? metadata : request->subject);
-        if (!generate_ticket(pid, (const char*)identifier, request->operation))
+
+        // TODO work around this.
+        char id[_CITADEL_IDENTIFIER_LENGTH];
+        if (translated && !translate_success) {
+            enclave_printf("Inducting new file from open: %s", (const char*)metadata);
+            if (!generate_xattr_ticket((const char*)metadata, (char*)&id))
+                result = CITADEL_OP_ERROR;
+            identifier = (void*)&id;
+        }
+        else {
+            identifier = (translated ? metadata : request->subject);
+        }
+        if (result != CITADEL_OP_ERROR && !generate_ticket(pid, (const char*)identifier, request->operation))
             result = CITADEL_OP_ERROR;
     }
 
@@ -136,7 +147,7 @@ uint8_t handle_request(uint8_t* data, size_t length, int32_t pid, uint8_t* ptoke
     uint8_t result = asm_handle_request(pid, request, metadata);
 
     // Install tickets if required.
-    uint8_t internal_update = core_handle_request(pid, request, metadata, (extended_request ? extended_request->translate : false), result);
+    uint8_t internal_update = core_handle_request(pid, request, metadata, (extended_request ? extended_request->translate : false), (extended_request ? extended_request->translate_success : false), result);
 
     return internal_update;
 }

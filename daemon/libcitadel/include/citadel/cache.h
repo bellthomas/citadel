@@ -3,6 +3,8 @@
 #define _LIBCITADEL_CACHE_H
 
 #include <sys/time.h>
+#include <stdbool.h>
+#include <stdint.h>
 
 #include "_citadel_shared.h"
 

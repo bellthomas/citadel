@@ -3,9 +3,6 @@
 #ifndef __CITADEL_SHARED_DEFINITIONS_H
 #define __CITADEL_SHARED_DEFINITIONS_H
 
-#include <stdbool.h>
-#include <stdint.h>
-
 #define CITADEL_DEBUG 1
 
 // Generic.
@@ -185,12 +182,14 @@ struct citadel_op_reply {
 struct citadel_op_extended_request {
     struct citadel_op_request request;
     bool translate;
+    bool translate_success;
     unsigned char metadata[_CITADEL_MAX_METADATA_SIZE];
 };
 
 struct citadel_op_extended_reply {
     struct citadel_op_reply reply;
     bool unused;
+    bool unused_2;
     unsigned char metadata[_CITADEL_MAX_METADATA_SIZE];
 };
 

@@ -7,6 +7,8 @@
 #include <fcntl.h>
 #include <sys/ipc.h>
 #include <sys/shm.h>
+#include <stdbool.h>
+#include <stdint.h>
 
 #include "../include/citadel/shim.h"
 #include "../include/citadel/citadel.h"
@@ -66,7 +68,7 @@ int c_mkfifo(const char *pathname, mode_t mode) {
 }
 
 
-int c_open(const char *pathname, int oflag) {
+int c_open(const char *pathname, int oflag, mode_t mode) {
     // bool citadel_file_create_ret = citadel_file_open((char*)myfifo, sizeof(myfifo));
 		// if (!citadel_file_create_ret) {
 		// 	printf("Child failed to open file.\n");
@@ -74,7 +76,7 @@ int c_open(const char *pathname, int oflag) {
 		// } else 
     if (!citadel_file_open(pathname, strlen(pathname)+1))
         return -EPERM;
-    int ret = open(pathname, oflag);
+    int ret = open(pathname, oflag, mode);
     citadel_declare_fd(ret, CITADEL_OP_OPEN);
     return ret;
 }
@@ -106,7 +108,6 @@ int c_shmctl(int shmid, int cmd, struct shmid_ds *buf) {
 }
 
 ssize_t c_read(int fildes, void *buf, size_t nbyte) {
-    citadel_printf("c_read\n");
     if (citadel_validate_fd(fildes, NULL, NULL, NULL, NULL))
         return read(fildes, buf, nbyte);
     return -EPERM;

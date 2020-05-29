@@ -38,7 +38,7 @@ void cleanup_cache_group(uint8_t group) {
         count++;
         current = current->next;
     }
-    citadel_cache("Cleaning. Currently got %d entries...\n", count);
+    citadel_cache("(%d) Cleaning. Currently got %d entries for (%d)...\n", getpid(), count, group);
     current = cache_groups[group];
 
     struct timespec now;
@@ -50,7 +50,7 @@ void cleanup_cache_group(uint8_t group) {
         if (delta_s < _CITADEL_TICKET_EXPIRY) break;
         current = current->next;
     }
-
+    
     // Current is either NULL or pointing to the first valid ticket.
     while (head != current) {
         prev = head;
@@ -62,14 +62,14 @@ void cleanup_cache_group(uint8_t group) {
 }
 
 libcitadel_cache_item_t *cache_group_head(uint8_t group) {
-    citadel_cache("Fetching cache head\n");
+    citadel_cache("(%d) Fetching cache head\n", getpid());
     if (group >= LIBCITADEL_CACHE_MAX_GROUPS) return NULL;
     if (group == LIBCITADEL_CACHE_FILE_NAMES) cleanup_cache_group(group);
     return cache_groups[group];
 }
 
 libcitadel_cache_item_t *create_cache_entry(uint8_t group) {
-    citadel_cache("Creating cache entry\n");
+    citadel_cache("(%d) Creating cache entry (%d)\n", getpid(), group);
     if (group >= LIBCITADEL_CACHE_MAX_GROUPS) return NULL;
     libcitadel_cache_item_t* item = (libcitadel_cache_item_t*)malloc(sizeof(libcitadel_cache_item_t));
     if (!item) return NULL;
@@ -85,6 +85,7 @@ libcitadel_cache_item_t *create_cache_entry(uint8_t group) {
         while(current->next) current = current->next;
         current->next = item;
     }
+    return item;
 }
 
 bool entry_in_date(libcitadel_cache_item_t *item) {
@@ -122,14 +123,15 @@ void move_cache_item_to_end(libcitadel_cache_item_t *item, libcitadel_cache_item
 }
 
 char *get_fd_identifier(int fd, bool *tainted) {
-	void *id, *id_raw;
+	char *id, *id_raw;
 
 	if (tainted) *tainted = true;
 	id = malloc(_CITADEL_ENCODED_IDENTIFIER_LENGTH);
+    id[_CITADEL_ENCODED_IDENTIFIER_LENGTH-1] = '\0';
 	ssize_t read = fgetxattr(fd, _CITADEL_XATTR_IDENTIFIER, id, _CITADEL_ENCODED_IDENTIFIER_LENGTH);
 	
 	if (read == _CITADEL_ENCODED_IDENTIFIER_LENGTH || read == _CITADEL_ENCODED_IDENTIFIER_LENGTH - 1) {
-		citadel_printf("File identifier: %s\n", (char*)id);
+		citadel_printf("(%d) File identifier: %s\n", getpid(), (char*)id);
 	} else if (read == -1) {
 		citadel_printf("File not tainted.\n");
 		if (tainted) *tainted = false;
@@ -137,7 +139,7 @@ char *get_fd_identifier(int fd, bool *tainted) {
 		return NULL;
 	}
 	else {
-		citadel_printf("Fail. Got %ld bytes for identifier\n", read);
+		citadel_printf("(%d) Fail. Got %ld bytes for identifier\n", getpid(), read);
 		free(id);
 		return NULL;
 	}
@@ -169,7 +171,7 @@ bool citadel_validate_fd (int fd, char *identifier, citadel_operation_t *op,
 				if (memcmp(identifier, head->data, _CITADEL_IDENTIFIER_LENGTH) == 0) {
 					// This is the correct item.
 					ret = true;
-					citadel_printf("FD entry in cache\n");
+					citadel_printf("(%d) FD entry in cache\n", getpid());
 					if (entry_in_date(head)) goto bail_validate_fd;
 					
 					// Out of date, refresh.
@@ -186,7 +188,7 @@ bool citadel_validate_fd (int fd, char *identifier, citadel_operation_t *op,
 		prev = head;
 		head = head->next;
 	}
-	citadel_printf("FD not found in cache\n");
+	citadel_printf("(%d) FD not found in cache\n", getpid());
 
 	if (op && execute) 
         ret = execute(fd, identifier, *op, true);

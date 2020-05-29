@@ -378,6 +378,7 @@ int can_access(struct inode *inode, citadel_operation_t operation) {
 	if (inode->i_sb->s_magic == SOCKFS_MAGIC) return 0;
 	else if (inode->i_sb->s_magic == SYSFS_MAGIC) return 0;
 	else if (inode->i_sb->s_magic == SECURITYFS_MAGIC) return 0;
+	else if (inode->i_sb->s_magic == TMPFS_MAGIC) return 0;
 
 	else if (inode->i_sb->s_magic == PIPEFS_MAGIC) { // && !S_ISFIFO(inode->i_mode)
 		// All processes can always access their own unnamed pipes.
