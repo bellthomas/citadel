@@ -26,6 +26,7 @@ extern "C" {
 #define _LIBCITADEL_ERR_PREFIX "\033[0;31m[/]\033[0m "
 #define _LIBCITADEL_PERF_PREFIX "\033[0;33m[/] \033[1;37mPerformance:\033[0m "
 #define _LIBCITADEL_CACHE_PREFIX "\033[1;32m[/]\033[0m "
+#define _LIBCITADEL_INFO_PREFIX "\033[1;35m[/]\033[0m "
 
 #define _citadel_printf(prefix, format, args...)  \
     if (CITADEL_DEBUG) {                          \
@@ -36,6 +37,7 @@ extern "C" {
 #define citadel_perror(format, args...) _citadel_printf(_LIBCITADEL_ERR_PREFIX, format, ## args);
 #define citadel_perf(format, args...) _citadel_printf(_LIBCITADEL_PERF_PREFIX, format, ## args);
 #define citadel_cache(format, args...) _citadel_printf(_LIBCITADEL_CACHE_PREFIX, format, ## args);
+#define citadel_info(format, args...) _citadel_printf(_LIBCITADEL_INFO_PREFIX, format, ## args);
 
 #endif
 

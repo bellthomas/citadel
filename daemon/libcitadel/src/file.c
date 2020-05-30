@@ -62,11 +62,38 @@ bool citadel_file_claim_force(const char *path, size_t length) {
 }
 
 
-bool citadel_file_open(const char *path, size_t length) {
+bool _citadel_file_open_fd(int fd, char *identifier, citadel_operation_t operation, bool add_cache) {
+	struct citadel_op_request payload;
+	memcpy(payload.signature, challenge_signature, sizeof(challenge_signature));
+	payload.operation = operation;
+	memcpy(payload.signed_ptoken, get_signed_ptoken(), sizeof(payload.signed_ptoken));
+    memcpy(payload.subject, identifier, _CITADEL_IDENTIFIER_LENGTH);
+
+	bool success = ipc_transaction((unsigned char*)&payload, sizeof(struct citadel_op_request));
+	if (success) {
+		citadel_printf("(+) Allowed to reopen FD: %d\n", fd);
+
+		if (add_cache) {
+			libcitadel_cache_item_t *entry = create_cache_entry(LIBCITADEL_CACHE_FD);
+			entry->op = operation;
+			entry->fd = fd;
+			entry->data = malloc(_CITADEL_IDENTIFIER_LENGTH);
+			entry->update = _citadel_file_open_fd;
+			memcpy(entry->data, identifier, _CITADEL_IDENTIFIER_LENGTH);
+		}
+	} else {
+		citadel_perror("(+) Can't reopen file: %d\n", fd);
+	}
+	return success;
+}
+
+
+bool citadel_file_open_ext(const char *path, size_t length, bool *from_cache) {
 	if (length > _CITADEL_MAX_METADATA_SIZE || length < 2) return false;
 
 	if (cache_hit(path, length, CITADEL_OP_OPEN)) {
 		citadel_printf("(*) Allowed to open file: %s\n", path);
+		if (from_cache) *from_cache = true;
 		return true;
 	}
 
@@ -90,15 +117,21 @@ bool citadel_file_open(const char *path, size_t length) {
 	return success;
 }
 
+bool citadel_file_open(const char *path, size_t length) {
+	return citadel_file_open_ext(path, length, NULL);
+}
+
 void citadel_declare_fd(int fd, citadel_operation_t op) {
+	citadel_printf("Declaring FD\n");
 	bool tainted = false;
 	char *identifier = get_fd_identifier(fd, &tainted);
-	if (tainted) {
+	if (tainted && identifier) {
 		libcitadel_cache_item_t *entry = create_cache_entry(LIBCITADEL_CACHE_FD);
 		entry->op = op;
 		entry->fd = fd;
 		entry->data = malloc(_CITADEL_IDENTIFIER_LENGTH);
+		entry->update = _citadel_file_open_fd;
 		memcpy(entry->data, identifier, _CITADEL_IDENTIFIER_LENGTH);
+		free(identifier);
 	}
-	printf("-- end declare fd\n");
 }

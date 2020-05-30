@@ -172,8 +172,8 @@ bool citadel_validate_fd (int fd, char *identifier, citadel_operation_t *op,
 					// This is the correct item.
 					ret = true;
 					if (entry_in_date(head)) goto bail_validate_fd;
-					
                     citadel_cache("FD out of date.\n");
+
 					// Out of date, refresh.
 					ret = (*head->update)(fd, identifier, head->op, false);
 					if (!ret) goto bail_validate_fd;

@@ -71,23 +71,26 @@ int c_mkfifo(const char *pathname, mode_t mode) {
 
 
 int c_open(const char *pathname, int oflag, mode_t mode) {
-    if (access(pathname, F_OK) == -1 && (oflag & O_CREAT) > 0) {
-        // Doesn't exist, need to make.
-        int fd = open(pathname, O_CREAT);
-        printf("Making empty file: %s (%d)\n", pathname, fd);
-        if (fd < 0) return -EACCES;
+    int fd;
+    bool from_cache = false;
+    citadel_info("open(%s)\n", pathname);
+
+    bool creating = access(pathname, F_OK) == -1 && (oflag & O_CREAT) > 0;
+    if (!am_tainted() || creating) {
+        fd = open(pathname, oflag, mode);
+        if (!am_tainted() && fd > 0) return fd;
+        if (fd == -1 && errno == -EPERM)
         close(fd);
     }
-    // bool citadel_file_create_ret = citadel_file_open((char*)myfifo, sizeof(myfifo));
-		// if (!citadel_file_create_ret) {
-		// 	printf("Child failed to open file.\n");
-		// 	return;
-		// } else 
-    if (!citadel_file_open(pathname, strlen(pathname)+1))
+
+    if (!citadel_file_open_ext(pathname, strlen(pathname)+1, &from_cache))
         return -EPERM;
-    int ret = open(pathname, oflag, mode);
-    citadel_declare_fd(ret, CITADEL_OP_OPEN);
-    return ret;
+
+    fd = open(pathname, oflag, mode);
+    if (!from_cache) citadel_declare_fd(fd, CITADEL_OP_OPEN);
+    if (!am_tainted()) set_taint();
+    citadel_info("End open(%s)\n", pathname);
+    return fd;
 }
 
 FILE *c_fopen(const char *pathname, const char *mode) {
@@ -117,7 +120,7 @@ int c_shmctl(int shmid, int cmd, struct shmid_ds *buf) {
 }
 
 ssize_t c_read(int fildes, void *buf, size_t nbyte) {
-    if (citadel_validate_fd(fildes, NULL, NULL, NULL, NULL))
+    if (citadel_validate_fd_anon(fildes))
         return read(fildes, buf, nbyte);
     errno = EPERM;
     return -1;
@@ -125,21 +128,21 @@ ssize_t c_read(int fildes, void *buf, size_t nbyte) {
 
 ssize_t c_write(int fd, const void *buf, size_t count) {
     citadel_printf("write()\n");
-    if (citadel_validate_fd(fd, NULL, NULL, NULL, NULL))
+    if (citadel_validate_fd_anon(fd))
         return read(fd, (void*)buf, count);
     errno = EPERM;
     return -1;
 }
 
 ssize_t c_pread(int fd, void *buf, size_t count, off_t offset) {
-    if (citadel_validate_fd(fd, NULL, NULL, NULL, NULL))
+    if (citadel_validate_fd_anon(fd))
         return pread(fd, buf, count, offset);
     errno = EPERM;
     return -1;
 }
 
 ssize_t c_pwrite(int fd, const void *buf, size_t count, off_t offset) {
-    if (citadel_validate_fd(fd, NULL, NULL, NULL, NULL))
+    if (citadel_validate_fd_anon(fd))
         return pwrite(fd, buf, count, offset);
     errno = EPERM;
     return -1;
@@ -147,7 +150,7 @@ ssize_t c_pwrite(int fd, const void *buf, size_t count, off_t offset) {
 
 ssize_t c_send(int socket, const void *buffer, size_t length, int flags) {
     citadel_printf("send()\n");
-    if (citadel_validate_fd(socket, NULL, NULL, NULL, NULL))
+    if (citadel_validate_fd_anon(socket))
         return send(socket, buffer, length, flags);
     errno = EPERM;
     return -1;
@@ -156,24 +159,21 @@ ssize_t c_send(int socket, const void *buffer, size_t length, int flags) {
 
 ssize_t c_recv(int sockfd, void *buf, size_t len, int flags) {
     citadel_printf("recv()\n");
-    if (citadel_validate_fd(sockfd, NULL, NULL, NULL, NULL))
+    if (citadel_validate_fd_anon(sockfd))
         return recv(sockfd, buf, len, flags);
     errno = EPERM;
     return -1;
 }
 
 ssize_t c_writev(int fd, const struct iovec *iov, int iovcnt) {
-    if (citadel_validate_fd(fd, NULL, NULL, NULL, NULL)) {
-        citadel_printf("writev(1)\n");
+    if (citadel_validate_fd_anon(fd)) 
         return writev(fd, iov, iovcnt);
-    }
-    citadel_printf("writev(0)\n");
     errno = EPERM;
     return -1;
 }
 
 ssize_t c_sendfile(int out_fd, int in_fd, off_t *offset, size_t count) {
-    printf("%d, %d\n", out_fd, in_fd);
+    // printf("%d, %d\n", out_fd, in_fd);
     if (citadel_validate_fd_anon(out_fd) && citadel_validate_fd_anon(in_fd)) 
         return sendfile(out_fd, in_fd, offset, count);
     errno = EPERM;

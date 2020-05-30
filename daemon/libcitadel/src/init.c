@@ -5,6 +5,7 @@
 static int32_t citadel_pid = 0;
 static int32_t own_pid = 0;
 static int32_t parent_pid = 0;
+static bool known_taint = false;
 
 static char identifier[_CITADEL_IDENTIFIER_LENGTH], parent_identifier[_CITADEL_IDENTIFIER_LENGTH];
 static char *ptoken = NULL;
@@ -18,6 +19,8 @@ const int32_t get_own_pid(void) { return citadel_pid; }
 const int32_t get_parent_pid(void) { return citadel_pid; }
 const char *get_identifier(void) { return (const char *)identifier; }
 const char *get_parent_identifier(void) { return (const char *)parent_identifier; }
+bool am_tainted(void) { return known_taint; }
+void set_taint(void) { known_taint = true; citadel_printf("Process tainted.\n"); }
 
 void* _hex_identifier_to_bytes(char* hexstring) {
 	size_t i, j;
