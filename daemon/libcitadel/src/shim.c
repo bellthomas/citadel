@@ -9,6 +9,8 @@
 #include <sys/shm.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <sys/uio.h>
+#include <sys/sendfile.h>
 
 #include "../include/citadel/shim.h"
 #include "../include/citadel/citadel.h"
@@ -117,14 +119,69 @@ int c_shmctl(int shmid, int cmd, struct shmid_ds *buf) {
 ssize_t c_read(int fildes, void *buf, size_t nbyte) {
     if (citadel_validate_fd(fildes, NULL, NULL, NULL, NULL))
         return read(fildes, buf, nbyte);
-    return -EPERM;
+    errno = EPERM;
+    return -1;
 }
 
 ssize_t c_write(int fd, const void *buf, size_t count) {
+    citadel_printf("write()\n");
     if (citadel_validate_fd(fd, NULL, NULL, NULL, NULL))
         return read(fd, (void*)buf, count);
-    return -EPERM;
+    errno = EPERM;
+    return -1;
 }
+
+ssize_t c_pread(int fd, void *buf, size_t count, off_t offset) {
+    if (citadel_validate_fd(fd, NULL, NULL, NULL, NULL))
+        return pread(fd, buf, count, offset);
+    errno = EPERM;
+    return -1;
+}
+
+ssize_t c_pwrite(int fd, const void *buf, size_t count, off_t offset) {
+    if (citadel_validate_fd(fd, NULL, NULL, NULL, NULL))
+        return pwrite(fd, buf, count, offset);
+    errno = EPERM;
+    return -1;
+}
+
+ssize_t c_send(int socket, const void *buffer, size_t length, int flags) {
+    citadel_printf("send()\n");
+    if (citadel_validate_fd(socket, NULL, NULL, NULL, NULL))
+        return send(socket, buffer, length, flags);
+    errno = EPERM;
+    return -1;
+}
+
+
+ssize_t c_recv(int sockfd, void *buf, size_t len, int flags) {
+    citadel_printf("recv()\n");
+    if (citadel_validate_fd(sockfd, NULL, NULL, NULL, NULL))
+        return recv(sockfd, buf, len, flags);
+    errno = EPERM;
+    return -1;
+}
+
+ssize_t c_writev(int fd, const struct iovec *iov, int iovcnt) {
+    if (citadel_validate_fd(fd, NULL, NULL, NULL, NULL)) {
+        citadel_printf("writev(1)\n");
+        return writev(fd, iov, iovcnt);
+    }
+    citadel_printf("writev(0)\n");
+    errno = EPERM;
+    return -1;
+}
+
+ssize_t c_sendfile(int out_fd, int in_fd, off_t *offset, size_t count) {
+    printf("%d, %d\n", out_fd, in_fd);
+    if (citadel_validate_fd_anon(out_fd) && citadel_validate_fd_anon(in_fd)) 
+        return sendfile(out_fd, in_fd, offset, count);
+    errno = EPERM;
+    return -1;
+}
+
+// ssize_t recvfrom(int sockfd, void *buf, size_t len, int flags, struct sockaddr *src_addr, socklen_t *addrlen);
+// ssize_t recvmsg(int sockfd, struct msghdr *msg, int flags);
 // int open(const char *path, int oflag, .../*,mode_t mode */);
 // int openat(int fd, const char *path, int oflag, ...);
 // int creat(const char *path, mode_t mode);

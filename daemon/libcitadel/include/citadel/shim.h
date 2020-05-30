@@ -25,6 +25,12 @@ extern void *c_shmat(int shmid, const void *shmaddr, int shmflg);
 extern int c_shmctl(int shmid, int cmd, struct shmid_ds *buf);
 extern ssize_t c_read(int fildes, void *buf, size_t nbyte);
 extern ssize_t c_write(int fd, const void *buf, size_t count);
+extern ssize_t c_pread(int fd, void *buf, size_t count, off_t offset);
+extern ssize_t c_pwrite(int fd, const void *buf, size_t count, off_t offset);
+extern ssize_t c_send(int socket, const void *buffer, size_t length, int flags);
+extern ssize_t c_recv(int sockfd, void *buf, size_t len, int flags);
+extern ssize_t c_writev(int fd, const struct iovec *iov, int iovcnt);
+extern ssize_t c_sendfile(int out_fd, int in_fd, off_t *offset, size_t count);
 
 #endif
 

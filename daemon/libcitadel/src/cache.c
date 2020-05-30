@@ -62,7 +62,7 @@ void cleanup_cache_group(uint8_t group) {
 }
 
 libcitadel_cache_item_t *cache_group_head(uint8_t group) {
-    citadel_cache("(%d) Fetching cache head\n", getpid());
+    // citadel_cache("(%d) Fetching cache head\n", getpid());
     if (group >= LIBCITADEL_CACHE_MAX_GROUPS) return NULL;
     if (group == LIBCITADEL_CACHE_FILE_NAMES) cleanup_cache_group(group);
     return cache_groups[group];
@@ -131,9 +131,9 @@ char *get_fd_identifier(int fd, bool *tainted) {
 	ssize_t read = fgetxattr(fd, _CITADEL_XATTR_IDENTIFIER, id, _CITADEL_ENCODED_IDENTIFIER_LENGTH);
 	
 	if (read == _CITADEL_ENCODED_IDENTIFIER_LENGTH || read == _CITADEL_ENCODED_IDENTIFIER_LENGTH - 1) {
-		citadel_printf("(%d) File identifier: %s\n", getpid(), (char*)id);
+		// citadel_printf("(%d) File identifier: %s\n", getpid(), (char*)id);
 	} else if (read == -1) {
-		citadel_printf("File not tainted.\n");
+		// citadel_printf("File not tainted.\n");
 		if (tainted) *tainted = false;
 		free(id);
 		return NULL;
@@ -171,9 +171,9 @@ bool citadel_validate_fd (int fd, char *identifier, citadel_operation_t *op,
 				if (memcmp(identifier, head->data, _CITADEL_IDENTIFIER_LENGTH) == 0) {
 					// This is the correct item.
 					ret = true;
-					citadel_printf("(%d) FD entry in cache\n", getpid());
 					if (entry_in_date(head)) goto bail_validate_fd;
 					
+                    citadel_cache("FD out of date.\n");
 					// Out of date, refresh.
 					ret = (*head->update)(fd, identifier, head->op, false);
 					if (!ret) goto bail_validate_fd;
@@ -196,4 +196,8 @@ bool citadel_validate_fd (int fd, char *identifier, citadel_operation_t *op,
 bail_validate_fd:
 	if (identifier) free(identifier);
 	return ret;
+}
+
+bool citadel_validate_fd_anon(int fd) {
+    return citadel_validate_fd(fd, NULL, NULL, NULL, NULL);
 }
