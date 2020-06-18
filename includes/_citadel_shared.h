@@ -77,7 +77,7 @@
 #define _CITADEL_SIGNED_ENV_ATTR_NAME "CITADEL_SIGNED_PTOKEN"
 #define _CITADEL_MAX_METADATA_SIZE 4096  // Maximum Linux path length.
 
-typedef uint8_t citadel_operation_t;
+typedef uint16_t citadel_operation_t;
 typedef uint8_t citadel_response_t;
 
 
@@ -123,15 +123,16 @@ typedef struct citadel_ptoken_protected {
 
 
 // Citadel operation (citadel_operation_t).
-#define CITADEL_OP_NOP              0x00
-#define CITADEL_OP_PTY_ACCESS       0x01  // Special, will persist indefinitely.
-#define CITADEL_OP_REGISTER         0x02
-#define CITADEL_OP_CLAIM            0x04
-#define CITADEL_OP_OPEN             0x08
-#define CITADEL_OP_SOCKET_INTERNAL  0x10
-#define CITADEL_OP_SOCKET_EXTERNAL  0x20
+#define CITADEL_OP_NOP              0x001
+#define CITADEL_OP_PTY_ACCESS       0x002  // Special, will persist indefinitely.
+#define CITADEL_OP_REGISTER         0x004
+#define CITADEL_OP_PARENT           0x008
+#define CITADEL_OP_CLAIM            0x010
+#define CITADEL_OP_OPEN             0x020
+#define CITADEL_OP_SOCKET_INTERNAL  0x040
+#define CITADEL_OP_SOCKET_EXTERNAL  0x080
 #define CITADEL_OP_SOCKET           CITADEL_OP_SOCKET_INTERNAL | CITADEL_OP_SOCKET_EXTERNAL
-#define CITADEL_OP_SHM              0x40
+#define CITADEL_OP_SHM              0x100
 
 // Citadel request response (citadel_response_t).
 // enum citadel_status {

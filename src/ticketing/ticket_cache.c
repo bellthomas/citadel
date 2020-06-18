@@ -90,7 +90,7 @@ void check_ticket_cache() {
             count++;
         }
 
-        if (current->pid > 1) printk(PFX "Cache -> PID %d: %d ticket(s).\n", current->pid, count);
+        if (current->pid > 1) printkc("Cache -> PID %d: %d ticket(s).\n", current->pid, count);
 
         // Append to the task's ticket list.
         if (task_data->ticket_head == NULL) {
@@ -161,7 +161,7 @@ void check_ticket_cache() {
                 kfree(current_ticket);
             }
 
-            printk(PFX "Removed %d expired tickets for PID %d\n", count, current->pid);
+            printkc("Removed %d expired tickets for PID %d\n", count, current->pid);
         }
     }
 
@@ -196,12 +196,12 @@ bool insert_ticket(citadel_update_record_t *record) {
     // Check for special PTY grant.
     if (record->operation & CITADEL_OP_PTY_ACCESS) {
         reservation_node->granted_pty = true;
-        printk(PFX "[PID %d] Granted PTY\n", record->pid);
+        printkc("[PID %d] Granted PTY\n", record->pid);
         if (record->operation == CITADEL_OP_PTY_ACCESS) return true;
     }
 
     hex = to_hexstring(record->identifier, _CITADEL_IDENTIFIER_LENGTH);
-    printk(PFX "[PID %d] Installing %s for 0x%02X\n", record->pid, hex, record->operation);
+    printkc("[PID %d] Installing %s for 0x%02X\n", record->pid, hex, record->operation);
     kfree(hex);
 
     ticket = kzalloc(sizeof(citadel_ticket_t), GFP_KERNEL);
@@ -235,7 +235,7 @@ bool insert_ticket(citadel_update_record_t *record) {
 //         reservation_node = kzalloc(sizeof(struct ticket_reservation_node), GFP_KERNEL);
 //         reservation_node->pid = pid;
 //         res = ticket_insert(&ticketing_reservations, reservation_node);
-//         if (pid > 500) printk(PFX "Installing PID %d, success %d\n", pid, res);
+//         if (pid > 500) printkc("Installing PID %d, success %d\n", pid, res);
 //     }
 
     // struct mytype *data = mysearch(&mytree, "walrus");

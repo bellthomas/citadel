@@ -36,4 +36,7 @@ extern void move_cache_item_to_end(libcitadel_cache_item_t *item, libcitadel_cac
 extern bool citadel_validate_fd(int fd, char *identifier, citadel_operation_t *op, bool *tainted, citadel_update_function_t execute);
 extern char *get_fd_identifier(int fd, bool *tainted);
 extern bool citadel_validate_fd_anon(int fd);
+extern void cache_on_fork(void);
+extern void citadel_remove_fd(int fd);
+
 #endif

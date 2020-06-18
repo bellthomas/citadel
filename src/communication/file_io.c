@@ -23,7 +23,7 @@ ssize_t challenge_receive(struct file *file, const char __user *buf, size_t coun
         return -ENOMEM;
 
     if (!is_rsa_available()) {
-        printk(KERN_INFO PFX "Rejected ../challenge write because RSA not available yet.");
+        printkc("Rejected ../challenge write because RSA not available yet.");
         return (ssize_t)count;
     }
 
@@ -33,7 +33,7 @@ ssize_t challenge_receive(struct file *file, const char __user *buf, size_t coun
 
     // Copy from userspace into the kernel buffer.
     if (copy_from_user(data, buf, count)) {
-        printk(KERN_INFO PFX "Failed to copy data from userspace to kernel buffer.\n");
+        printkc("Failed to copy data from userspace to kernel buffer.\n");
         error = -EFAULT;
         goto out;
     }
@@ -54,7 +54,7 @@ ssize_t challenge_read(struct file *file, char __user *buf, size_t count, loff_t
     size_t cipher_len;
 
     if (!is_rsa_available()) {
-        printk(KERN_INFO PFX "Rejected ../challenge read because RSA not available yet.");
+        printkc("Rejected ../challenge read because RSA not available yet.");
         return (ssize_t)count; // TODO do proper error return
     }
 
@@ -63,7 +63,7 @@ ssize_t challenge_read(struct file *file, char __user *buf, size_t count, loff_t
     cipher = generate_challenge(&cipher_len);
 
     if (cipher_len == 0) {
-        printk(KERN_INFO PFX "Rejected ../challenge read because challenge generation failed.");
+        printkc("Rejected ../challenge read because challenge generation failed.");
         return (ssize_t)count; // TODO do proper error return
     }
 
@@ -90,7 +90,7 @@ ssize_t update_receive(struct file *file, const char __user *buf, size_t count, 
     //     return -ENOMEM;
 
     if (!is_rsa_available()) {
-        printk(KERN_INFO PFX "Rejected ../update write because RSA not available yet.");
+        printkc("Rejected ../update write because RSA not available yet.");
         return (ssize_t)count;
     }
 
@@ -100,7 +100,7 @@ ssize_t update_receive(struct file *file, const char __user *buf, size_t count, 
 
     // Copy from userspace into the kernel buffer.
     if (copy_from_user(data, buf, count)) {
-        printk(KERN_INFO PFX "Failed to copy data from userspace to kernel buffer.\n");
+        printkc("Failed to copy data from userspace to kernel buffer.\n");
         error = -EFAULT;
         goto out;
     }
@@ -120,7 +120,7 @@ ssize_t update_read(struct file *file, char __user *buf, size_t count, loff_t *p
     size_t cipher_len;
 
     if (!is_rsa_available()) {
-        printk(KERN_INFO PFX "Rejected ../challenge read because RSA not available yet.");
+        printkc("Rejected ../challenge read because RSA not available yet.");
         return (ssize_t)count; // TODO do proper error return
     }
 
@@ -130,7 +130,7 @@ ssize_t update_read(struct file *file, char __user *buf, size_t count, loff_t *p
     cipher = generate_update(&cipher_len);
 
     if (cipher_len == 0) {
-        printk(KERN_INFO PFX "Rejected ../challenge read because challenge generation failed.");
+        printkc("Rejected ../challenge read because challenge generation failed.");
         return (ssize_t)count; // TODO do proper error return
     }
 
@@ -160,12 +160,12 @@ ssize_t ptoken_read(struct file *file, char __user *buf, size_t count, loff_t *p
     size_t cipher_len;
 
     if (!is_aes_available()) {
-        printk(KERN_INFO PFX "Rejected ../get_ptoken read because AES not available yet.");
+        printkc("Rejected ../get_ptoken read because AES not available yet.");
         return -ENOMEDIUM;
     }
 
     if (!system_ready()) {
-        printk(KERN_INFO PFX "Rejected ../get_ptoken read because system not ready yet.");
+        printkc("Rejected ../get_ptoken read because system not ready yet.");
         return (ssize_t)0;
     }
 
@@ -175,7 +175,7 @@ ssize_t ptoken_read(struct file *file, char __user *buf, size_t count, loff_t *p
     cipher = generate_ptoken(&cipher_len);
 
     if (cipher_len == 0) {
-        printk(KERN_INFO PFX "Rejected ../get_ptoken read because challenge generation failed.");
+        printkc("Rejected ../get_ptoken read because challenge generation failed.");
         return -ENOMEDIUM;
     }
     else if (cipher_len == 1) {

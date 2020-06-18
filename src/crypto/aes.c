@@ -124,8 +124,8 @@ static int trm_aes_operation(struct crypto_aead *tfm, struct aead_request *req,
 
     // How big is it?
         // outsize = (mode == AES_ENCRYPT) ? datasize + _CITADEL_TAG_LENGTH : datasize - _CITADEL_TAG_LENGTH;
-    // if (mode == AES_ENCRYPT) printk(PFX "AES Encrypting: %ld -> %ld", datasize, outsize);
-    // else printk(PFX "AES Decrypting: %ld -> %ld", datasize, outsize);
+    // if (mode == AES_ENCRYPT) printkc("AES Encrypting: %ld -> %ld", datasize, outsize);
+    // else printkc("AES Decrypting: %ld -> %ld", datasize, outsize);
 
     if (mode == AES_ENCRYPT) {
         memcpy(out, cipherdata, datasize + _CITADEL_TAG_LENGTH);
@@ -202,7 +202,7 @@ int trm_aes_self_test(void) {
     if (!data) return -ENOMEM;
     random_bytes(data, datasize);
     // h1 = to_hexstring(data, datasize);
-    // printk(KERN_INFO PFX "Raw data -- %s\n", h1);
+    // printkc("Raw data -- %s\n", h1);
     // kfree(h1);
     
     key = kzalloc(_CITADEL_AES_KEY_LENGTH, GFP_KERNEL);
@@ -212,7 +212,7 @@ int trm_aes_self_test(void) {
     }
     random_bytes(key, _CITADEL_AES_KEY_LENGTH);
     // h2 = to_hexstring(key, _CITADEL_AES_KEY_LENGTH);
-    // printk(KERN_INFO PFX "Key -- %s\n", h2);
+    // printkc("Key -- %s\n", h2);
     // kfree(h2);
 
     // Do encryption.
@@ -220,13 +220,13 @@ int trm_aes_self_test(void) {
     cipher = kzalloc(datasize + _CITADEL_TAG_LENGTH + _CITADEL_IV_LENGTH, GFP_KERNEL);
     err = trm_aes_encrypt(key, data, datasize, cipher, &cipher_len);
     // h3 = to_hexstring(cipher, cipher_len);
-    // printk(KERN_INFO PFX "Cipher(%d) -- %s\n", err, h3);
+    // printkc("Cipher(%d) -- %s\n", err, h3);
     // kfree(h3);
 
     plain = kzalloc(datasize + _CITADEL_TAG_LENGTH + _CITADEL_IV_LENGTH, GFP_KERNEL);
     err = trm_aes_decrypt(key, cipher, cipher_len, plain, &plainlen);
     // h4 = to_hexstring(plain, plainlen);
-    // printk(KERN_INFO PFX "Plain(%d) -- %s\n", err, h4);
+    // printkc("Plain(%d) -- %s\n", err, h4);
     // kfree(h4);
 
 
@@ -234,10 +234,10 @@ int trm_aes_self_test(void) {
     // if (!err) {
     //     err += 2 * trm_aes_decrypt(key, data, datasize);
     //     h4 = to_hexstring(data, datasize);
-    //     printk(KERN_INFO PFX "Plain(%d) -- %s\n", err, h4);
+    //     printkc("Plain(%d) -- %s\n", err, h4);
     //     kfree(h4);
     // } else {
-    //     printk(KERN_INFO PFX "Encryption failed, skip decryption.\n");
+    //     printkc("Encryption failed, skip decryption.\n");
     // }
     kfree(plain);
     kfree(cipher);

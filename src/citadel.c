@@ -112,19 +112,19 @@ static void __init crypto_init(void) {
     // Check RSA.
     res_rsa = trm_rsa_self_test();
     if(!res_rsa) {
-        printk(KERN_INFO PFX "RSA support enabled.\n");
+        printkc("RSA support enabled.\n");
         rsa_available = 1;
     } else {
-        printk(KERN_INFO PFX "RSA Selftest -- %d\n", res_rsa);
+        printkc("RSA Selftest -- %d\n", res_rsa);
     }
 
     // Check AES.
     res_aes = trm_aes_self_test();
     if(!res_rsa) {
-        printk(KERN_INFO PFX "AES support enabled.\n");
+        printkc("AES support enabled.\n");
         aes_available = 1;
     } else {
-        printk(KERN_INFO PFX "AES Selftest -- %d\n", res_aes);
+        printkc("AES Selftest -- %d\n", res_aes);
     }
 }
 late_initcall(crypto_init)
@@ -144,7 +144,7 @@ static struct security_hook_list citadel_hooks[] __lsm_ro_after_init = {
     LSM_HOOK_INIT(inode_init_security, trm_inode_init_security),
     LSM_HOOK_INIT(inode_free_security, trm_inode_free_security),
     // LSM_HOOK_INIT(inode_create, trm_inode_create),
-    // LSM_HOOK_INIT(inode_permission, trm_inode_permission),
+    LSM_HOOK_INIT(inode_permission, trm_inode_permission),
     LSM_HOOK_INIT(inode_link, trm_inode_link),
     // LSM_HOOK_INIT(inode_rename, trm_inode_rename),
     LSM_HOOK_INIT(inode_setxattr, trm_inode_setxattr),
@@ -191,7 +191,7 @@ static struct security_hook_list citadel_hooks[] __lsm_ro_after_init = {
 static int __init citadel_init(void) {
     // struct cred *cred = (struct cred *) current->cred;
     security_add_hooks(citadel_hooks, ARRAY_SIZE(citadel_hooks), _CITADEL_LSM_NAME);
-    printk(KERN_INFO PFX "Citadel Reference Monitor initialized.\n");
+    printk(PFX "Citadel Reference Monitor initialized.\n");
     return 0;
 }
 

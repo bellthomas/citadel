@@ -80,14 +80,14 @@ static int shm_can_access(struct kern_ipc_perm *perm) {
 
     if (found) {
 		// Found a ticket relating to this object.
-		printk(PFX "Allowing PID %d access to SHM %d\n", current->pid, perm->key);
+		printkc("Allowing PID %d access to SHM %d\n", current->pid, perm->key);
 		if (ipc_data->in_realm) cred->in_realm = true;
 		if (cred->in_realm) ipc_data->in_realm = true;
 
 		return allow_shm_access(perm->key);
     }
    
-    printk(PFX "Rejecting PID %d access to SHM %d\n", current->pid, perm->key);
+    printkc("Rejecting PID %d access to SHM %d\n", current->pid, perm->key);
     return -EACCES;
 }
 

@@ -76,6 +76,11 @@ static inline citadel_ipc_data_t *citadel_ipc(const struct kern_ipc_perm *ipc) {
 	return ipc->security + citadel_blob_sizes.lbs_ipc;
 }
 
+#define printkc(format, args...)  \
+    if (CITADEL_DEBUG) {                          \
+        printk(PFX format, ## args);           \
+    }
+
 extern char *to_hexstring(unsigned char *buf, unsigned int len);
 extern void *hexstring_to_bytes(char* hexstring);
 extern char *get_path_for_dentry(struct dentry *dentry);

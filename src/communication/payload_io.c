@@ -50,12 +50,12 @@ void* generate_challenge(size_t *len) {
     challenge->pid = (pid_t)0;
 
     challenge_hex = to_hexstring((unsigned char*)current_challenge, sizeof(current_challenge));
-    printk(PFX "Generated a new challenge.\n");
+    printkc("Generated a new challenge.\n");
     kfree(challenge_hex);
     
     
     // hexstring = to_hexstring((unsigned char*)challenge, sizeof(citadel_challenge_t));
-    // printk(PFX "Data: %s\n", hexstring);
+    // printkc("Data: %s\n", hexstring);
     // kfree(hexstring);
 
     // Encrypt.
@@ -63,7 +63,7 @@ void* generate_challenge(size_t *len) {
     kfree(challenge);
     
     // hexstring2 = to_hexstring((unsigned char*)encrypted, encrypted_len);
-    // printk(PFX "Encrypted: %s\n", hexstring2);
+    // printkc("Encrypted: %s\n", hexstring2);
     // kfree(hexstring2);
 
     // if (!encrypted || encrypted_len <= 0) return NULL;
@@ -78,28 +78,28 @@ void process_challenge_response(void *response, size_t response_len) {
     // char *hex;
 
     if(response_len != _CITADEL_RSA_KEY_LENGTH) {
-        printk(PFX "Rejected challenge response: invalid length (%ld)\n", response_len);
+        printkc("Rejected challenge response: invalid length (%ld)\n", response_len);
         goto bail;
     }
 
     challenge = (citadel_challenge_t*) trm_rsa_decrypt((char*)response, response_len, (int*)&decrypted_len);
     if (decrypted_len == 0 || !challenge) {
-        printk(PFX "Rejected challenge response: decryption failed.\n");
+        printkc("Rejected challenge response: decryption failed.\n");
         goto bail;
     }
     // hex = to_hexstring((unsigned char*)challenge, sizeof(citadel_challenge_t));
-    // printk(PFX "Decrypted challenge: %s\n", hex);
+    // printkc("Decrypted challenge: %s\n", hex);
     // kfree(hex);
 
     // Valid decrypted payload, check signature.
     if(memcmp(challenge->signature, challenge_signature, sizeof(challenge_signature))) {
-        printk(PFX "Rejected challenge response: signature incorrect.\n");
+        printkc("Rejected challenge response: signature incorrect.\n");
         goto bail;
     }
 
     // Valid decrypted payload, check signature.
     if(memcmp(challenge->challenge, current_challenge, sizeof(current_challenge))) {
-        printk(PFX "Rejected challenge response: challenge key incorrect.\n");
+        printkc("Rejected challenge response: challenge key incorrect.\n");
         goto bail;
     }
 
@@ -109,7 +109,7 @@ void process_challenge_response(void *response, size_t response_len) {
     memcpy(ptoken_aes_key, challenge->key, sizeof(aes_key));
     enclave_pid = challenge->pid;
 
-    printk(PFX "Successfully registered with %s (%d)\n", registered_name, enclave_pid);
+    printkc("Successfully registered with %s (%d)\n", registered_name, enclave_pid);
     registered = 1;
 
 bail: 
@@ -127,9 +127,9 @@ void update_aes_key(void *key, size_t key_len) {
         }
     }
     // h = to_hexstring(aes_key, sizeof(aes_key));
-    // printk(PFX "** Updated AES key.\n");
-    // printk(PFX "%s\n", h);
-    // printk(PFX "**\n");
+    // printkc("** Updated AES key.\n");
+    // printkc("%s\n", h);
+    // printkc("**\n");
     // kfree(h);
 }
 
@@ -143,12 +143,12 @@ void process_received_update(void *update, size_t update_len) {
     citadel_update_record_t *rcrd;
 
     if (!registered) {
-        printk(PFX "Can't process update. Not registered.\n");
+        printkc("Can't process update. Not registered.\n");
         return;
     }
 
     if (update_len <= _CITADEL_IV_LENGTH + _CITADEL_TAG_LENGTH) {
-        printk(PFX "Invalid payload. Too short (%ld)\n", update_len);
+        printkc("Invalid payload. Too short (%ld)\n", update_len);
         return;
     }
     
@@ -160,14 +160,14 @@ void process_received_update(void *update, size_t update_len) {
 
     hdr = (citadel_update_header_t*)plain;
     if(memcmp(hdr->signature, challenge_signature, sizeof(challenge_signature))) {
-        printk(PFX "Rejected updates. Signature mismatch.\n");
+        printkc("Rejected updates. Signature mismatch.\n");
     }
 
-    // printk(PFX "Received %d records.\n", hdr->records);
+    // printkc("Received %d records.\n", hdr->records);
     rcrd = (citadel_update_record_t *)(plain + sizeof(citadel_update_header_t));
     for (iter = 0; iter < hdr->records; iter++) {
         success = insert_ticket(rcrd);
-        if (!success) printk(PFX "Failed to install a ticket for PID %d\n", current->pid);
+        if (!success) printkc("Failed to install a ticket for PID %d\n", current->pid);
         rcrd = (citadel_update_record_t *)(rcrd + 1);
     }
 
@@ -208,7 +208,7 @@ void* generate_update(size_t *len) {
     }
     
     if (!registered) {
-        printk(PFX "Can't generate update. Not registered.\n");
+        printkc("Can't generate update. Not registered.\n");
         *len = 0;
         return NULL;
     }
@@ -219,7 +219,7 @@ void* generate_update(size_t *len) {
     res = trm_aes_encrypt(aes_key, update, required_space, cipher, &outlen);
 
     // hex = to_hexstring(cipher, outlen);
-    // printk(PFX "Generated cipher: %s\n", hex);
+    // printkc("Generated cipher: %s\n", hex);
     // kfree(hex);
 
     kfree(update);
@@ -236,12 +236,12 @@ int xattr_enclave_installation(const void *value, size_t size, struct dentry *de
     citadel_inode_data_t *d_inode_data = citadel_inode(dentry->d_inode);
 
     if (!registered) {
-        printk(PFX_W "Can't process update. Not registered.\n");
+        printkc("Can't process update. Not registered.\n");
         return -1;
     }
 
     if (size <= _CITADEL_IV_LENGTH + _CITADEL_TAG_LENGTH) {
-        printk(PFX_W "Invalid payload. Too short (%ld)\n", size);
+        printkc( "Invalid payload. Too short (%ld)\n", size);
         return -1;
     }
     
@@ -250,13 +250,13 @@ int xattr_enclave_installation(const void *value, size_t size, struct dentry *de
 
     res = trm_aes_decrypt(aes_key, (void*)value, size, plain, &outlen);
     if (res) {
-        printk(PFX_W "Rejected updates. Decryption failed.\n");
+        printkc( "Rejected updates. Decryption failed.\n");
         return -1;
     }
 
     hdr = (citadel_update_header_t*)plain;
     if(memcmp(hdr->signature, challenge_signature, sizeof(challenge_signature))) {
-        printk(PFX_W "Rejected updates. Signature mismatch.\n");
+        printkc( "Rejected updates. Signature mismatch.\n");
         return -1;
     }
 
@@ -276,7 +276,7 @@ int xattr_enclave_installation(const void *value, size_t size, struct dentry *de
 
     if(xattr_success == 0) {
         // Update internal kernel structure.
-        printk(PFX "Inducted file. Identifier: %s\n", identifier_hex);
+        printkc("Inducted file. Identifier: %s\n", identifier_hex);
         d_inode_data->in_realm = true;
         memcpy(d_inode_data->identifier, rcrd->identifier, sizeof(d_inode_data->identifier));
         d_inode_data->anonymous = false;
@@ -303,7 +303,7 @@ void* generate_ptoken(size_t *len) {
     citadel_ptoken_t *signed_ptoken;
 
     if (!system_ready()) {
-        printk(PFX_W "Can't provide ptoken. Not registered.\n");
+        printkc( "Can't provide ptoken. Not registered.\n");
         return NULL;
     }
 
@@ -334,7 +334,7 @@ void* generate_ptoken(size_t *len) {
 
     hex = to_hexstring(signed_ptoken->ptoken, _CITADEL_PROCESS_PTOKEN_LENGTH);
     id = to_hexstring(signed_ptoken->process_identifier, _CITADEL_IDENTIFIER_LENGTH);
-    printk(PFX "Generated ptoken for PID %d: %s, %s\n", current->pid, hex, id);
+    printkc("Generated ptoken for PID %d: %s, %s\n", current->pid, hex, id);
     kfree(hex);
     kfree(id);
 

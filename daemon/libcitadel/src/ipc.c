@@ -90,6 +90,7 @@ bool ipc_send(int fd, char *data, size_t len) {
 		sent += (rv > 0 ? rv : 0);
 		if (sent < len || (rv == -1 && (errno == EWOULDBLOCK || errno == EAGAIN))) {
 			// usleep(1);
+			errno = 0;
 			attempts++;
 			if(attempts >= ipc_timeout) {
 				citadel_perror("Timed out. Failed to send.\n");
@@ -145,6 +146,7 @@ bool ipc_recv(int fd) {
 		received += (rv > 0 ? rv : 0);
 		if (rv == -1 && (errno == EWOULDBLOCK || errno == EAGAIN)) {
 			// usleep(1);
+			errno = 0;
 			attempts++;
 			if(attempts >= ipc_timeout) {
 				citadel_perror("Timed out. Nothing received.\n");
@@ -175,17 +177,15 @@ bool ipc_recv(int fd) {
  *
  */
 bool ipc_transaction(unsigned char *request, size_t length) {
-
+	errno = 0;
     int socket = init_socket();
 	if (socket < 0) return false;
     // if (!initialised_socket) initialised_socket = init_socket();
     // if (!initialised_socket) return false;
-
 	if (length != sizeof(struct citadel_op_request) && length != sizeof(struct citadel_op_extended_request)) {
 		citadel_perror("Unknown payload length.\n");
 		return false;
 	}
-
     int rv;
 	// size_t sz;
 	// char *buf = NULL;
@@ -196,7 +196,6 @@ bool ipc_transaction(unsigned char *request, size_t length) {
 
     struct citadel_op_reply *reply;
     struct citadel_op_extended_reply *extended_reply;
-
     sent = ipc_send(socket, request, length);	
 	if (sent) {
 		received = ipc_recv(socket);
@@ -238,6 +237,7 @@ bool ipc_transaction(unsigned char *request, size_t length) {
 				}
 
 				close(socket);
+				errno = 0;
 				return res;
 			} else {
 				citadel_perror("Forged transaction from PID %lu (Citadel PID: %d).\n", pid, get_citadel_pid());

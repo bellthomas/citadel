@@ -19,6 +19,7 @@
 extern void* _hex_identifier_to_bytes(char* hexstring);
 extern const char *get_ptoken(void);
 extern const char *get_signed_ptoken(void);
+extern const char *get_parent_identifier(void);
 extern int32_t get_citadel_pid(void);
 
 extern bool citadel_init(void);

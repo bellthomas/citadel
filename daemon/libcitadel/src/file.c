@@ -2,6 +2,7 @@
 
 #include "../include/citadel/file.h"
 #include "../include/citadel/cache.h"
+#include "../include/citadel/init.h"
 #include <sys/types.h>
 #include <sys/xattr.h>
 
@@ -39,7 +40,6 @@ static bool _citadel_file_claim(const char *path, size_t length) {
 	if (success) {
 		citadel_printf("Registered file: %s\n", path);
 		libcitadel_cache_item_t *entry = create_cache_entry(LIBCITADEL_CACHE_FILE_NAMES);
-		printf("%p\n", entry);
 		entry->op = CITADEL_OP_CLAIM | CITADEL_OP_OPEN;
 		entry->data = malloc(length);
 		memcpy(entry->data, path, length);
@@ -122,7 +122,7 @@ bool citadel_file_open(const char *path, size_t length) {
 }
 
 void citadel_declare_fd(int fd, citadel_operation_t op) {
-	citadel_printf("Declaring FD\n");
+	citadel_printf("Declaring FD %d\n", fd);
 	bool tainted = false;
 	char *identifier = get_fd_identifier(fd, &tainted);
 	if (tainted && identifier) {
@@ -131,7 +131,13 @@ void citadel_declare_fd(int fd, citadel_operation_t op) {
 		entry->fd = fd;
 		entry->data = malloc(_CITADEL_IDENTIFIER_LENGTH);
 		entry->update = _citadel_file_open_fd;
-		memcpy(entry->data, identifier, _CITADEL_IDENTIFIER_LENGTH);
+		
+		if ((op & CITADEL_OP_PARENT) == 0) {
+			memcpy(entry->data, identifier, _CITADEL_IDENTIFIER_LENGTH);
+		} else {
+			memcpy(entry->data, get_parent_identifier(), _CITADEL_IDENTIFIER_LENGTH);
+		}
+		
 		free(identifier);
 	}
 }

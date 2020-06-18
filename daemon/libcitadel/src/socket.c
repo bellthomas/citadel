@@ -6,7 +6,6 @@
 
 
 bool _citadel_socket(int fd, char *identifier, citadel_operation_t operation, bool add_cache) {
-	printf("_citadel_socket\n");
 	struct citadel_op_request request;
 	memcpy(request.signature, challenge_signature, sizeof(challenge_signature));
 	memcpy(request.subject, identifier, sizeof(request.subject));

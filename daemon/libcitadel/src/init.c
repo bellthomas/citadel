@@ -1,6 +1,9 @@
 
 
 #include "../include/citadel/init.h"
+#include "../include/citadel/cache.h"
+
+#include <errno.h>
 
 static int32_t citadel_pid = 0;
 static int32_t own_pid = 0;
@@ -104,7 +107,7 @@ static bool fetch_kernel_ptoken(void) {
 	return true;
 }
 
-static bool init_pid(void) {
+static bool init_pid(bool *is_child) {
 	pid_t pid = getpid();
 	pid_t ppid = getppid();
 
@@ -116,6 +119,9 @@ static bool init_pid(void) {
 		citadel_perror("Suspect PID... (current: %d, parent: %d, actual: %d)\n", pid, ppid, own_pid);
 	}
 	else if (own_pid == ppid) {
+		// Need to invalidate expectation cache.
+		*is_child = true;
+		cache_on_fork();
 		memcpy(parent_identifier, identifier, _CITADEL_IDENTIFIER_LENGTH);
 	}
 
@@ -134,9 +140,10 @@ static void init_rand(void) {
 
 
 bool citadel_init(void) {
-	if (!init_pid()) return true;
+	bool is_child = false;
+	if (!init_pid(&is_child)) return true;
 	init_rand();
-	init_cache();
+	if (!is_child) init_cache();
 	if (fetch_kernel_ptoken()) {
 		return ipc_declare_self();
 	}

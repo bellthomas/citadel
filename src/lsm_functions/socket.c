@@ -19,11 +19,16 @@
  * Called on socket data when parent is seen to be tainted. 
  */
 static void realm_init_socket(citadel_inode_data_t *inode_data) {
+    citadel_task_data_t *task_data = citadel_cred(current_cred());
     if (!inode_data->in_realm) {
         inode_data->is_socket = true;
         inode_data->checked_disk_xattr = true;
         inode_data->in_realm = true;
-        get_random_bytes(inode_data->identifier, _CITADEL_IDENTIFIER_LENGTH);
+        if (task_data) {
+            memcpy(inode_data->identifier, task_data->identifier, _CITADEL_IDENTIFIER_LENGTH);
+            printkc("Setting socket ID to current's\n");
+        }
+        else get_random_bytes(inode_data->identifier, _CITADEL_IDENTIFIER_LENGTH);
     }
 }
 
@@ -109,11 +114,11 @@ int trm_socket_bind(struct socket *sock, struct sockaddr *address, int addrlen) 
         realm_init_socket(inode_data);
         if (address->sa_family == AF_UNIX || address->sa_family == AF_LOCAL) {
             // This is a local socket, and therefore governed by permission on the inode.
-            printk(PFX "Tainted socket/process tried to bind -- internal (%d).\n", address->sa_family);
+            printkc("Tainted socket/process tried to bind -- internal (%d).\n", address->sa_family);
             return 0; //can_access(s_inode, CITADEL_OP_SOCKET_INTERNAL);
         } else {
             // This is external.
-            printk(PFX "Tainted socket/process tried to bind -- external (%d).\n", address->sa_family);
+            printkc("Tainted socket/process tried to bind -- external (%d).\n", address->sa_family);
             return can_access(s_inode, CITADEL_OP_SOCKET_EXTERNAL);
         }
     }
@@ -202,7 +207,7 @@ int trm_socket_shutdown(struct socket *sock, int how) {
     task_housekeeping();
 
     if (inode_data && (inode_data->in_realm || task_data->in_realm)) {
-        printk(PFX "PID %d shutting down socket %ld (how: %d)\n", current->pid, s_inode->i_ino, how);
+        printkc("PID %d shutting down socket %ld (how: %d)\n", current->pid, s_inode->i_ino, how);
     }
 
     return 0;

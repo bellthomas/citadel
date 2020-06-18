@@ -18,13 +18,6 @@ void init_cache(void) {
         cache_groups[i] = NULL;
 }
 
-// static void free_cache_item(libcitadel_cache_item_t* item, uint8_t group) {
-//     switch (group) {
-//     case LIBCITADEL_CACHE_FILE_NAMES:
-
-//     }
-// }
-
 void cleanup_cache_group(uint8_t group) {
     uint64_t delta_s;
     libcitadel_cache_item_t* current = cache_groups[group];
@@ -172,6 +165,7 @@ bool citadel_validate_fd (int fd, char *identifier, citadel_operation_t *op,
 					// This is the correct item.
 					ret = true;
 					if (entry_in_date(head)) goto bail_validate_fd;
+                    else if (head->op & CITADEL_OP_NOP) goto bail_validate_fd;
                     citadel_cache("FD out of date.\n");
 
 					// Out of date, refresh.
@@ -200,4 +194,62 @@ bail_validate_fd:
 
 bool citadel_validate_fd_anon(int fd) {
     return citadel_validate_fd(fd, NULL, NULL, NULL, NULL);
+}
+
+static void prepare_entry_for_child(libcitadel_cache_item_t *item) {
+    item->time = (struct timespec) { 0 };
+    if (item->op == CITADEL_OP_NOP)
+        item->op = CITADEL_OP_PARENT;
+}
+
+void cache_on_fork(void) {
+    libcitadel_cache_item_t *head;
+    for (int i = 0; i < LIBCITADEL_CACHE_MAX_GROUPS; i++) {
+        if (cache_groups[i]) {
+            head = cache_groups[i];
+            prepare_entry_for_child(head);
+            while (head->next) {
+                prepare_entry_for_child(head->next);
+                head = head->next;
+            }
+        }
+    }
+}
+
+bool citadel_fd_is_declared(int fd) {
+    if (fd == -1) return false;
+    libcitadel_cache_item_t *head = cache_groups[LIBCITADEL_CACHE_FD];
+    while(head) {
+        if (head->fd == fd) return true;
+        head = head->next;
+    }
+    return false;
+}
+
+void citadel_remove_fd(int fd) {
+    libcitadel_cache_item_t *head = cache_groups[LIBCITADEL_CACHE_FD];
+    if (head == NULL || fd == -1) return;
+
+    libcitadel_cache_item_t *prev = head;
+    head = prev->next;
+    while (head) {
+        if (head->fd == fd) {
+            // Remove
+            prev->next = head->next;
+            if (head->data) free(head->data);
+            free(head);
+        }
+        prev = head;
+        head = prev->next;
+    }
+
+
+    // Check first.
+    head = cache_groups[LIBCITADEL_CACHE_FD];
+    if (head->fd == fd) {
+        // remove head.
+        cache_groups[LIBCITADEL_CACHE_FD] = head->next;
+        if (head->data) free(head->data);
+        free(head);
+    }
 }

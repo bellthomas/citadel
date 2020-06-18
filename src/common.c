@@ -42,12 +42,12 @@ char* to_hexstring(unsigned char *buf, unsigned int len) {
 
 
 // void find_dentry_root(struct dentry *dentry) {
-// 	printk(PFX "Finding dentry root...\n");
+// 	printkc("Finding dentry root...\n");
 // 	struct dentry *current_dentry = dentry;
-// 	printk(PFX "%s\n", current_dentry->d_name->name);
+// 	printkc("%s\n", current_dentry->d_name->name);
 // 	while(current_dentry->d_parent != NULL) {
 // 		current_dentry = current_dentry->d_parent;
-// 		printk(PFX "%s\n", current_dentry->d_name->name);
+// 		printkc("%s\n", current_dentry->d_name->name);
 // 	}
 // }
 
@@ -160,22 +160,22 @@ char *get_path_for_dentry(struct dentry *dentry) {
 	// 	pos = dentry_path_raw(dentry, pathname, pathname_len - 1);
 	// 	if (!IS_ERR(pos)) {
 	// 		if(*pos == '/' && pos[1]) {
-	// 			printk(PFX "Doing inode things\n");
+	// 			printkc("Doing inode things\n");
 	// 			d_inode = d_backing_inode(dentry);
 	// 			if (d_inode) {
-	// 				printk(PFX "Got inode\n");
+	// 				printkc("Got inode\n");
 	// 				if(S_ISDIR(d_inode->i_mode)) {
-	// 					printk(PFX "Is directory\n");
+	// 					printkc("Is directory\n");
 	// 					pathname[pathname_len - 2] = '/';
 	// 					pathname[pathname_len - 1] = '\0';
 	// 				}
 	// 			}
 	// 		}
 
-	// 		printk(PFX "%p %p\n", pathname, pos);
+	// 		printkc("%p %p\n", pathname, pos);
 	// 		return pathname;
 	// 	} else {
-	// 		printk(PFX "Aborting get_path_for_dentry()\n");
+	// 		printkc("Aborting get_path_for_dentry()\n");
 	// 		return pathname; // Empty buffer. 3101233312 - 2936675473
 	// 	}
 	// }
@@ -272,7 +272,7 @@ void task_housekeeping(void) {
 	citadel_task_data_t *cred = citadel_cred(current_cred());	
 	if (current->pid > 1) {
 		if (cred->pid == 1) cred->pid = current->pid;
-		// else if (current->pid != cred->pid) printk(PFX "PID forging detected (task_housekeeping, %d != %d (parent %d))\n", current->pid, cred->pid, current->parent->pid); 
+		// else if (current->pid != cred->pid) printkc("PID forging detected (task_housekeeping, %d != %d (parent %d))\n", current->pid, cred->pid, current->parent->pid); 
 		check_ticket_cache();
 	}
 }
@@ -293,12 +293,12 @@ void inode_housekeeping(citadel_inode_data_t *inode_data, struct inode *inode) {
 			inode_data->needs_xattr_update = false;
 
 			// pipe_id = to_hexstring(inode_data->identifier, _CITADEL_IDENTIFIER_LENGTH);
-			// printk(PFX "Tagged PipeFS inode (%ld) for PID %d\n", inode->i_ino, current->pid);
+			// printkc("Tagged PipeFS inode (%ld) for PID %d\n", inode->i_ino, current->pid);
 			// kfree(pipe_id);
 		}
 	}
 	// else if (S_ISFIFO(inode->i_mode)) {
-	// 	printk(PFX "Got named pipe!\n");
+	// 	printkc("Got named pipe!\n");
 	// }
 }
 
@@ -337,7 +337,7 @@ void dentry_housekeeping(citadel_inode_data_t *inode_data, struct dentry *dentry
 			if (!inode_data->anonymous) {
 				res += __internal_set_identifier(dentry, inode_data->identifier, _CITADEL_IDENTIFIER_LENGTH);
 			}
-			printk(PFX "realm_housekeeping -> set xattr (%d)\n", res);
+			printkc("realm_housekeeping -> set xattr (%d)\n", res);
 		}
 	}
 }
@@ -373,7 +373,7 @@ int can_access(struct inode *inode, citadel_operation_t operation) {
 
 	// Check for forged PID.
 	// if (cred->pid > 1 && current->pid != cred->pid) {
-	// 	printk(PFX "forged PID! %d vs %d\n", current->pid, cred->pid);
+	// 	printkc("Forged PID! %d vs %d\n", current->pid, cred->pid);
 	// }
 
 	// Allow directory traversing, SockFS, SysFS, SecurityFS.
@@ -385,7 +385,7 @@ int can_access(struct inode *inode, citadel_operation_t operation) {
 
 	else if (inode->i_sb->s_magic == PIPEFS_MAGIC) { // && !S_ISFIFO(inode->i_mode)
 		// All processes can always access their own unnamed pipes.
-		printk(PFX "Checking unnamed pipe...\n");
+		// printkc("Checking unnamed pipe...\n");
 		found = true;
 		for (tmp = 0; tmp < _CITADEL_IDENTIFIER_LENGTH; tmp++) {
 			if (inode_data->identifier[tmp] != cred->identifier[tmp]) {
@@ -416,13 +416,13 @@ int can_access(struct inode *inode, citadel_operation_t operation) {
 
 	// No tickets, no access.
 	if (!cred || !cred->ticket_head) {
-		printk(PFX "Rejecting PID %d access to object (magic: %ld, ino: %ld).\n", current->pid, inode->i_sb->s_magic, inode->i_ino);
+		printkc("Rejecting PID %d access to object (magic: %ld, ino: %ld).\n", current->pid, inode->i_sb->s_magic, inode->i_ino);
 		return -EACCES;
 	}
 
 	// Short circuit if node is anonymous.
 	if (inode_data->anonymous) {
-		printk(PFX "Rejected PID %d access to anonymous inode (%ld)\n", current->pid, inode->i_ino);
+		printkc("Rejected PID %d access to anonymous inode (%ld)\n", current->pid, inode->i_ino);
 		return -EACCES;
 	}
 
@@ -452,12 +452,12 @@ int can_access(struct inode *inode, citadel_operation_t operation) {
 
 	if (found) {
 		// Found a ticket relating to this object.
-		printk(PFX "Allowing PID %d access to object (ino: %ld, cred: %d).\n", current->pid, inode->i_ino, cred->pid);
+		printkc("Allowing PID %d access to object (ino: %ld, cred: %d).\n", current->pid, inode->i_ino, cred->pid);
 		if (inode_data->in_realm) cred->in_realm = true;
 		// if (cred->in_realm) inode_data->in_realm = true;
 		return 0;
 	}
 
-	printk(PFX "Rejecting PID %d access to object (magic: %ld, ino: %ld).\n", current->pid, inode->i_sb->s_magic, inode->i_ino);
+	printkc("Rejecting PID %d access to object (magic: %ld, ino: %ld).\n", current->pid, inode->i_sb->s_magic, inode->i_ino);
 	return -EACCES;
 }

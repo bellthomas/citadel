@@ -13,6 +13,8 @@
 #include <unistd.h> 
 #include <sys/ipc.h>
 #include <sys/shm.h>
+#include <errno.h>
+
 
 #include "../includes/app.h"
 #include "../includes/tests.h"

@@ -13,6 +13,7 @@
 
 enum Action {
 	A_BENCHMARK,
+	A_BENCHMARK_SHIM,
 	A_FILE_TEST,
 	A_SOCKET_I_TEST,
 	A_SOCKET_E_TEST,
@@ -27,6 +28,7 @@ static bool hold = true;
 
 void init_actions(void) {
 	actions["benchmark"] = A_BENCHMARK;
+	actions["benchmark_shim"] = A_BENCHMARK_SHIM;
 	actions["file"] = A_FILE_TEST;
 	actions["socketi"] = A_SOCKET_I_TEST;
 	actions["sockete"] = A_SOCKET_E_TEST;
@@ -57,7 +59,6 @@ void reset_hold(void) {
 }
 
 int main(int argc, char** argv) {
-
 	// if (argc == 1) {
 	// 	printf("No arguments given!\n");
 	// 	return 0;
@@ -71,7 +72,6 @@ int main(int argc, char** argv) {
     sigaction(SIGINT, &interrupt_handler, NULL);
     sigaction(SIGTERM, &interrupt_handler, NULL);
 
-	printf("PID: %d\n", getpid());
 	init_actions();
 	run_init();
 	for (int i = 1; i < argc; i++) {
@@ -79,6 +79,9 @@ int main(int argc, char** argv) {
 		switch (to_action(s_arg)) {
 		case A_BENCHMARK:
 			run_benchmarks();
+			break;
+		case A_BENCHMARK_SHIM:
+			run_shim_benchmarks();
 			break;
 		case A_TAINT:
 			run_taint();
