@@ -1,0 +1,53 @@
+# Prerequisites
+*.d
+
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+*.ko
+*.a
+
+# Fortran module files
+*.mod
+*.smod
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# Executables
+*.exe
+*.out
+*.app
+
+# Kbuild artefacts.
+*.cmd
+*.order
+*.log
+.*.o.d
+.*.o.cmd
+
+# SGX artefacts.
+*_u.c
+*_u.h
+*_t.c
+*_t.h
+
+# Other.
+daemon/build
+.nvimlog
+enclave.token
+scripts/keys

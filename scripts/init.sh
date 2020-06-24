@@ -36,8 +36,12 @@ CITADEL_LSM_PATH="$KERNEL_SOURCE_PATH/$CITADEL_KERNEL_FOLDER/security/citadel"
 mkdir -p $CITADEL_LSM_PATH
 cp -r $PARENT/lsm/* $CITADEL_LSM_PATH
 
-cp $PARENT/lsm/kernel.config "$KERNEL_SOURCE_PATH/$CITADEL_KERNEL_FOLDER/.config"
-cp $PARENT/lsm/security.Kconfig "$KERNEL_SOURCE_PATH/$CITADEL_KERNEL_FOLDER/security/Kconfig"
+mv $CITADEL_LSM_PATH/kernel.config "$KERNEL_SOURCE_PATH/$CITADEL_KERNEL_FOLDER/.config"
+mv $CITADEL_LSM_PATH/security.Kconfig "$KERNEL_SOURCE_PATH/$CITADEL_KERNEL_FOLDER/security/Kconfig"
 
+# Generate keys.
+$DIR/generate_keys.sh
+cp $DIR/keys/lsm_keys.h "$CITADEL_LSM_PATH/includes"
 
+rm -rf $DIR/keys
 cd $DIR
