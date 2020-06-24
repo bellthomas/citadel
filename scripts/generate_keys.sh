@@ -44,11 +44,11 @@ cat $OUTPUT_DIR/rsa.lsm_key_priv >> $OUTPUT_DIR/lsm_keys.h
 cat $OUTPUT_DIR/rsa.lsm_key_pub >> $OUTPUT_DIR/lsm_keys.h
 cat $OUTPUT_DIR/rsa.enclave_key_pub >> $OUTPUT_DIR/lsm_keys.h
 
-# echo -e $KEY_HEADER > $LSM_DIR/daemon/enclave_core/enclave_keys.h
-# cat $OUTPUT_DIR/rsa.enclave_key_priv >> $LSM_DIR/daemon/enclave_core/enclave_keys.h
-# cat $OUTPUT_DIR/rsa.enclave_key_padded_pub >> $LSM_DIR/daemon/enclave_core/enclave_keys.h
-# cat $OUTPUT_DIR/rsa.enclave_key_pub >> $LSM_DIR/daemon/enclave_core/enclave_keys.h
-# cat $OUTPUT_DIR/rsa.lsm_key_padded_pub >> $LSM_DIR/daemon/enclave_core/enclave_keys.h
-# cat $OUTPUT_DIR/rsa.lsm_key_pub >> $LSM_DIR/daemon/enclave_core/enclave_keys.h
+echo -e $KEY_HEADER > $LSM_DIR/daemon/enclave_core/enclave_keys.h
+cat $OUTPUT_DIR/rsa.enclave_key_priv >> $OUTPUT_DIR/enclave_keys.h
+cat $OUTPUT_DIR/rsa.enclave_key_padded_pub >> $OUTPUT_DIR/enclave_keys.h
+cat $OUTPUT_DIR/rsa.enclave_key_pub >> $OUTPUT_DIR/enclave_keys.h
+cat $OUTPUT_DIR/rsa.lsm_key_padded_pub >> $OUTPUT_DIR/enclave_keys.h
+cat $OUTPUT_DIR/rsa.lsm_key_pub >> $OUTPUT_DIR/enclave_keys.h
 
 # rm $OUTPUT_DIR/rsa.*

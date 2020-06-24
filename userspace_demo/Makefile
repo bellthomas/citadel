@@ -7,11 +7,8 @@ OBJECTS := $(SOURCES:%.cpp=%.o)
 
 LIBCITADEL_PATH := ../libcitadel
 
-NNG_Include_Folder := /opt/playground/nng/include
-NNG_Library_Folder := /opt/devel/libnng
-
-C_Includes := -I$(LIBCITADEL_PATH)/include -I$(NNG_Include_Folder)
-C_Flags :=  -lcitadel -L$(LIBCITADEL_PATH) -lnng -L$(NNG_Library_Folder) -pthread
+C_Includes := -I$(LIBCITADEL_PATH)/include
+C_Flags :=  -lcitadel -L$(LIBCITADEL_PATH) -pthread
 
 all: %: $(OBJECTS)
 	@$(CXX) -o $(App_Name) $(OBJECTS) $(C_Includes) $(C_Flags) 
