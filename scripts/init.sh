@@ -43,5 +43,7 @@ mv $CITADEL_LSM_PATH/security.Kconfig "$KERNEL_SOURCE_PATH/$CITADEL_KERNEL_FOLDE
 $DIR/generate_keys.sh
 cp $DIR/keys/lsm_keys.h "$CITADEL_LSM_PATH/includes"
 
+cp $DIR/keys/enclave_keys.h $PARENT/daemon/enclave_core/
+
 rm -rf $DIR/keys
 cd $DIR

@@ -104,7 +104,7 @@ Enclave_Name := shouldnt be here
 Signed_Enclave_Name :=  shouldnt be here 2
 Enclave_Config_File := $(Enclave_Folder)/Enclave.config.xml
 
-ASM_Folder := asm_implementations
+ASM_Folder := policy_impls
 # Enclave_Impls := $(sort $(dir $(wildcard $(ASM_Folder)/*/)))
 # SUFIX=$(addprefix bin/,$(notdir $(SOURCES:.c=.o)))
 
@@ -161,7 +161,7 @@ all: $(App_Name) enclave install-app
 	@echo "You can also sign the enclave using an external signing tool. See User's Guide for more details."
 	@echo "To build the project in simulation mode set SGX_MODE=SIM. To build the project in prerelease mode set SGX_PRERELEASE=1 and SGX_MODE=HW."
 else
-all: $(App_Name) enclave install-app libcitadel/libcitadel.a userspace_demo/app
+all: $(App_Name) enclave install-app
 endif
 
 run: all
@@ -251,20 +251,10 @@ install: install-app install-daemon
 	
 
 
-.PHONY: clean enclave enclave-uflume libcitadel userspace_demo
+.PHONY: clean enclave enclave-uflume
 clean: 
 	@rm -rf $(App_Name) $(App_Cpp_Objects) $(App_Folder)/Enclave_u.* $(Enclave_Cpp_Objects) $(Enclave_Folder)/Enclave_t.* $(Enclave_Folder)/asm/*
 	@rm -rf $(Build_Folder)/*
-	@$(MAKE) --no-print-directory -C libcitadel clean
-	@$(MAKE) --no-print-directory -C userspace_demo clean
 
-libcitadel/libcitadel.a:
-	@echo "\n/libcitadel"
-	@$(MAKE) --no-print-directory -C libcitadel clean
-	@$(MAKE) --no-print-directory -C libcitadel
 
-userspace_demo/app:
-	@echo "\n/userspace_demo"
-	@$(MAKE) --no-print-directory -C userspace_demo clean
-	@$(MAKE) --no-print-directory -C userspace_demo
 
