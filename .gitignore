@@ -51,3 +51,4 @@ daemon/build
 .nvimlog
 enclave.token
 scripts/keys
+daemon/enclave_core/enclave_keys.h
