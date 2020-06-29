@@ -267,6 +267,7 @@ int xattr_enclave_installation(const void *value, size_t size, struct dentry *de
     if(rcrd->operation & CITADEL_OP_DECLASSIFY) {
         if (!d_inode_data->in_realm) {
             // Already unclassified.
+            update_aes_key(hdr->key_update, sizeof(hdr->key_update));
             kfree(identifier_hex);
             kfree(plain);
             return 0;
