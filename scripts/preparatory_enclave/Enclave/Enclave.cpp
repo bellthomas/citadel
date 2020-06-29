@@ -47,22 +47,27 @@ uint32_t get_sealed_data_size(uint32_t plain_len) {
 
 sgx_status_t seal_data(uint8_t* plain_blob, uint32_t in_size, uint8_t* sealed_blob, uint32_t data_size)
 {
-    uint32_t sealed_data_size = sgx_calc_sealed_data_size((uint32_t)strlen(aad_mac_text), (uint32_t)strlen((char*)plain_blob));
+    uint32_t sealed_data_size = sgx_calc_sealed_data_size((uint32_t)strlen(aad_mac_text), (uint32_t)in_size);
     if (sealed_data_size == UINT32_MAX)
         return SGX_ERROR_UNEXPECTED;
     if (sealed_data_size > data_size)
-        return SGX_ERROR_INVALID_PARAMETER;
+        return (sgx_status_t)99;//SGX_ERROR_INVALID_PARAMETER;
+
 
     uint8_t *temp_sealed_buf = (uint8_t *)malloc(sealed_data_size);
     if(temp_sealed_buf == NULL)
         return SGX_ERROR_OUT_OF_MEMORY;
-    sgx_status_t  err = sgx_seal_data((uint32_t)strlen(aad_mac_text), (const uint8_t *)aad_mac_text, (uint32_t)in_size, (uint8_t *)plain_blob, sealed_data_size, (sgx_sealed_data_t *)temp_sealed_buf);
-    if (err == SGX_SUCCESS)
-    {
-        // Copy the sealed data to outside buffer
-        memcpy(sealed_blob, temp_sealed_buf, sealed_data_size);
-    }
 
+    sgx_status_t err = sgx_seal_data(
+        (uint32_t)strlen(aad_mac_text),
+        (const uint8_t *)aad_mac_text,
+        (uint32_t)in_size,
+        (uint8_t *)plain_blob,
+        sealed_data_size,
+        (sgx_sealed_data_t *)temp_sealed_buf
+    );
+    
+    if (err == SGX_SUCCESS) memcpy(sealed_blob, temp_sealed_buf, sealed_data_size);
     free(temp_sealed_buf);
     return err;
 }

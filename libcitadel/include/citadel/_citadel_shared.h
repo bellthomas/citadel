@@ -3,7 +3,7 @@
 #ifndef __CITADEL_SHARED_DEFINITIONS_H
 #define __CITADEL_SHARED_DEFINITIONS_H
 
-#define CITADEL_DEBUG 0
+#define CITADEL_DEBUG 1
 
 // Generic.
 #define _CITADEL_LSM_NAME "citadel"
@@ -28,6 +28,15 @@
 #define _CITADEL_ASM_NAME_LENGTH 40
 #define _CITADEL_CHALLENGE_PADDING (0 + _CITADEL_MAX_RSA_PAYLOAD - _CITADEL_PID_LENGTH - _CITADEL_ASM_NAME_LENGTH - _CITADEL_CHALLENGE_LENGTH - _CITADEL_AES_KEY_LENGTH - _CITADEL_SIGNATURE_LENGTH)
 
+
+// Key Sealing.
+#define _CITADEL_SEAL_MAC "Citadel Enclave Initialisation Keys."
+#define _CITADEL_SEAL_MAXSIZE 4096
+#define _CITADEL_KEY_PRIV_LEN 1200
+#define _CITADEL_KEY_PUB_PAD_LEN 294
+#define _CITADEL_KEY_PUB_LEN 270
+
+
 // Updates.
 // #define _TRM_UPDATE_SUBJECT_LENGTH _CITADEL_IDENTIFIER_LENGTH
 // #define _TRM_UPDATE_DATA_LENGTH 32
@@ -37,11 +46,13 @@
 #define _CITADEL_SECURITYFS_PTOKEN "get_ptoken"
 #define _CITADEL_SECURITYFS_UPDATE "update"
 #define _CITADEL_SECURITYFS_CHALLENGE "challenge"
+#define _CITADEL_SECURITYFS_SEALED_KEYS "sealed_keys"
 
 #define _CITADEL_SECURITYFS_ROOT "/sys/kernel/security/" _CITADEL_SECURITYFS_NS "/"
 #define _CITADEL_PROCESS_GET_PTOKEN_PATH _CITADEL_SECURITYFS_ROOT _CITADEL_SECURITYFS_PTOKEN
 #define _CITADEL_LSM_CHALLENGE_PATH _CITADEL_SECURITYFS_ROOT _CITADEL_SECURITYFS_CHALLENGE
 #define _CITADEL_LSM_UPDATE_PATH _CITADEL_SECURITYFS_ROOT _CITADEL_SECURITYFS_UPDATE
+#define _CITADEL_SEALED_KEYS_PATH _CITADEL_SECURITYFS_ROOT _CITADEL_SECURITYFS_SEALED_KEYS
 
 // XATTR.
 #define _CITADEL_SECURITY_ROOT "security"
@@ -79,7 +90,6 @@
 
 typedef uint16_t citadel_operation_t;
 typedef uint8_t citadel_response_t;
-
 
 static const unsigned char challenge_signature[_CITADEL_SIGNATURE_LENGTH] = { 0x80, 0x70, 0x60, 0x50, 0x40, 0x30, 0x20, 0x10 };
 
@@ -125,14 +135,18 @@ typedef struct citadel_ptoken_protected {
 // Citadel operation (citadel_operation_t).
 #define CITADEL_OP_NOP              0x001
 #define CITADEL_OP_PTY_ACCESS       0x002  // Special, will persist indefinitely.
-#define CITADEL_OP_REGISTER         0x004
+#define CITADEL_OP_REGISTER         0x004  // Both for process registration and entity tagging. 
 #define CITADEL_OP_PARENT           0x008
 #define CITADEL_OP_CLAIM            0x010
-#define CITADEL_OP_OPEN             0x020
-#define CITADEL_OP_SOCKET_INTERNAL  0x040
-#define CITADEL_OP_SOCKET_EXTERNAL  0x080
+#define CITADEL_OP_READ             0x020
+#define CITADEL_OP_WRITE            0x040
+#define CITADEL_OP_OPEN             CITADEL_OP_READ | CITADEL_OP_WRITE
+#define CITADEL_OP_EXEC             0x080
+#define CITADEL_OP_SOCKET_INTERNAL  0x100
+#define CITADEL_OP_SOCKET_EXTERNAL  0x200
 #define CITADEL_OP_SOCKET           CITADEL_OP_SOCKET_INTERNAL | CITADEL_OP_SOCKET_EXTERNAL
-#define CITADEL_OP_SHM              0x100
+#define CITADEL_OP_SHM              0x400
+#define CITADEL_OP_DECLASSIFY       0x800
 
 // Citadel request response (citadel_response_t).
 // enum citadel_status {

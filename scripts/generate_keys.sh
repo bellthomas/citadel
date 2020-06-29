@@ -26,11 +26,17 @@ PASSWORD=""
 KEY_FILES="enclave_key.priv enclave_key.pub enclave_key_padded.pub lsm_key.priv lsm_key.pub lsm_key_padded.pub enclave_keys.sealed"
 
 # Assemble enclave blob for sealing.
-echo "testing" > $OUTPUT_DIR/enclave_keys
+cat $OUTPUT_DIR/enclave_key.priv > $OUTPUT_DIR/enclave_keys
+cat $OUTPUT_DIR/enclave_key_padded.pub >> $OUTPUT_DIR/enclave_keys
+cat $OUTPUT_DIR/enclave_key.pub >> $OUTPUT_DIR/enclave_keys
+cat $OUTPUT_DIR/lsm_key_padded.pub >> $OUTPUT_DIR/enclave_keys
+cat $OUTPUT_DIR/lsm_key.pub >> $OUTPUT_DIR/enclave_keys
 
 # Invoke preparatory enclave.
+private_keylen=$(stat -c%s "$OUTPUT_DIR/enclave_key.priv")
+echo $private_keylen
 make -C $DIR/preparatory_enclave
-$DIR/preparatory_enclave/build/app $DIR/preparatory_enclave/build/libpreparation.signed.so $OUTPUT_DIR/enclave_keys
+$DIR/preparatory_enclave/build/app $DIR/preparatory_enclave/build/libpreparation.signed.so $OUTPUT_DIR/enclave_keys $private_keylen
 
 for key_file in $KEY_FILES; do
     key_name=${key_file/./_}
@@ -51,12 +57,12 @@ cat $OUTPUT_DIR/rsa.lsm_key_priv >> $OUTPUT_DIR/lsm_keys.h
 cat $OUTPUT_DIR/rsa.lsm_key_pub >> $OUTPUT_DIR/lsm_keys.h
 cat $OUTPUT_DIR/rsa.enclave_key_pub >> $OUTPUT_DIR/lsm_keys.h
 
-echo -e $KEY_HEADER > $OUTPUT_DIR/enclave_keys.h
-cat $OUTPUT_DIR/rsa.enclave_key_priv >> $OUTPUT_DIR/enclave_keys.h
-cat $OUTPUT_DIR/rsa.enclave_key_padded_pub >> $OUTPUT_DIR/enclave_keys.h
-cat $OUTPUT_DIR/rsa.enclave_key_pub >> $OUTPUT_DIR/enclave_keys.h
-cat $OUTPUT_DIR/rsa.lsm_key_padded_pub >> $OUTPUT_DIR/enclave_keys.h
-cat $OUTPUT_DIR/rsa.lsm_key_pub >> $OUTPUT_DIR/enclave_keys.h
+#echo -e $KEY_HEADER > $OUTPUT_DIR/enclave_keys.h
+#cat $OUTPUT_DIR/rsa.enclave_key_priv >> $OUTPUT_DIR/enclave_keys.h
+#cat $OUTPUT_DIR/rsa.enclave_key_padded_pub >> $OUTPUT_DIR/enclave_keys.h
+#cat $OUTPUT_DIR/rsa.enclave_key_pub >> $OUTPUT_DIR/enclave_keys.h
+#cat $OUTPUT_DIR/rsa.lsm_key_padded_pub >> $OUTPUT_DIR/enclave_keys.h
+#cat $OUTPUT_DIR/rsa.lsm_key_pub >> $OUTPUT_DIR/enclave_keys.h
 
 echo -e $KEY_HEADER > $OUTPUT_DIR/sealed_enclave_keys.h
 cat $OUTPUT_DIR/rsa.enclave_keys_sealed >> $OUTPUT_DIR/sealed_enclave_keys.h

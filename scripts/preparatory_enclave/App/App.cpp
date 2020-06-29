@@ -86,7 +86,7 @@ static sgx_status_t initialize_enclave(const char* enclave_path, sgx_enclave_id_
 }
 
 
-static bool seal_and_save_data(const char* enclave_path, const char* datafile) {
+static bool seal_and_save_data(const char* enclave_path, const char* datafile, uint16_t preamble) {
     sgx_enclave_id_t eid_seal = 0;
     // Load the enclave for sealing
     sgx_status_t ret = initialize_enclave(enclave_path, &eid_seal);
@@ -102,19 +102,24 @@ static bool seal_and_save_data(const char* enclave_path, const char* datafile) {
         sgx_destroy_enclave(eid_seal);
         return false;
     }
-    
-    uint8_t *plain_text = (uint8_t *)malloc(plain_len);
+
+    uint8_t *plain_text = (uint8_t *)malloc(plain_len + sizeof(uint16_t));
     if(plain_text == NULL) {
         std::cout << "Out of memory" << std::endl;
         sgx_destroy_enclave(eid_seal);
         return false;
     }
 
-    if (!read_file_to_buf(datafile, plain_text, plain_len)) {
+    if (!read_file_to_buf(datafile, plain_text + sizeof(uint16_t), plain_len)) {
         std::cout << "Failed to read file" << std::endl;
         sgx_destroy_enclave(eid_seal);
         return false;
     }
+
+    // Set preamble.
+    memcpy(plain_text, (void*)&preamble, sizeof(uint16_t));
+    plain_len += sizeof(uint16_t);
+    write_buf_to_file("/opt/abcd", plain_text, plain_len, 0);
 
     // Get the sealed data size
     uint32_t sealed_data_size = 0;
@@ -128,14 +133,13 @@ static bool seal_and_save_data(const char* enclave_path, const char* datafile) {
         sgx_destroy_enclave(eid_seal);
         return false;
     }
-    
+
     uint8_t *temp_sealed_buf = (uint8_t *)malloc(sealed_data_size);
     if(temp_sealed_buf == NULL) {
         std::cout << "Out of memory" << std::endl;
         sgx_destroy_enclave(eid_seal);
         return false;
     }
-
 
     sgx_status_t retval;
     ret = seal_data(eid_seal, &retval, (uint8_t*)plain_text, (uint32_t)plain_len, temp_sealed_buf, sealed_data_size);
@@ -183,13 +187,14 @@ int main(int argc, char* argv[])
 {
     // (void)argc, (void)argv;
 
-    if (argc != 3) {
+    if (argc != 4) {
         std::cout << "Invalid number of arguments." << std::endl;
         return -2; 
     }
 
     // Enclave_Seal: seal the secret and save the data blob to a file
-    if (seal_and_save_data((const char*)argv[1], (const char*)argv[2]) == false)
+    int preamble = atoi(argv[3]);
+    if (seal_and_save_data((const char*)argv[1], (const char*)argv[2], (uint16_t)preamble) == false)
     {
         std::cout << "Failed to seal the secret and save it to a file." << std::endl;
         return -1;

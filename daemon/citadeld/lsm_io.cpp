@@ -47,6 +47,25 @@ bool lsm_register(void) {
     return res;
 }
 
+// Sealed keys.
+bool fetch_sealed_keys(void) {
+    FILE *f_keys;
+    f_keys = fopen(_CITADEL_SEALED_KEYS_PATH, "rb");
+    if (!f_keys) {
+        printf("Failed to open keys file, %s.\n", _CITADEL_SEALED_KEYS_PATH);
+        return false;
+    }
+
+    // Make ECALL with sealed blob.
+    uint8_t buffer[_CITADEL_SEAL_MAXSIZE];
+    size_t sealed_read = fread(buffer, sizeof(buffer), 1, f_keys);
+    sgx_status_t retval;
+    process_sealed_keys(get_enclave_id(), &retval, (uint8_t*)buffer, _CITADEL_SEAL_MAXSIZE);
+
+    fclose(f_keys);
+    return (retval == 0);
+}
+
 
 // Updates.
 

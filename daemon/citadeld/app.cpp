@@ -50,6 +50,13 @@ int main(int argc, char const *argv[]) {
         return -EIO;
     }
     
+    // Fetch sealed keys.
+    if (!fetch_sealed_keys()) {
+        perror("Aborting. Failed to get sealed keys.");
+        printf("Terminated.\n---\n");
+        return -EPERM;
+    }
+
     // Initialise with LSM.
     if (lsm_register()) {
         printf("---\n");

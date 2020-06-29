@@ -264,32 +264,55 @@ int xattr_enclave_installation(const void *value, size_t size, struct dentry *de
     if (hdr->records != 1) return -1;
     rcrd = (citadel_update_record_t *)(plain + sizeof(citadel_update_header_t));
 
-    // Set the xattr values.
-    d_inode_data->needs_xattr_update = false;
-    d_inode_data->checked_disk_xattr = true;
-    identifier_hex = to_hexstring(rcrd->identifier, _CITADEL_IDENTIFIER_LENGTH);
-    // need to lock inode->i_rwsem
-    // down_write(&(dentry->d_inode->i_rwsem));
-    xattr_success = __vfs_setxattr_noperm(dentry, _CITADEL_XATTR_IDENTIFIER, (const void*)identifier_hex, _CITADEL_IDENTIFIER_LENGTH * 2, 0);
-    __vfs_setxattr_noperm(dentry, _CITADEL_XATTR_IN_REALM, NULL, 0, 0);
-	// up_write(&(dentry->d_inode->i_rwsem));
+    if(rcrd->operation & CITADEL_OP_DECLASSIFY) {
+        // Set the xattr values.
+        d_inode_data->needs_xattr_update = false;
+        d_inode_data->checked_disk_xattr = true;
+        xattr_success = __vfs_removexattr(dentry, _CITADEL_XATTR_IN_REALM);
+        if(xattr_success == 0) {
+            // Update internal kernel structure.
+            printkc("Declassified file. Identifier: %s\n", identifier_hex);
+            d_inode_data->in_realm = false;
 
-    if(xattr_success == 0) {
-        // Update internal kernel structure.
-        printkc("Inducted file. Identifier: %s\n", identifier_hex);
-        d_inode_data->in_realm = true;
-        memcpy(d_inode_data->identifier, rcrd->identifier, sizeof(d_inode_data->identifier));
-        d_inode_data->anonymous = false;
+            update_aes_key(hdr->key_update, sizeof(hdr->key_update));
+            kfree(identifier_hex);
+            kfree(plain);
+            return 0;
+        } else {
+            d_inode_data->checked_disk_xattr = false;
+            kfree(identifier_hex);
+            kfree(plain);
+            return -1;
+        }
+    }
+    else {
+        // Set the xattr values.
+        d_inode_data->needs_xattr_update = false;
+        d_inode_data->checked_disk_xattr = true;
+        identifier_hex = to_hexstring(rcrd->identifier, _CITADEL_IDENTIFIER_LENGTH);
+        // need to lock inode->i_rwsem
+        // down_write(&(dentry->d_inode->i_rwsem));
+        xattr_success = __vfs_setxattr_noperm(dentry, _CITADEL_XATTR_IDENTIFIER, (const void*)identifier_hex, _CITADEL_IDENTIFIER_LENGTH * 2, 0);
+        if (rcrd->operation & CITADEL_OP_REGISTER) __vfs_setxattr_noperm(dentry, _CITADEL_XATTR_IN_REALM, NULL, 0, 0);
+        // up_write(&(dentry->d_inode->i_rwsem));
 
-        update_aes_key(hdr->key_update, sizeof(hdr->key_update));
-        kfree(identifier_hex);
-        kfree(plain);
-        return 0;
-    } else {
-        d_inode_data->checked_disk_xattr = false;
-        kfree(identifier_hex);
-        kfree(plain);
-        return -1;
+        if(xattr_success == 0) {
+            // Update internal kernel structure.
+            printkc("Inducted file. Identifier: %s\n", identifier_hex);
+            d_inode_data->in_realm = (rcrd->operation & CITADEL_OP_REGISTER) > 0;
+            memcpy(d_inode_data->identifier, rcrd->identifier, sizeof(d_inode_data->identifier));
+            d_inode_data->anonymous = false;
+
+            update_aes_key(hdr->key_update, sizeof(hdr->key_update));
+            kfree(identifier_hex);
+            kfree(plain);
+            return 0;
+        } else {
+            d_inode_data->checked_disk_xattr = false;
+            kfree(identifier_hex);
+            kfree(plain);
+            return -1;
+        }
     }
 }
 

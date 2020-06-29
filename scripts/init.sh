@@ -49,11 +49,13 @@ fi
 
 # Move Citadel source.
 CITADEL_LSM_PATH="$KERNEL_SOURCE_PATH/$CITADEL_KERNEL_FOLDER/security/citadel"
+rm -rf $CITADEL_LSM_PATH
 mkdir -p $CITADEL_LSM_PATH
 cp -r $PARENT/lsm/* $CITADEL_LSM_PATH
 
 mv $CITADEL_LSM_PATH/kernel.config "$KERNEL_SOURCE_PATH/$CITADEL_KERNEL_FOLDER/.config"
 mv $CITADEL_LSM_PATH/security.Kconfig "$KERNEL_SOURCE_PATH/$CITADEL_KERNEL_FOLDER/security/Kconfig"
+mv $CITADEL_LSM_PATH/security.Makefile "$KERNEL_SOURCE_PATH/$CITADEL_KERNEL_FOLDER/security/Makefile"
 
 printf "done.\n"
 
@@ -62,7 +64,7 @@ printf "done.\n"
 printf "Generating keys..."
 $DIR/generate_keys.sh > /dev/null 2>&1
 cp $DIR/keys/lsm_keys.h "$CITADEL_LSM_PATH/includes"
-cp $DIR/keys/enclave_keys.h $PARENT/daemon/enclave_core
+#cp $DIR/keys/enclave_keys.h $PARENT/daemon/enclave_core
 cp $DIR/keys/sealed_enclave_keys.h "$CITADEL_LSM_PATH/includes"
 rm -rf $DIR/keys
 printf "done.\n"

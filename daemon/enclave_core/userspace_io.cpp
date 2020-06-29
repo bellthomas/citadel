@@ -19,7 +19,7 @@ static citadel_response_t core_handle_request(int32_t pid, struct citadel_op_req
         // Create file
         enclave_printf("[#%d] File create.", pid);
         char id[_CITADEL_IDENTIFIER_LENGTH];
-        if (!generate_xattr_ticket((const char*)metadata, (char*)&id))
+        if (!generate_xattr_ticket((const char*)metadata, (char*)&id), true, false)
             result = CITADEL_OP_ERROR;
 
         // Also claim access for free.
@@ -40,7 +40,7 @@ static citadel_response_t core_handle_request(int32_t pid, struct citadel_op_req
         char id[_CITADEL_IDENTIFIER_LENGTH];
         if (translated && !translate_success) {
             enclave_printf("Inducting new file from open: %s", (const char*)metadata);
-            if (!generate_xattr_ticket((const char*)metadata, (char*)&id))
+            if (!generate_xattr_ticket((const char*)metadata, (char*)&id, true, false))
                 result = CITADEL_OP_ERROR;
             identifier = (void*)&id;
         }
@@ -67,6 +67,13 @@ static citadel_response_t core_handle_request(int32_t pid, struct citadel_op_req
     if (op & CITADEL_OP_REGISTER) {
         // Register
         enclave_printf("[#%d] Registered.", pid);
+    }
+
+    if (op & CITADEL_OP_DECLASSIFY) {
+        // Create file
+        enclave_printf("[#%d] File declassified.", pid);
+        if (!generate_xattr_ticket((const char*)metadata, NULL, false, true))
+            result = CITADEL_OP_ERROR;
     }
 
     return result;
