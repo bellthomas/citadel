@@ -1,4 +1,4 @@
-obj-y := 
+obj-y := \
 	src/citadel.o \
 	src/common.o \
 	src/crypto/rsa.o \
