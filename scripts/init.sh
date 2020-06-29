@@ -62,6 +62,7 @@ printf "done.\n"
 
 # Generate keys.
 printf "Generating keys..."
+openssl genrsa -3 -out $DIR/signer.pem 3072 > /dev/null 2>&1
 $DIR/generate_keys.sh > /dev/null 2>&1
 cp $DIR/keys/lsm_keys.h "$CITADEL_LSM_PATH/includes"
 #cp $DIR/keys/enclave_keys.h $PARENT/daemon/enclave_core
@@ -83,6 +84,6 @@ make
 cd $PARENT
 printf "Done.\n"
 
-
+rm $DIR/signer.pem
 cd $DIR
 

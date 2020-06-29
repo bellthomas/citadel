@@ -3,7 +3,7 @@
 #ifndef __CITADEL_SHARED_DEFINITIONS_H
 #define __CITADEL_SHARED_DEFINITIONS_H
 
-#define CITADEL_DEBUG 1
+#define CITADEL_DEBUG 0
 
 // Generic.
 #define _CITADEL_LSM_NAME "citadel"
@@ -140,7 +140,7 @@ typedef struct citadel_ptoken_protected {
 #define CITADEL_OP_CLAIM            0x0010
 #define CITADEL_OP_READ             0x0020
 #define CITADEL_OP_WRITE            0x0040
-#define CITADEL_OP_OPEN             0x0040
+#define CITADEL_OP_OPEN             0x0040  // TODO: Fix bug where READ | WRITE always fires.
 #define CITADEL_OP_EXEC             0x0080
 #define CITADEL_OP_SOCKET_INTERNAL  0x0100
 #define CITADEL_OP_SOCKET_EXTERNAL  0x0200

@@ -222,7 +222,7 @@ $(Build_Folder)/citadel.%.so: $(Enclave_Folder)/Enclave_t.o $(Enclave_Cpp_Object
 
 
 $(Build_Folder)/citadel.%.signed.so: $(Build_Folder)/citadel.%.so
-	@$(SGX_ENCLAVE_SIGNER) sign -key $(Enclave_Folder)/Enclave_private.pem -enclave $(Build_Folder)/citadel.$*.so -out $@ -config $(Enclave_Config_File)
+	@$(SGX_ENCLAVE_SIGNER) sign -key ../scripts/signer.pem -enclave $(Build_Folder)/citadel.$*.so -out $@ -config $(Enclave_Config_File)
 	@echo "SIGN =>  $@"
 
 
