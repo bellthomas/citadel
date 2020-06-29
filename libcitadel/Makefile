@@ -3,7 +3,7 @@ SOURCEDIR := src
 SOURCES := $(shell find $(SOURCEDIR) -name '*.c')
 OBJECTS := $(SOURCES:%.c=%.o)
 
-C_Flags := -pthread -D_GNU_SOURCE -fPIC 
+override CFLAGS += -pthread -D_GNU_SOURCE -fPIC
 
 all: libcitadel.a
 
@@ -12,7 +12,7 @@ libcitadel.a: %: $(OBJECTS)
 	@echo "   AR      libcitadel.a"
 
 %.o: %.c
-	@$(CC) -c -o $@ $< $(C_Includes) $(C_Flags)
+	@$(CC) -c -o $@ $< $(C_Includes) $(CFLAGS)
 	@echo "   CC      $@"
 
 .PHONY: clean

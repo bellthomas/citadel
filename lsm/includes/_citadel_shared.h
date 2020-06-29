@@ -3,7 +3,12 @@
 #ifndef __CITADEL_SHARED_DEFINITIONS_H
 #define __CITADEL_SHARED_DEFINITIONS_H
 
-#define CITADEL_DEBUG 1
+// Debug flag.
+#ifdef CITADELDEBUG
+    #define CITADEL_DEBUG 1
+#else
+    #define CITADEL_DEBUG 0
+#endif
 
 // Generic.
 #define _CITADEL_LSM_NAME "citadel"

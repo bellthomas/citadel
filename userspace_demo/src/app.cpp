@@ -113,8 +113,11 @@ int main(int argc, char** argv) {
 			if (i < argc - 1) {
 				i++;
 				char *pathname = argv[i];
-				printf("%s\n", pathname);
-				citadel_declassify(pathname, strlen(pathname)+1);
+				if (citadel_declassify(pathname, strlen(pathname)+1)) {
+					printf("Declassified: %s\n", pathname);
+				} else {
+					printf("Failed to declassified: %s\n", pathname);
+				}
 			}
 			break;
 		default:
