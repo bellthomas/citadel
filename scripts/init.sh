@@ -87,7 +87,7 @@ make
 cd $PARENT
 printf "Done.\n"
 
-printf "\nBuilding citadel.basic.signed.so...\n"
+printf "\nBuilding citadeld...\n"
 cd $PARENT/daemon
 make SGX_SDK=$SGX_SDK
 cd $PARENT
