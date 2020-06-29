@@ -265,7 +265,14 @@ int xattr_enclave_installation(const void *value, size_t size, struct dentry *de
     rcrd = (citadel_update_record_t *)(plain + sizeof(citadel_update_header_t));
 
     if(rcrd->operation & CITADEL_OP_DECLASSIFY) {
-        // Set the xattr values.
+        if (!d_inode_data->in_realm) {
+            // Already unclassified.
+            kfree(identifier_hex);
+            kfree(plain);
+            return 0;
+        }
+
+        // Set the xattr values.        
         d_inode_data->needs_xattr_update = false;
         d_inode_data->checked_disk_xattr = true;
         xattr_success = __vfs_removexattr(dentry, _CITADEL_XATTR_IN_REALM);
