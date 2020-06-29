@@ -35,7 +35,7 @@ cat $OUTPUT_DIR/lsm_key.pub >> $OUTPUT_DIR/enclave_keys
 # Invoke preparatory enclave.
 private_keylen=$(stat -c%s "$OUTPUT_DIR/enclave_key.priv")
 echo $private_keylen
-make -C $DIR/preparatory_enclave
+make -C $DIR/preparatory_enclave SGX_SDK=$1
 $DIR/preparatory_enclave/build/app $DIR/preparatory_enclave/build/libpreparation.signed.so $OUTPUT_DIR/enclave_keys $private_keylen
 
 for key_file in $KEY_FILES; do

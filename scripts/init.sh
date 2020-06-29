@@ -20,6 +20,15 @@ echo "Install Directory [$old_dir]"
 read -e -p "-> " KERNEL_SOURCE_PATH
 KERNEL_SOURCE_PATH=${KERNEL_SOURCE_PATH:-"$old_dir"}
 
+sdk_default="/opt/intel/sgxsdk"
+echo "SGX SDK [$sdk_default]"
+read -e -p "-> " SGX_SDK
+SGX_SDK=${SGX_SDK:-"$sdk_default"}
+
+driver_default="/opt/intel/linux-sgx-driver"
+echo "SGX Driver [$driver_default]"
+read -e -p "-> " SGX_DRIVER
+SGX_DRIVER=${SGX_DRIVER:-"$driver_default"}
 
 if [ "$old_dir" = "$KERNEL_SOURCE_PATH" ]; then
     UPDATE_MODE=1
@@ -62,8 +71,8 @@ printf "done.\n"
 
 # Generate keys.
 printf "Generating keys..."
-openssl genrsa -3 -out $DIR/signer.pem 3072 > /dev/null 2>&1
-$DIR/generate_keys.sh > /dev/null 2>&1
+#openssl genrsa -3 -out $DIR/signer.pem 3072 > /dev/null 2>&1
+$DIR/generate_keys.sh $SGX_SDK > /dev/null 2>&1
 cp $DIR/keys/lsm_keys.h "$CITADEL_LSM_PATH/includes"
 #cp $DIR/keys/enclave_keys.h $PARENT/daemon/enclave_core
 cp $DIR/keys/sealed_enclave_keys.h "$CITADEL_LSM_PATH/includes"
@@ -80,10 +89,10 @@ printf "Done.\n"
 
 printf "\nBuilding citadel.basic.signed.so...\n"
 cd $PARENT/daemon
-make
+make SGX_SDK=$SGX_SDK
 cd $PARENT
 printf "Done.\n"
 
-rm $DIR/signer.pem
+#rm $DIR/signer.pem
 cd $DIR
 

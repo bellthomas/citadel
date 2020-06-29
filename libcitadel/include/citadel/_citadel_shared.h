@@ -3,7 +3,7 @@
 #ifndef __CITADEL_SHARED_DEFINITIONS_H
 #define __CITADEL_SHARED_DEFINITIONS_H
 
-#define CITADEL_DEBUG 0
+#define CITADEL_DEBUG 1
 
 // Generic.
 #define _CITADEL_LSM_NAME "citadel"
