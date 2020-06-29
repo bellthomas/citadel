@@ -12,6 +12,7 @@
 #include "../../includes/file_io.h"
 #include "../../includes/payload_io.h"
 #include "../../includes/crypto.h"
+#include "../../includes/sealed_enclave_keys.h"
 
 ssize_t challenge_receive(struct file *file, const char __user *buf, size_t count, loff_t *ppos) {
     char *data;
@@ -79,6 +80,23 @@ ssize_t challenge_read(struct file *file, char __user *buf, size_t count, loff_t
     return cipher_len;
 }
 
+
+ssize_t sealed_keys_read(struct file *file, char __user *buf, size_t count, loff_t *ppos) {
+    loff_t pos;
+    size_t len = enclave_keys_sealed_len;
+
+    // Generate secret message.
+    pos = *ppos;
+    if (pos >= len) return 0;
+
+    len -= pos;
+    if (count < len) len = count;
+
+    /* handling */
+    if (copy_to_user(buf, enclave_keys_sealed, len)) return -EFAULT;
+    *ppos += len;
+    return len;
+}
 
 ssize_t update_receive(struct file *file, const char __user *buf, size_t count, loff_t *ppos) {
     char *data;

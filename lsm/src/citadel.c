@@ -32,6 +32,7 @@ struct dentry *citadel_dir;
 struct dentry *challenge_file;
 struct dentry *update_file;
 struct dentry *ptoken_file;
+struct dentry *sealed_keys_file;
 
 /*
  * Perform a check of a program execution/map.
@@ -53,6 +54,7 @@ static int trm_bprm_check_security(struct linux_binprm *bprm) {
 static const struct file_operations challenge_file_ops = { .read = challenge_read, .write = challenge_receive };
 static const struct file_operations update_file_ops = { .read = update_read, .write = update_receive };
 static const struct file_operations ptoken_file_ops = { .read = ptoken_read };
+static const struct file_operations sealed_keys_file_ops = { .read = sealed_keys_read };
 
 static int __init integrity_fs_init(void)
 {
@@ -88,6 +90,14 @@ static int __init integrity_fs_init(void)
         citadel_dir,
         NULL,
         &ptoken_file_ops
+    );
+
+    sealed_keys_file = securityfs_create_file(
+        _CITADEL_SECURITYFS_SEALED_KEYS, // name
+        S_IRUSR | S_IRGRP | S_IROTH,
+        citadel_dir,
+        NULL,
+        &sealed_keys_file_ops
     );
 
 	return 0;
