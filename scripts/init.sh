@@ -25,15 +25,12 @@ echo "SGX SDK [$sdk_default]"
 read -e -p "-> " SGX_SDK
 SGX_SDK=${SGX_SDK:-"$sdk_default"}
 
-driver_default="/opt/intel/linux-sgx-driver"
-echo "SGX Driver [$driver_default]"
-read -e -p "-> " SGX_DRIVER
-SGX_DRIVER=${SGX_DRIVER:-"$driver_default"}
 
 if [ "$old_dir" = "$KERNEL_SOURCE_PATH" ]; then
     UPDATE_MODE=1
 else
     echo "$KERNEL_SOURCE_PATH" > $DIR/.citadel_path
+    echo "$KERNEL_SOURCE_PATH$CITADEL_KERNEL_FOLDER" > $DIR/.kernel_path
 fi
 
 printf "\nGenerating $KERNEL_SOURCE_PATH$CITADEL_KERNEL_FOLDER ($UPDATE_MODE)..."
@@ -96,3 +93,10 @@ printf "Done.\n"
 #rm $DIR/signer.pem
 cd $DIR
 
+echo -e "\n"
+echo "Next steps:"
+echo "    1. Build and install the kernel ('sudo make kernel', this will take a while to complete)."
+echo "    2. Install isgx for the new kernel."
+echo "       Either modify the driver's Makefile or boot to the new kernel, install it there, then restart."
+echo "       isgx will hopefully be adopted into the kernel mainline in future, making this step unnecessary."
+echo ""

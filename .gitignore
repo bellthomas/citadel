@@ -53,4 +53,5 @@ enclave.token
 scripts/keys
 daemon/enclave_core/enclave_keys.h
 .citadel_path
+.kernel_path
 .vscode/
