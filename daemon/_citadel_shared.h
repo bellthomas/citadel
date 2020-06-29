@@ -133,20 +133,20 @@ typedef struct citadel_ptoken_protected {
 
 
 // Citadel operation (citadel_operation_t).
-#define CITADEL_OP_NOP              0x001
-#define CITADEL_OP_PTY_ACCESS       0x002  // Special, will persist indefinitely.
-#define CITADEL_OP_REGISTER         0x004  // Both for process registration and entity tagging. 
-#define CITADEL_OP_PARENT           0x008
-#define CITADEL_OP_CLAIM            0x010
-#define CITADEL_OP_READ             0x020
-#define CITADEL_OP_WRITE            0x040
-#define CITADEL_OP_OPEN             CITADEL_OP_READ | CITADEL_OP_WRITE
-#define CITADEL_OP_EXEC             0x080
-#define CITADEL_OP_SOCKET_INTERNAL  0x100
-#define CITADEL_OP_SOCKET_EXTERNAL  0x200
+#define CITADEL_OP_NOP              0x0001
+#define CITADEL_OP_PTY_ACCESS       0x0002  // Special, will persist indefinitely.
+#define CITADEL_OP_REGISTER         0x0004  // Both for process registration and entity tagging. 
+#define CITADEL_OP_PARENT           0x0008
+#define CITADEL_OP_CLAIM            0x0010
+#define CITADEL_OP_READ             0x0020
+#define CITADEL_OP_WRITE            0x0040
+#define CITADEL_OP_OPEN             0x0040  // TODO: Fix bug where READ | WRITE always fires.
+#define CITADEL_OP_EXEC             0x0080
+#define CITADEL_OP_SOCKET_INTERNAL  0x0100
+#define CITADEL_OP_SOCKET_EXTERNAL  0x0200
 #define CITADEL_OP_SOCKET           CITADEL_OP_SOCKET_INTERNAL | CITADEL_OP_SOCKET_EXTERNAL
-#define CITADEL_OP_SHM              0x400
-#define CITADEL_OP_DECLASSIFY       0x800
+#define CITADEL_OP_SHM              0x0400
+#define CITADEL_OP_DECLASSIFY       0x0800
 
 // Citadel request response (citadel_response_t).
 // enum citadel_status {

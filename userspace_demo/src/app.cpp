@@ -22,6 +22,7 @@ enum Action {
 	A_SHM_TEST,
 	A_TAINT,
 	A_PTY,
+	A_DECLASSIFY,
 };
 static std::map<std::string, Action> actions;
 static bool hold = true;
@@ -37,6 +38,7 @@ void init_actions(void) {
 	actions["shm"] = A_SHM_TEST;
 	actions["taint"] = A_TAINT;
 	actions["pty"] = A_PTY;
+	actions["declassify"] = A_DECLASSIFY;
 } 
 
 int to_action(std::string str) {
@@ -106,6 +108,14 @@ int main(int argc, char** argv) {
 			break;
 		case A_PTY:
 			run_pty();
+			break;
+		case A_DECLASSIFY:
+			if (i < argc - 1) {
+				i++;
+				char *pathname = argv[i];
+				printf("%s\n", pathname);
+				citadel_declassify(pathname, strlen(pathname)+1);
+			}
 			break;
 		default:
 			printf("Invalid option: %s, %d\n", s_arg.c_str(), to_action(s_arg));

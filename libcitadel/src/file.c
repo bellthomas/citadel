@@ -141,3 +141,20 @@ void citadel_declare_fd(int fd, citadel_operation_t op) {
 		free(identifier);
 	}
 }
+
+bool citadel_declassify(const char *path, size_t length) {
+	struct citadel_op_extended_request payload;
+	memcpy(payload.request.signature, challenge_signature, sizeof(challenge_signature));
+	payload.request.operation = CITADEL_OP_DECLASSIFY;
+	memcpy(payload.request.signed_ptoken, get_signed_ptoken(), sizeof(payload.request.signed_ptoken));
+    memcpy(payload.metadata, path, length);
+	payload.translate = false;
+
+	bool success = ipc_transaction((unsigned char*)&payload, sizeof(struct citadel_op_extended_request));
+	if (success) {
+		citadel_printf("Declassified file: %s\n", path);
+	} else {
+		citadel_perror("Failed to declassify file: %s\n", path);
+	}
+	return success;
+}

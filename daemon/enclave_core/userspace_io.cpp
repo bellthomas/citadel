@@ -19,7 +19,7 @@ static citadel_response_t core_handle_request(int32_t pid, struct citadel_op_req
         // Create file
         enclave_printf("[#%d] File create.", pid);
         char id[_CITADEL_IDENTIFIER_LENGTH];
-        if (!generate_xattr_ticket((const char*)metadata, (char*)&id), true, false)
+        if (!generate_xattr_ticket((const char*)metadata, (char*)&id, true, false))
             result = CITADEL_OP_ERROR;
 
         // Also claim access for free.
