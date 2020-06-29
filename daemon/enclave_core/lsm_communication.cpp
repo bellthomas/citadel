@@ -164,13 +164,13 @@ static bool _generate_xattr_ticket(const char* path, bool internal, char *identi
 
     rcrd = (citadel_update_record_t *)(data + sizeof(citadel_update_header_t));
     rcrd->pid = 0;
-    rcrd->operation = (declassify ? CITADEL_OP_DECLASSIFY ? (taint ? CITADEL_OP_REGISTER : CITADEL_OP_NOP));
+    rcrd->operation = (declassify ? CITADEL_OP_DECLASSIFY : (taint ? CITADEL_OP_REGISTER : CITADEL_OP_NOP));
     if (internal && !declassify)
         memset(rcrd->identifier, 0xFF, sizeof(rcrd->identifier));
     else
         sgx_read_rand(rcrd->identifier, sizeof(rcrd->identifier));
         
-        
+
 
     // Encrypt.
     unsigned char cipher[sizeof(data) + 16];
