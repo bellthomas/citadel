@@ -25,3 +25,11 @@ Once initialised, build and install the kernel using ```make kernel``` (this may
 Before booting into the ```5.6.2-citadel``` kernel properly, the SGX driver needs to be installed for it as well. This can be achieved either by;
 - Booting into the new kernel (the reference monitor will fail to initialise), installing the driver and rebooting.
 - Modifying the driver's Makefile to target the new kernel's modules folder.
+
+### Dependencies
+This process currently isn't automated, but the following are required to build Citadel.
+
+1. The [sgx-gmp](https://github.com/intel/sgx-gmp) library resident at ```/opt/devel/sgx-gmp/libsgx_tgmp.a```
+2. A [sparsehash](https://github.com/sparsehash/sparsehash) installation resident at ```/opt/devel/sparsehash```
+
+libtomcrypt is provided internally, but depends on sgx-gmp being present.
