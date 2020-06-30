@@ -1,0 +1,4 @@
+[submodule "evaluation"]
+	path = evaluation
+	url = git@github.com:HarriBellThomas/citadel-evaluation.git
+	branch = master
