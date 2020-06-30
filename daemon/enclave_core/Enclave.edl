@@ -26,6 +26,10 @@ enclave {
             size_t ptoken_length
         ) transition_using_threads;
         public void protect_socket(void) transition_using_threads;
+
+        public sgx_status_t process_sealed_keys(
+            [in, size=length] uint8_t* data, size_t length
+        ) transition_using_threads;
     };
 
     untrusted {

@@ -12,10 +12,7 @@ Enclave_Impls := basic uflume
 LibTomCrypt_Folder := $(CWD)/enclave_core/crypto/ltc
 Install_Folder := /opt/citadel
 Scripts_Folder := scripts
-NNG_Include_Folder := /opt/playground/nng/include
-NNG_Library_Folder := /opt/devel/libnng
-
-
+CITADELDEBUG ?= 0
 
 ifeq ($(shell getconf LONG_BIT), 32)
 	SGX_ARCH := x86
@@ -47,6 +44,9 @@ else
 		SGX_COMMON_CFLAGS += -O2
 endif
 
+ifeq ($(CITADELDEBUG), 1)
+	SGX_COMMON_CFLAGS += -DCITADELDEBUG
+endif
 
 
 
@@ -60,6 +60,7 @@ ifneq ($(SGX_MODE), HW)
 else
 	Urts_Library_Name := sgx_urts
 endif
+
 
 App_Cpp_Files := $(App_Folder)/app.cpp \
 				 $(App_Folder)/sgx_utils/sgx_utils.cpp \
@@ -82,10 +83,11 @@ else
 		App_C_Flags += -DNDEBUG -UEDEBUG -UDEBUG
 endif
 
-App_Cpp_Flags := $(App_C_Flags) -std=c++11 -I/opt/playground/nng/include -I/opt/devel/sparsehash/src
+
+App_Cpp_Flags := $(App_C_Flags) -std=c++11 -I/opt/devel/sparsehash/src
 App_Link_Flags := $(SGX_COMMON_CFLAGS) -L$(SGX_LIBRARY_PATH) \
                   -Wl,--whole-archive  -lsgx_uswitchless -Wl,--no-whole-archive \
-                  -l$(Urts_Library_Name) -lpthread -L/opt/devel/libnng -lnng -pthread
+                  -l$(Urts_Library_Name) -lpthread -pthread
 
 ifneq ($(SGX_MODE), HW)
 	App_Link_Flags += -lsgx_uae_service_sim
@@ -99,12 +101,9 @@ App_Cpp_Objects := $(App_Cpp_Files:.cpp=.o)
 ######## Enclave Settings ########
 
 Enclave_Folder := enclave_core
-Enclave_Name := shouldnt be here
-# Enclave_Names := $(Build_Folder)/enclave.so
-Signed_Enclave_Name :=  shouldnt be here 2
 Enclave_Config_File := $(Enclave_Folder)/Enclave.config.xml
 
-ASM_Folder := asm_implementations
+ASM_Folder := policy_impls
 # Enclave_Impls := $(sort $(dir $(wildcard $(ASM_Folder)/*/)))
 # SUFIX=$(addprefix bin/,$(notdir $(SOURCES:.c=.o)))
 
@@ -161,7 +160,7 @@ all: $(App_Name) enclave install-app
 	@echo "You can also sign the enclave using an external signing tool. See User's Guide for more details."
 	@echo "To build the project in simulation mode set SGX_MODE=SIM. To build the project in prerelease mode set SGX_PRERELEASE=1 and SGX_MODE=HW."
 else
-all: $(App_Name) enclave install-app libcitadel/libcitadel.a userspace_demo/app
+all: $(App_Name) enclave install-app
 endif
 
 run: all
@@ -225,7 +224,7 @@ $(Build_Folder)/citadel.%.so: $(Enclave_Folder)/Enclave_t.o $(Enclave_Cpp_Object
 
 
 $(Build_Folder)/citadel.%.signed.so: $(Build_Folder)/citadel.%.so
-	@$(SGX_ENCLAVE_SIGNER) sign -key $(Enclave_Folder)/Enclave_private.pem -enclave $(Build_Folder)/citadel.$*.so -out $@ -config $(Enclave_Config_File)
+	@$(SGX_ENCLAVE_SIGNER) sign -key ../scripts/signer.pem -enclave $(Build_Folder)/citadel.$*.so -out $@ -config $(Enclave_Config_File)
 	@echo "SIGN =>  $@"
 
 
@@ -251,20 +250,10 @@ install: install-app install-daemon
 	
 
 
-.PHONY: clean enclave enclave-uflume libcitadel userspace_demo
+.PHONY: clean enclave enclave-uflume
 clean: 
 	@rm -rf $(App_Name) $(App_Cpp_Objects) $(App_Folder)/Enclave_u.* $(Enclave_Cpp_Objects) $(Enclave_Folder)/Enclave_t.* $(Enclave_Folder)/asm/*
 	@rm -rf $(Build_Folder)/*
-	@$(MAKE) --no-print-directory -C libcitadel clean
-	@$(MAKE) --no-print-directory -C userspace_demo clean
 
-libcitadel/libcitadel.a:
-	@echo "\n/libcitadel"
-	@$(MAKE) --no-print-directory -C libcitadel clean
-	@$(MAKE) --no-print-directory -C libcitadel
 
-userspace_demo/app:
-	@echo "\n/userspace_demo"
-	@$(MAKE) --no-print-directory -C userspace_demo clean
-	@$(MAKE) --no-print-directory -C userspace_demo
 

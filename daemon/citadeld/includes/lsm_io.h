@@ -16,6 +16,7 @@
 #include "app.h"
 
 extern bool lsm_register();
+extern bool fetch_sealed_keys();
 extern int trigger_process_updates();
 extern int install_xattr(const char *path, char *value, size_t size);
 

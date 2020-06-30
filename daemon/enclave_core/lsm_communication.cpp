@@ -1,12 +1,14 @@
 
 #include "includes/lsm_communication.h"
 
-#ifndef __CITADEL_ENCLAVE_KEYS
-#define __CITADEL_ENCLAVE_KEYS
-#include "enclave_keys.h"
-#endif
-
-static unsigned char aes_key[16] = {"\0"};
+static bool keys_loaded = false;
+static unsigned char aes_key[_CITADEL_AES_KEY_LENGTH] = {"\0"};
+static unsigned char enclave_key_priv[_CITADEL_KEY_PRIV_LEN] = {"\0"};
+static unsigned char enclave_key_padded_pub[_CITADEL_KEY_PUB_PAD_LEN] = {"\0"};
+static unsigned char enclave_key_pub[_CITADEL_KEY_PUB_LEN] = {"\0"};
+static unsigned char lsm_key_padded_pub[_CITADEL_KEY_PUB_PAD_LEN] = {"\0"};
+static unsigned char lsm_key_pub[_CITADEL_KEY_PUB_LEN] = {"\0"};
+static uint16_t enclave_key_priv_len = 0;
 
 sgx_status_t handle_kernel_challenge(uint8_t *challenge_data, size_t challenge_length, uint8_t *response_data, size_t response_length, int32_t pid)
 {
@@ -42,7 +44,7 @@ sgx_status_t handle_kernel_challenge(uint8_t *challenge_data, size_t challenge_l
     // Got a valid decrypted challenge.
     char name[] = "citadel.basic.so";
     memcpy(challenge->name, name, sizeof(name));
-    sgx_read_rand(aes_key, 16);
+    sgx_read_rand(aes_key, _CITADEL_AES_KEY_LENGTH);
     memcpy(challenge->key, aes_key, sizeof(aes_key));
     set_ptoken_aes_key(aes_key);
     challenge->pid = pid;
@@ -51,7 +53,7 @@ sgx_status_t handle_kernel_challenge(uint8_t *challenge_data, size_t challenge_l
     // print_hex((unsigned char*)challenge, sizeof(citadel_challenge_t));
     unsigned char cipher[_CITADEL_RSA_KEY_LENGTH];
     size_t outlen = _CITADEL_RSA_KEY_LENGTH;
-    err = rsa_encrypt((unsigned char *)challenge, sizeof(citadel_challenge_t), cipher, &outlen, lsm_key_padded_pub, lsm_key_padded_pub_len);
+    err = rsa_encrypt((unsigned char *)challenge, sizeof(citadel_challenge_t), cipher, &outlen, lsm_key_padded_pub, sizeof(lsm_key_padded_pub));
     if (err != 0)
         return (sgx_status_t)err;
     // print_hex(cipher, outlen);
@@ -147,7 +149,7 @@ int process_updates(uint8_t *update_data, size_t update_length)
 }
 
 
-static bool _generate_xattr_ticket(const char* path, bool internal, char *identifier)
+static bool _generate_xattr_ticket(const char* path, bool internal, char *identifier, bool taint, bool declassify)
 {
     // The +11 is to mitigate a bug in the SGX runtime.
     // Hypothesis: an illegal insturction is called if the stack frame isn't word-aligned (16 bytes).
@@ -161,16 +163,14 @@ static bool _generate_xattr_ticket(const char* path, bool internal, char *identi
     hdr->records = (uint8_t)1;
 
     rcrd = (citadel_update_record_t *)(data + sizeof(citadel_update_header_t));
-    rcrd->pid = 13;
-    rcrd->operation = 0;
-    if (internal)
+    rcrd->pid = 0;
+    rcrd->operation = (declassify ? CITADEL_OP_DECLASSIFY : (taint ? CITADEL_OP_REGISTER : CITADEL_OP_NOP));
+    if (internal && !declassify)
         memset(rcrd->identifier, 0xFF, sizeof(rcrd->identifier));
     else
         sgx_read_rand(rcrd->identifier, sizeof(rcrd->identifier));
-    // memset(rcrd->data, 2, sizeof(rcrd->data));
+        
 
-    // print_hex((unsigned char*)rcrd->subject, sizeof(rcrd->subject));
-    // print_hex((unsigned char*)data, sizeof(data));
 
     // Encrypt.
     unsigned char cipher[sizeof(data) + 16];
@@ -184,7 +184,7 @@ static bool _generate_xattr_ticket(const char* path, bool internal, char *identi
     if (install_ret == _CITADEL_XATTR_ACCEPTED_SIGNAL)
     {
         update_aes_key(hdr->key_update, sizeof(hdr->key_update));
-        if (identifier != NULL)
+        if (identifier != NULL && !declassify)
             memcpy(identifier, rcrd->identifier, sizeof(rcrd->identifier));
         return true;
     }
@@ -192,12 +192,48 @@ static bool _generate_xattr_ticket(const char* path, bool internal, char *identi
     return false;
 }
 
-bool generate_xattr_ticket(const char *path, char *identifier)
+bool generate_xattr_ticket(const char *path, char *identifier, bool taint, bool declassify)
 {
-    return _generate_xattr_ticket(path, false, identifier);
+    return _generate_xattr_ticket(path, false, identifier, taint, declassify);
 }
 
 bool generate_xattr_ticket_internal(const char *path)
 {
-    return _generate_xattr_ticket(path, true, NULL);
+    return _generate_xattr_ticket(path, true, NULL, true, false);
+}
+
+sgx_status_t process_sealed_keys(uint8_t* data, size_t length) {
+    uint32_t plaintext_len = _CITADEL_SEAL_MAXSIZE;
+    char plaintext[_CITADEL_SEAL_MAXSIZE];
+    uint32_t mac_len = (uint32_t)strlen(_CITADEL_SEAL_MAC);
+    char mac[] = _CITADEL_SEAL_MAC;
+    sgx_status_t status = sgx_unseal_data(
+        (const sgx_sealed_data_t*)data,
+        (uint8_t*)mac,
+        &mac_len,
+        (uint8_t*)plaintext,
+        &plaintext_len
+    );
+
+
+    // Load keys.
+    if (status == 0) {
+        size_t offset = 0;
+        memcpy((void*)&enclave_key_priv_len, plaintext, sizeof(uint16_t));
+        offset += sizeof(uint16_t);
+        memcpy(enclave_key_priv, plaintext + offset, enclave_key_priv_len);
+        offset += enclave_key_priv_len;
+        memcpy(enclave_key_padded_pub, plaintext + offset, _CITADEL_KEY_PUB_PAD_LEN);
+        offset += _CITADEL_KEY_PUB_PAD_LEN;
+        memcpy(enclave_key_pub, plaintext + offset, _CITADEL_KEY_PUB_LEN);
+        offset += _CITADEL_KEY_PUB_LEN;
+        memcpy(lsm_key_padded_pub, plaintext + offset, _CITADEL_KEY_PUB_PAD_LEN);
+        offset += _CITADEL_KEY_PUB_PAD_LEN;
+        memcpy(lsm_key_pub, plaintext + offset, _CITADEL_KEY_PUB_LEN);
+        offset += _CITADEL_KEY_PUB_LEN;
+
+        keys_loaded = true;
+    }
+
+    return status;
 }
