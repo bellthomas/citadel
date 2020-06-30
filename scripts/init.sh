@@ -8,6 +8,7 @@ KERNEL_TAR_ARCHIVE=${KERNEL_ARCHIVE%".xz"}
 KERNEL_VERSION=${KERNEL_ARCHIVE%".tar.xz"}
 CITADEL_KERNEL_FOLDER="$KERNEL_VERSION.citadel"
 UPDATE_MODE=0
+DEBUG=${1:-0}
 
 # Header.
 printf "\n//  Citadel Build Script  //\n\n"
@@ -63,39 +64,49 @@ mv $CITADEL_LSM_PATH/kernel.config "$KERNEL_SOURCE_PATH/$CITADEL_KERNEL_FOLDER/.
 mv $CITADEL_LSM_PATH/security.Kconfig "$KERNEL_SOURCE_PATH/$CITADEL_KERNEL_FOLDER/security/Kconfig"
 mv $CITADEL_LSM_PATH/security.Makefile "$KERNEL_SOURCE_PATH/$CITADEL_KERNEL_FOLDER/security/Makefile"
 
+if [ $DEBUG -eq 1 ]; then 
+    sed -i 's/ccflags-n += -DCITADELDEBUG/ccflags-y += -DCITADELDEBUG/' $CITADEL_LSM_PATH/Makefile
+fi
 printf "done.\n"
 
 
 # Generate keys.
 printf "Generating keys..."
-#openssl genrsa -3 -out $DIR/signer.pem 3072 > /dev/null 2>&1
+openssl genrsa -3 -out $DIR/signer.pem 3072 > /dev/null 2>&1
 $DIR/generate_keys.sh $SGX_SDK > /dev/null 2>&1
 cp $DIR/keys/lsm_keys.h "$CITADEL_LSM_PATH/includes"
-#cp $DIR/keys/enclave_keys.h $PARENT/daemon/enclave_core
 cp $DIR/keys/sealed_enclave_keys.h "$CITADEL_LSM_PATH/includes"
-rm -rf $DIR/keys
+#rm -rf $DIR/keys
 printf "done.\n"
 
 
 
 printf "\nBuilding libcitadel...\n"
 cd $PARENT/libcitadel
-make
+if [ $DEBUG -eq 1 ]; then 
+    make CFLAGS="-D CITADELDEBUG"
+else
+    make
+fi
 cd $PARENT
 printf "Done.\n"
 
 printf "\nBuilding citadeld...\n"
 cd $PARENT/daemon
-make SGX_SDK=$SGX_SDK
+if [ $DEBUG -eq 1 ]; then 
+    make SGX_SDK=$SGX_SDK CITADELDEBUG=1
+else
+    make SGX_SDK=$SGX_SDK
+fi
 cd $PARENT
 printf "Done.\n"
 
-#rm $DIR/signer.pem
+rm $DIR/signer.pem
 cd $DIR
 
 echo -e "\n"
 echo "Next steps:"
-echo "    1. Build and install the kernel ('sudo make kernel', this will take a while to complete)."
+echo "    1. Build and install the kernel ('make kernel', this will take a while to complete)."
 echo "    2. Install isgx for the new kernel."
 echo "       Either modify the driver's Makefile or boot to the new kernel, install it there, then restart."
 echo "       isgx will hopefully be adopted into the kernel mainline in future, making this step unnecessary."

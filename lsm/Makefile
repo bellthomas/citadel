@@ -15,7 +15,7 @@ obj-y := \
 		 
 
 # Set to ccflags-y to enable debug logging in dmesg.
-ccflags-y += -DCITADELDEBUG
+ccflags-n += -DCITADELDEBUG
 
 # Ensure that we have the requisite RSA keys.
 $(obj)/src/crypto/rsa.o: $(obj)/includes/lsm_keys.h

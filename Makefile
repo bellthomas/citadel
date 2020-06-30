@@ -1,6 +1,7 @@
+DEBUG ?= 0
 
 main:
-	@./scripts/init.sh
+	@./scripts/init.sh $(DEBUG)
 
 kernel:
 	@./scripts/build_kernel.sh

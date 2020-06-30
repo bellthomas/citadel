@@ -12,7 +12,7 @@ Enclave_Impls := basic uflume
 LibTomCrypt_Folder := $(CWD)/enclave_core/crypto/ltc
 Install_Folder := /opt/citadel
 Scripts_Folder := scripts
-
+CITADELDEBUG ?= 0
 
 ifeq ($(shell getconf LONG_BIT), 32)
 	SGX_ARCH := x86
@@ -44,6 +44,9 @@ else
 		SGX_COMMON_CFLAGS += -O2
 endif
 
+ifeq ($(CITADELDEBUG), 1)
+	SGX_COMMON_CFLAGS += -DCITADELDEBUG
+endif
 
 
 
@@ -57,6 +60,7 @@ ifneq ($(SGX_MODE), HW)
 else
 	Urts_Library_Name := sgx_urts
 endif
+
 
 App_Cpp_Files := $(App_Folder)/app.cpp \
 				 $(App_Folder)/sgx_utils/sgx_utils.cpp \
@@ -79,6 +83,7 @@ else
 		App_C_Flags += -DNDEBUG -UEDEBUG -UDEBUG
 endif
 
+
 App_Cpp_Flags := $(App_C_Flags) -std=c++11 -I/opt/devel/sparsehash/src
 App_Link_Flags := $(SGX_COMMON_CFLAGS) -L$(SGX_LIBRARY_PATH) \
                   -Wl,--whole-archive  -lsgx_uswitchless -Wl,--no-whole-archive \
@@ -96,9 +101,6 @@ App_Cpp_Objects := $(App_Cpp_Files:.cpp=.o)
 ######## Enclave Settings ########
 
 Enclave_Folder := enclave_core
-Enclave_Name := shouldnt be here
-# Enclave_Names := $(Build_Folder)/enclave.so
-Signed_Enclave_Name :=  shouldnt be here 2
 Enclave_Config_File := $(Enclave_Folder)/Enclave.config.xml
 
 ASM_Folder := policy_impls
