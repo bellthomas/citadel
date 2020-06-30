@@ -4,7 +4,8 @@
 
 ## Citadel — Trusted Reference Monitors for Linux using Intel SGX Enclaves
 
-> Disclaimer: This is a research prototype and not intended for production environments.
+> Disclaimer: This is a research prototype and not intended for production environments. \
+> Thesis: [https://www.cl.cam.ac.uk/~ahb36/citadel.pdf](https://www.cl.cam.ac.uk/~ahb36/citadel.pdf)
 
 ### Abstract
 Information Flow Control (IFC) is a powerful tool for protecting data in a computersystem, enforcing not only who may access it, but also how it may be used throughout its lifespan. Intel’s Software Guard Extension (SGX) affords complementary protection, providing a general-purpose Trusted Execution Environment for applications and their data. To date, no work has been conducted considering the overlap between the two, and how they may mutually reinforce each other.
